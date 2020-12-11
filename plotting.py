@@ -4,8 +4,11 @@ import matplotlib.gridspec as gridspec
 import matplotlib.animation as animation
 from matplotlib import cm
 from math import ceil, sqrt
+from pathlib import Path
 
-class BasicPlot(object):
+savedir = Path('./videos')
+
+class SpatialPlot(object):
     def __init__(
             self, input, plot_data,
             num_cells_to_plot, fps, select_cells, save_filename
@@ -20,7 +23,7 @@ class BasicPlot(object):
                 )
         else:
             self.select_cells_to_plot = select_cells
-        self.save_filename = save_filename
+        self.save_filename = savedir / save_filename
         self.init_plot()
 
     def init_plot(self):
@@ -112,4 +115,8 @@ class BasicPlot(object):
         limits = np.percentile(nonnan_vals, [limits[0], limits[1]])
         heatmap = np.clip(heatmap, limits[0], limits[1])
         return heatmap
+
+class SpaceEpisodePlot(object):
+    def __init__(self):
+        pass
 

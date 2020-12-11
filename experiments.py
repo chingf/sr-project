@@ -9,7 +9,8 @@ def random_walk():
         }
     plot_params = {
         'num_cells_to_plot': 25, 'history_size': input.num_steps, 'fps': 3,
-        'save_filename': 'random_walk.mp4', 'select_cells': None
+        'save_filename': 'random_walk.mp4', 'select_cells': None,
+        'num_frames': 300
         }
     return input, sr_params, plot_params
 
@@ -21,7 +22,7 @@ def rby_xywalk():
     plot_params = {
         'num_cells_to_plot': 25, 'history_size': input.num_steps, 'fps': 3,
         'save_filename': 'rby_xywalk.mp4',
-        'select_cells': input.sorted_states[:25]
+        'select_cells': input.sorted_states[:25], 'num_frames': 300
         }
     return input, sr_params, plot_params
 
@@ -35,7 +36,7 @@ def lmn_xywalk():
     plot_params = {
         'num_cells_to_plot': 25, 'history_size': input.num_steps, 'fps': 10,
         'save_filename': 'lmn_xywalk_fast.mp4',
-        'select_cells': input.sorted_states[:25]
+        'select_cells': input.sorted_states[:25], 'num_frames': 300
         }
     return input, sr_params, plot_params
 
@@ -49,7 +50,7 @@ def lmn_xyhop():
     plot_params = {
         'num_cells_to_plot': 25, 'history_size': input.num_steps, 'fps': 10,
         'save_filename': 'lmn_xyhop.mp4',
-        'select_cells': input.sorted_states[:25]
+        'select_cells': input.sorted_states[:25], 'num_frames': 300
         }
     return input, sr_params, plot_params
 
@@ -61,7 +62,7 @@ def fakecache_walk():
     plot_params = {
         'num_cells_to_plot': 25, 'history_size': input.num_steps, 'fps': 10,
         'save_filename': 'fakecache_walk.mp4',
-        'select_cells': input.sorted_states[:25]
+        'select_cells': input.sorted_states[:25], 'num_frames"': 300
         }
     return input, sr_params, plot_params
 

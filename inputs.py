@@ -155,24 +155,26 @@ class LMNXYHop(object):
         return states, xs, ys
 
 class FakeCacheWalk(object):
+    """
+    The last 16 states will represent the 16 cache sites. Zs represent a third,
+    context-dependent axis
+    """
+
     def __init__(self, num_states, downsample_factor):
-        self.fakexy = 40
         f = h5py.File(h5_path_dict['RBY45'][3].as_posix(), 'r')
         self.exp_data = ExpData(f)
         self.xmin = 0; self.xmax = 450
         self.ymin = 0; self.ymax = 450
         self.downsample_factor = downsample_factor
-        self.num_states = int((ceil(sqrt(num_states)) + 1)**2)
+        self.num_states = int((ceil(sqrt(num_states)) + 1)**2) + 16
         self.num_xybins = int(sqrt(self.num_states))
-        self.states, self.xs, self.ys = self._walk()
+        self.states, self.xs, self.ys, self.zs = self._walk()
         self.num_steps = self.states.size
         state_bincounts = np.bincount(self.states)
-        fakesite = self.get_states(
-            np.array([self.fakexy]), np.array([self.fakexy]))[0]
         state_bincounts[fakesite] = state_bincounts.max() + 1
         self.sorted_states = np.argsort(-state_bincounts).squeeze()
 
-    def get_xybins(self, states):
+    def get_xybins(self, states): # TODO: decide on a convention for this
         xbins, ybins = np.unravel_index(states, (self.num_xybins, self.num_xybins))
         return xbins, ybins
 
@@ -185,21 +187,16 @@ class FakeCacheWalk(object):
     def _walk(self):
         xs = self.exp_data.x
         ys = self.exp_data.y
-        high_speed = self.exp_data.speeds > 10
-        speed_valid = []
-        for idx in np.arange(xs.size):
-            if np.any(high_speed[idx-5:idx+6]):
-                speed_valid.append(True)
-            else:
-                speed_valid.append(False)
-        speed_valid = np.array(speed_valid)
-        events = [3, 7]
-        for event in events:
-            start = self.exp_data.event_hops[event]
+        zs = np.zeros(xs.size)
+        valid_frame = np.zeros(xs.size).astype(bool)
+        for idx, hop_end in enumerate(self.exp_data.hop_ends):
+            end = min(self.exp_data.hop_starts[idx+1], hop_end+10)
+            valid_frame[hop_end:end] = True
+        for idx, poke in self.exp_data.event_pokes:
+            if self.exp_data.check_event[idx]: continue
             end = self.exp_data.hop_starts[np.argwhere(self.exp_data.hops==start).item()+1]
-            xs[start:end] = self.fakexy
-            ys[start:end] = self.fakexy
-            speed_valid[start:end] = True
+            valid_frame[start:end] = True
+            zs[start:end] = 1
         xs = xs[speed_valid]
         ys = ys[speed_valid]
         if self.downsample_factor is not None:
