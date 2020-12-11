@@ -10,13 +10,12 @@ savedir = Path('./videos')
 
 class SpatialPlot(object):
     def __init__(
-            self, input, plot_data,
+            self, input,
             num_cells_to_plot, fps, select_cells, save_filename
             ):
         self.input = input
         self.num_cells_to_plot = ceil(sqrt(num_cells_to_plot))**2
         self.fps = fps
-        self.plot_data = plot_data
         if select_cells is None:
             self.select_cells_to_plot = np.random.choice(
                 self.input.num_states, self.num_cells_to_plot
@@ -25,6 +24,9 @@ class SpatialPlot(object):
             self.select_cells_to_plot = select_cells
         self.save_filename = savedir / save_filename
         self.init_plot()
+
+    def set_data(self, plot_data):
+        self.plot_data = plot_data
 
     def init_plot(self):
         fig = plt.figure() 
@@ -74,7 +76,7 @@ class SpatialPlot(object):
         plt.show()
 
     def update(self, frame):
-        M, U, M_hat, xs, ys = self.plot_data[frame]
+        _, _, M, U, M_hat, xs, ys, _ = self.plot_data[frame]
         self.line1.set_data(xs, ys)
         self.im2.set_data(self._format_into_heatmap(M))
         self.im2.autoscale()
@@ -99,24 +101,14 @@ class SpatialPlot(object):
             cells_to_plot= np.arange(self.num_cells_to_plot)
         for idx, cell in enumerate(cells_to_plot):
             vec = mat[:, cell]
-            xbins, ybins = self.input.get_xybins(np.arange(vec.size))
-            cell_heatmap = np.zeros(
-                (self.input.num_xybins, self.input.num_xybins)
-                )
-            for i, (xbin, ybin) in enumerate(zip(xbins, ybins)):
-                cell_heatmap[xbin, ybin] += vec[i]
+            cell_heatmap = self.input.unravel_state_vector(vec)
             start_row = int((idx//num_blocks) * (self.input.num_xybins+1))
             end_row = int(start_row + self.input.num_xybins)
             start_col = int((idx%num_blocks) * (self.input.num_xybins+1))
             end_col = int(start_col + self.input.num_xybins)
-            cell_heatmap = cell_heatmap
+            cell_heatmap = cell_heatmap.squeeze()
             heatmap[start_row:end_row, start_col:end_col] = np.flipud(cell_heatmap)
         nonnan_vals = heatmap[np.logical_not(np.isnan(heatmap))].flatten()
         limits = np.percentile(nonnan_vals, [limits[0], limits[1]])
         heatmap = np.clip(heatmap, limits[0], limits[1])
         return heatmap
-
-class SpaceEpisodePlot(object):
-    def __init__(self):
-        pass
-

@@ -12,11 +12,17 @@ def downsample(vector, factor):
     downsamp_vec = np.nanmean(padded_vec.reshape((-1, factor)), axis=1)
     return downsamp_vec   
 
-def get_sr_features(A, sr_params):
+def get_sr(T, gamma):
+    D = np.diag(T @ np.ones(T.shape[0]))
+    P = np.linalg.inv(D) @ T
+    M = np.linalg.pinv(np.eye(P.shape[0]) - gamma*P)
+    return M
+
+def get_sr_features(T, sr_params):
     gamma = sr_params['gamma']
     recon_dim = sr_params['recon_dim']
-    D = np.diag(A @ np.ones(A.shape[0]))
-    P = np.linalg.inv(D) @ A
+    D = np.diag(T @ np.ones(T.shape[0]))
+    P = np.linalg.inv(D) @ T
     M = np.linalg.pinv(np.eye(P.shape[0]) - sr_params['gamma']*P)
     U, S, V = np.linalg.svd(M)
     M_hat = np.dot(U[:,:recon_dim]*S[:recon_dim], V[:recon_dim,:])
