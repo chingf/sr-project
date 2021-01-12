@@ -101,12 +101,11 @@ class SpatialPlot(object):
             cells_to_plot= np.arange(self.num_cells_to_plot)
         for idx, cell in enumerate(cells_to_plot):
             vec = mat[:, cell]
-            cell_heatmap = self.input.unravel_state_vector(vec)
+            cell_heatmap, _ = self.input.unravel_state_vector(vec)
             start_row = int((idx//num_blocks) * (self.input.num_xybins+1))
             end_row = int(start_row + self.input.num_xybins)
             start_col = int((idx%num_blocks) * (self.input.num_xybins+1))
             end_col = int(start_col + self.input.num_xybins)
-            cell_heatmap = cell_heatmap.squeeze()
             heatmap[start_row:end_row, start_col:end_col] = np.flipud(cell_heatmap)
         nonnan_vals = heatmap[np.logical_not(np.isnan(heatmap))].flatten()
         limits = np.percentile(nonnan_vals, [limits[0], limits[1]])
