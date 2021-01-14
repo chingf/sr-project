@@ -1,15 +1,18 @@
 import numpy as np
 import modules
 
-class AnalyticSR(object):
+class AnalyticSR(object): #TODO: add function for forgetting/erasing states
     def __init__(self, gamma, num_states):
         self.dg = modules.DG()
         self.ca3 = modules.CA3(gamma, num_states)
         self.num_states = num_states
+        self.prev_input = None # tracks input from one timestep ago
 
-    def forward(self, input, step=0):
+    def forward(self, input, update=True):
         dg_out = self.dg.forward(input, step)
         ca3_out = self.ca3.forward(input)
+        if update:
+            self.update(input)
         return dg_out, ca3_out
 
     def query(self, query_input, prev_input):
@@ -25,5 +28,7 @@ class AnalyticSR(object):
                 input = ca3_out
         return dg_out, ca3_out
 
-    def update(self, input, prev_input):
-        self.ca3.update(input, prev_input)
+    def update(self, input):
+        if self.prev_input is None: return
+        self.ca3.update(input, self.prev_input)
+        self.prev_input = input

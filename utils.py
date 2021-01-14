@@ -51,7 +51,7 @@ def debug_plot(state_vector, input, title):
         anchor_point = np.unravel_index([wedge_states[cache]], context_mat.shape)
         anchor_point = [anchor_point[1] - 0.5, anchor_point[0] - 0.5]
         rect = patches.Rectangle(
-            anchor_point, 1, 1, linewidth=1.5, edgecolor='k', facecolor='none'
+            anchor_point, 1, 1, linewidth=1.5, edgecolor='red', facecolor='none'
             )
         ax2.add_patch(rect)
 
