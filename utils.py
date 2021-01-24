@@ -34,7 +34,9 @@ def debug_plot(state_vector, input, title):
     spatial_mat, context_vec = input.unravel_state_vector(state_vector)
     context_vec = context_vec.squeeze()
     vmax = np.max([spatial_mat.max(), context_vec.max()])
-    context_mat = np.zeros(input.num_spatial_states)*np.nan
+    if vmax == 0:
+        vmax = 1
+    context_mat = np.zeros(input.num_spatial_states)#*np.nan
     wedge_states, cache_interactions = input.get_rel_vars()
     context_mat[wedge_states] = context_vec
     context_mat = context_mat.reshape(spatial_mat.shape)
@@ -47,13 +49,17 @@ def debug_plot(state_vector, input, title):
     im2 = ax2.imshow(context_mat, vmin=0, vmax=vmax)
     ax2.set_xticks([]); ax2.set_yticks([]); ax2.set_title("Cache Dim")
     for cache, interaction_amt in enumerate(cache_interactions):
-        if interaction_amt == 0: continue
+        edgecolor = 'red' if interaction_amt > 0 else 'gray'
         anchor_point = np.unravel_index([wedge_states[cache]], context_mat.shape)
         anchor_point = [anchor_point[1] - 0.5, anchor_point[0] - 0.5]
-        rect = patches.Rectangle(
-            anchor_point, 1, 1, linewidth=1.5, edgecolor='red', facecolor='none'
+        rect1 = patches.Rectangle(
+            anchor_point, 1, 1, linewidth=1.5, edgecolor='gray', facecolor='none'
             )
-        ax2.add_patch(rect)
+        rect2 = patches.Rectangle(
+            anchor_point, 1, 1, linewidth=1.5, edgecolor=edgecolor, facecolor='none'
+            )
+        ax1.add_patch(rect1)
+        ax2.add_patch(rect2)
 
     fig.subplots_adjust(right=0.85)
     cbar_ax = fig.add_axes([0.88, 0.15, 0.04, 0.7])
