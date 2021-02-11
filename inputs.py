@@ -6,72 +6,39 @@ from utils import pol2cart, downsample
 from analysis.config import h5_path_dict
 from analysis.ExpData import ExpData
 
-class RBYXYWalk(object):
-    def __init__(self, num_states, downsample_factor):
-        f = h5py.File(h5_path_dict['RBY45'][3].as_posix(), 'r')
-        self.exp_data = ExpData(f)
-        self.xmin = 0; self.xmax = 425
-        self.ymin = 0; self.ymax = 425
-        self.downsample_factor = downsample_factor
-        self.num_states = int((ceil(sqrt(num_states)) + 1)**2)
-        self.num_xybins = int(sqrt(self.num_states))
+## Artificial Simulations
+
+class SimWalk(object):
+    """
+    Simulates a walk around a 16-wedge circle in one direction
+    """
+
+    def __init__(
+            self, num_steps, stay_to_hop_ratio=3
+            ):
+
+        self.num_steps = num_steps
+        self.stay_to_hop_ratio = stay_to_hop_ratio
+        self.num_states = self.num_spatial_states = 16
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
-        self.num_steps = self.dg_inputs.shape[1]
-        self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
-
-    def unravel_state_vector(self, state_vector):
-        """
-        Given (num_states, ) vector of state activation, returns
-        (xybins, xybins) size matrix useful for visualization.
-        Since this is a spatial only task, the second returned matrix (which
-        indicates a different contex) is irrelevant.
-        """
-
-        unraveled_res = np.zeros((self.num_xybins, self.num_xybins))
-        xbins, ybins = np.unravel_index(
-            np.arange(self.num_states), (self.num_xybins, self.num_xybins)
-            )
-        unraveled_res[xbins, ybins] = state_vector
-        return unraveled_res, None
-
-    def get_onehot_states(self, xs, ys, zs):
-        """
-        Given (T,) size xyz vectors, returns (num_states, T) one-hot encoding
-        of the associated state at each time point.
-        """
-
-        encoding = np.zeros((self.num_states, xs.size))
-        _, _, _, states = binned_statistic_2d(
-            xs, ys, xs, bins=self.num_xybins-2
-            )
-        encoding[states, np.arange(states.size)] = 1
-        return encoding
 
     def _walk(self):
-        xs = self.exp_data.x
-        ys = self.exp_data.y
-        valid_frames = np.zeros(xs.size).astype(bool)
-        for idx, hop_end in enumerate(self.exp_data.hop_ends):
-            if idx+1 < self.exp_data.hop_starts.size:
-                next_hop_start = self.exp_data.hop_starts[idx+1]
-            else:
-                next_hop_start = self.exp_data.num_frames
-            end = min(next_hop_start, hop_end+40)
-            valid_frames[hop_end:end] = True
-        xs = xs[valid_frames]
-        ys = ys[valid_frames]
-        if self.downsample_factor is not None:
-            xs = downsample(xs, self.downsample_factor)
-            ys = downsample(ys, self.downsample_factor)
-        zs = np.zeros(xs.size)
-        dg_inputs = self.get_onehot_states(xs, ys, zs)
-        dg_modes = np.zeros(xs.size)
+        curr_state = 0
+        dg_inputs = np.zeros((self.num_states, self.num_steps))
+        dg_modes = np.zeros((self.num_steps))
+        xs = np.zeros(self.num_steps)
+        ys = np.zeros(self.num_steps)
+        zs = np.zeros(self.num_steps)
+        for step in np.arange(self.num_steps):
+            if step % self.stay_to_hop_ratio == 0:
+                curr_state = (curr_state + 1)%16
+            ys[step] = curr_state
+            dg_inputs[curr_state, step] = 1
         return dg_inputs, dg_modes, xs, ys, zs
 
 class SimCacheWalk(object): #TODO
     """
     Simulates a walk around a 16-wedge circle with evenly spaced caches made.
-    User provides parameters of simulation
     """
 
     def __init__(
@@ -207,6 +174,71 @@ class SimCacheWalk(object): #TODO
             ys = downsample(ys, downsample_factor)
             zs = downsample(zs, downsample_factor)
 
+        return dg_inputs, dg_modes, xs, ys, zs
+
+
+## Experiment Simulations
+
+class RBYXYWalk(object):
+    def __init__(self, num_states, downsample_factor):
+        f = h5py.File(h5_path_dict['RBY45'][3].as_posix(), 'r')
+        self.exp_data = ExpData(f)
+        self.xmin = 0; self.xmax = 425
+        self.ymin = 0; self.ymax = 425
+        self.downsample_factor = downsample_factor
+        self.num_states = int((ceil(sqrt(num_states)) + 1)**2)
+        self.num_xybins = int(sqrt(self.num_states))
+        self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+        self.num_steps = self.dg_inputs.shape[1]
+        self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
+
+    def unravel_state_vector(self, state_vector):
+        """
+        Given (num_states, ) vector of state activation, returns
+        (xybins, xybins) size matrix useful for visualization.
+        Since this is a spatial only task, the second returned matrix (which
+        indicates a different contex) is irrelevant.
+        """
+
+        unraveled_res = np.zeros((self.num_xybins, self.num_xybins))
+        xbins, ybins = np.unravel_index(
+            np.arange(self.num_states), (self.num_xybins, self.num_xybins)
+            )
+        unraveled_res[xbins, ybins] = state_vector
+        return unraveled_res, None
+
+    def get_onehot_states(self, xs, ys, zs):
+        """
+        Given (T,) size xyz vectors, returns (num_states, T) one-hot encoding
+        of the associated state at each time point.
+        """
+
+        encoding = np.zeros((self.num_states, xs.size))
+        _, _, _, states = binned_statistic_2d(
+            xs, ys, xs, bins=self.num_xybins-2
+            )
+        encoding[states, np.arange(states.size)] = 1
+        return encoding
+
+    def _walk(self):
+        xs = self.exp_data.x
+        ys = self.exp_data.y
+        valid_frames = np.zeros(xs.size).astype(bool)
+        for idx, hop_end in enumerate(self.exp_data.hop_ends):
+            if idx+1 < self.exp_data.hop_starts.size:
+                next_hop_start = self.exp_data.hop_starts[idx+1]
+            else:
+                next_hop_start = self.exp_data.num_frames
+            end = min(next_hop_start, hop_end+40)
+            valid_frames[hop_end:end] = True
+        xs = xs[valid_frames]
+        ys = ys[valid_frames]
+        if self.downsample_factor is not None:
+            xs = downsample(xs, self.downsample_factor)
+            ys = downsample(ys, self.downsample_factor)
+        zs = np.zeros(xs.size)
+        dg_inputs = self.get_onehot_states(xs, ys, zs)
+        dg_modes = np.zeros(xs.size)
         return dg_inputs, dg_modes, xs, ys, zs
 
 class RBYCacheWalk(object):

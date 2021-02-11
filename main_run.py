@@ -6,9 +6,12 @@ import experiments
 import plotting
 from utils import get_sr_features, debug_plot
 
+import matplotlib.pyplot as plt
+
 experiments_dict = { # Possible experiments to run
     "rbyxywalk": experiments.rby_xywalk,
-    "rbycachewalk": experiments.rby_cachewalk
+    "rbycachewalk": experiments.rby_cachewalk,
+    "sim_walk":experiments.sim_walk
     }
 
 parser = argparse.ArgumentParser() # Parse user-provided arguments
@@ -26,7 +29,7 @@ plot_Mhats = []
 plot_xs = []
 plot_ys = []
 for step in np.arange(input.num_steps):
-    dg_input = inputs.dg_inputs[:, step]
+    dg_input = input.dg_inputs[:, step]
     dg_mode = input.dg_modes[step]
     prev_dg_mode = input.dg_modes[step-1] if step != 0 else np.nan
 
@@ -34,9 +37,14 @@ for step in np.arange(input.num_steps):
         dg_out, ca3_out = model.forward(dg_input)
     elif (dg_mode == 1) and (prev_dg_mode == 0): # Query Mode
         dg_out, ca3_out = model.query(dg_input)
+    if step % 40 == 0 and step != 0:
+        plt.figure(); plt.imshow(model.ca3.allX); plt.show()
+        plt.figure(); plt.imshow(model.ca3.get_T()); plt.colorbar();plt.show()
+        plt.figure(); plt.imshow(model.ca3.get_real_T()); plt.colorbar();plt.show()
+        import pdb; pdb.set_trace()
 
     if step in plot_params['plot_frames']: # If frame is included in animation
-        M, U, M_hat = get_sr_features(model.ca3.T, sr_params)
+        M, U, M_hat = get_sr_features(model.ca3.get_T(), sr_params)
         history_start = max(0, step - plot_params['history_size'])
         for _ in range(plot_count):
             plot_data.append([
