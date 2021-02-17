@@ -40,119 +40,123 @@ class STDP_Net(object):
         k(x) = -A_neg * exp{x/tau_neg} for x < 0
         where x = t_post - t_pre
     Notably, J = T^T where T is the SR transition matrix since J follows the
-    convention of (to, from) for value (i, j). The learning rate of the update
-    equation is removed as it can equivalently be pushed to A_pos and A_neg
+    convention of (to, from) for value (i, j).
     """
 
     def __init__(
             self, num_states,
-            A_pos=0.1, tau_pos=1, A_neg=0.1, tau_neg=1, k_len=5
+            A_pos=0.5, tau_pos=0.3, A_neg=0., tau_neg=1,
+            dt=0.1, decay_scale=0., tau_J=1,
+            self_potentiation=0.03,
+            global_inhib=0., activity_ceil=100
             ):
 
         self.J = np.clip(0.01*np.random.rand(num_states, num_states), 0, 1)
+        self.B_pos = np.zeros(num_states)
+        self.B_neg = np.zeros(num_states)
+        self.neuron_gain = np.ones(num_states)
         self.num_states = num_states
+
         self.A_pos = A_pos
         self.tau_pos = tau_pos
         self.A_neg = A_neg
         self.tau_neg = tau_neg
-        self.k_len = (k_len//2)*2 + 1 #Ensures k_len is an odd number
-        self.X_len = self.k_len
-        self.k = self.get_stdp_kernel()
-        self.X = np.zeros((num_states, self.X_len))*np.nan
-        self.allX = np.zeros((num_states, 40*8))
-        self.allX_t = 0
-        self.update_t = -1
-        self.real_T = 0.001*np.random.rand(num_states, num_states)
+        self.dt = dt
+        self.decay_scale = decay_scale
+        self.tau_J = tau_J
+        self.self_potentiation = self_potentiation
+        self.global_inhib = global_inhib
+        self.activity_ceil = activity_ceil
+
         self.curr_input = None
         self.prev_input = None
+
+        # Below variables are useful for debugging
+        self.real_T = 0.001*np.random.rand(num_states, num_states)
+        self.X = np.zeros(num_states)*np.nan
+        self.allX = np.zeros((num_states, 40*8))
+        self.allX_t = 0
         self.all_updates = []
-        self.synapse_count = np.zeros(self.J.shape)
+        self.synapse_count = np.zeros(self.J.shape) # Refractory period?
     
     def forward(self, input):
+        """ Returns activity of network given input. """
+
         M_hat = self.get_M_hat()
-        activity = M_hat @ (input-0.2) # TODO: param inhib
-        activity = np.clip(activity, 0, 1.5) # TODO Param: Clip
-        self.X[:,:-1] = self.X[:, 1:]
-        self.X[:,-1] = activity
+        activity = M_hat @ (input-self.global_inhib)
+        activity = np.clip(activity, 0, self.activity_ceil)
+        self.prev_input = np.copy(self.curr_input)
+        self.curr_input = input
+        self.X = activity
+
+        # Update variables for debugging purposes
         self.allX[:,self.allX_t] = activity
         self.allX_t += 1
 
-        self.prev_input = np.copy(self.curr_input)
-        self.curr_input = input
         return activity
 
     def update(self):
-        self.update_t += 1
-        # Update input as pre-synaptic activation
-        if np.isnan(self.X[0,0]): return # Ensure queue is full
-        printed = False
-        updates = np.zeros(self.J.shape)
+        """ Plasticity update """
+
+        if self.prev_input.shape == (): return
+
+        for k in np.arange(self.num_states):
+            self._update_B_pos(k)
+            self._update_B_neg(k)
+
         for i in np.arange(self.num_states):
-            for j in np.arange(i, min(self.num_states, i+2)):
-                if not (self.X[i,-1] > 1e-3 or self.X[j,-1] > 1e-3):
-                    continue
-                xcorr = np.correlate(self.X[i], self.X[j], 'same')
-                upd = np.dot(xcorr, self.k)
-                if abs(upd) < 8e-2: continue
-                if i == j:
-                    if self.synapse_count[i,i] <= 0:
-                        self_pot = 0.7
-                        self.J[i,i] += self_pot
-                        updates[i,i] = self_pot
-                        self.synapse_count[i,i] = 0
-                else:
-                    if self.synapse_count[i,j] <= 0:
-                        self.J[i,j] += min(np.dot(xcorr, self.k), 0.2)
-                        updates[i,j] = min(np.dot(xcorr, self.k), 0.2)
-                        self.synapse_count[i,j] = 0
-                    if self.synapse_count[j,i] <= 0:
-                        self.J[j,i] += min(np.dot(xcorr, self.k[::-1]), 0.2)
-                        updates[j,i] = min(np.dot(xcorr, self.k[::-1]), 0.2)
-                        self.synapse_count[j,i] = 0
-                self.all_updates.append(upd)
-                self.all_updates.append(np.dot(xcorr, self.k[::-1]))
+            for j in np.arange(self.num_states):
+                self._update_J_ij(i, j)
+
+        for k in np.arange(self.num_states):
+            self._update_neuron_gain(k)
                 
-                if False: 
-                    print(f'ij update: {np.dot(xcorr, self.k)}')
-                    print(f'ji update: {np.dot(xcorr, self.k[::-1])}')
-                    print()
-                    fig, axs = plt.subplots(5, 1, figsize=(4, 9))
-                    axs[0].plot(self.X[i])
-                    axs[0].set_ylim(0, 1)
-                    axs[0].set_title(f'Neuron i={i}')
-                    axs[1].plot(self.X[j])
-                    axs[1].set_ylim(0, 1)
-                    axs[1].set_title(f'Neuron j={j}')
-                    axs[2].plot(xcorr)
-                    axs[2].set_title('Cross correlation')
-                    axs[3].plot(self.k)
-                    axs[3].set_title('Kernel')
-                    axs[4].imshow(self.X)
-                    plt.tight_layout(h_pad=5)
-                    plt.show(block=False)
-                    printed = True
-        #plt.figure(); plt.imshow(self.allX[:,:self.update_t]);plt.show()
-        #plt.figure();plt.imshow(updates);plt.show()
-        #import pdb; pdb.set_trace()
-        self.J = np.clip(self.J, 0, 1)
-        self.J = self.J/np.sum(self.J, axis=0)
-        self.real_T[self.curr_input>0, self.prev_input>0] += 1
-        self.synapse_count -= 1
+        self.real_T[self.prev_input>0, self.curr_input>0] += 1
 
     def get_stdp_kernel(self):
-        k = np.zeros(self.k_len)
-        half_len = self.k_len//2
+        """ Returns plasticity kernel for plotting or debugging. """
+
+        k_len = 15
+        k = np.zeros(k_len)
+        half_len = k_len//2
         k[:half_len] = -self.A_neg * np.exp(np.arange(-half_len, 0)/self.tau_neg)
         k[-half_len-1:] = self.A_pos * np.exp(-1*np.arange(half_len+1)/self.tau_pos)
-        plt.figure(); plt.plot(k); plt.show()
         return k
 
     def get_M_hat(self):
-        return np.linalg.pinv(np.eye(self.J.shape[0]) - self.J)
+        """ Inverts the learned T matrix to get putative M matrix """
+
+        T = self.get_T()
+        return np.linalg.pinv(np.eye(T.shape[0]) - T.T)
 
     def get_T(self):
-        return self.J
+        """ Returns the learned T matrix, where T = J^T. """
+
+        return (self.J * self.neuron_gain).T
 
     def get_real_T(self):
-        return self.real_T/np.sum(self.real_T, axis=0)
+        """ Returns the ideal T matrix """
+
+        return self.real_T/np.sum(self.real_T, axis=1)
+
+    def _update_J_ij(self, i, j):
+        decay = 1 - self.decay_scale*self.dt
+        if i == j:
+            self.J[i,j] = decay*self.J[i,j] + self.X[i]*self.self_potentiation
+        else:
+            potentiation = (self.dt/self.tau_J) * self.X[i] * self.B_pos[j]
+            depression = (self.dt/self.tau_J) * self.X[j] * self.B_neg[i]
+            self.J[i,j] = decay*self.J[i,j] + potentiation + depression
+        self.J[i,j] = np.clip(self.J[i,j], 0, 1)
+
+    def _update_B_pos(self, k):
+        decay = 1 - self.dt/self.tau_pos
+        self.B_pos[k] = decay*self.B_pos[k] + self.dt*self.A_pos*self.X[k]
+
+    def _update_B_neg(self, k):
+        decay = 1 - self.dt/self.tau_neg
+        self.B_neg[k] = decay*self.B_neg[k] + self.dt*self.A_neg*self.X[k]
+
+    def _update_neuron_gain(self, k):
+        self.neuron_gain = 1/np.sum(self.J, axis=0)
 

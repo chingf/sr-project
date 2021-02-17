@@ -22,6 +22,12 @@ experiment_loader = experiments_dict[args.experiment]
 model_filename = args.save
 input, model, plotter, sr_params, plot_params = experiment_loader()
 
+# DEBUGGING PLOT
+plt.figure()
+plt.plot(model.ca3.get_stdp_kernel(), linewidth=2)
+plt.title("STDP Kernel")
+plt.show()
+
 plot_data = []
 plot_Ms = []
 plot_Us = []
@@ -37,10 +43,13 @@ for step in np.arange(input.num_steps):
         dg_out, ca3_out = model.forward(dg_input)
     elif (dg_mode == 1) and (prev_dg_mode == 0): # Query Mode
         dg_out, ca3_out = model.query(dg_input)
+
+    # DEBUGGING PLOTS
     if step % 40 == 0 and step != 0:
         plt.figure(); plt.imshow(model.ca3.allX); plt.show()
         plt.figure(); plt.imshow(model.ca3.get_T()); plt.colorbar();plt.show()
         plt.figure(); plt.imshow(model.ca3.get_real_T()); plt.colorbar();plt.show()
+        plt.figure(); plt.imshow(model.ca3.J); plt.colorbar();plt.show();
         import pdb; pdb.set_trace()
 
     if step in plot_params['plot_frames']: # If frame is included in animation
