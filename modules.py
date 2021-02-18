@@ -22,8 +22,7 @@ class CA3(object):
     def forward(self, input):
         M = get_sr(self.T, self.gamma)
         self.prev_input = self.curr_input
-        self.curr_input = input
-        return M @ input
+
 
     def update(self):
         if self.prev_input is None:
@@ -45,16 +44,16 @@ class STDP_Net(object):
 
     def __init__(
             self, num_states,
-            A_pos=0.5, tau_pos=0.3, A_neg=0., tau_neg=1,
-            dt=0.1, decay_scale=0., tau_J=1,
+            A_pos=1.4, tau_pos=0.3, A_neg=0., tau_neg=1,
+            dt=0.1, decay_scale=0., tau_J=1, B_offset=0.5, update_min=1e-2
             self_potentiation=0.02,
-            global_inhib=0., activity_ceil=100, gamma_0=0.4
+            global_inhib=0., activity_ceil=1.8, gamma_0=0.5
             ):
 
         self.J = np.clip(0.01*np.random.rand(num_states, num_states), 0, 1)
         self.B_pos = np.zeros(num_states)
         self.B_neg = np.zeros(num_states)
-        self.neuron_gain = np.ones(num_states)
+        self.neuron_gain = 1/np.sum(self.J, axis=0)#np.ones(num_states)
         self.num_states = num_states
 
         self.A_pos = A_pos
@@ -64,6 +63,8 @@ class STDP_Net(object):
         self.dt = dt
         self.decay_scale = decay_scale
         self.tau_J = tau_J
+        self.B_offset = B_offset
+        self.update_min = update_min
         self.self_potentiation = self_potentiation
         self.global_inhib = global_inhib
         self.activity_ceil = activity_ceil
@@ -77,7 +78,7 @@ class STDP_Net(object):
         self.X = np.zeros(num_states)*np.nan
         self.allX = np.zeros((num_states, 40*16))
         self.allX_t = 0
-        self.all_updates = []
+        self.last_update = np.zeros(self.J.shape)
         self.synapse_count = np.zeros(self.J.shape) # Refractory period?
     
     def forward(self, input):
@@ -145,20 +146,32 @@ class STDP_Net(object):
     def _update_J_ij(self, i, j):
         decay = 1 - self.decay_scale*self.dt
         if i == j:
-            self.J[i,j] = decay*self.J[i,j] + self.X[i]*self.self_potentiation
+            update = self.X[i]*self.self_potentiation
+            if update < self.update_min:  update = 0
+            self.J[i,j] = decay*self.J[i,j] + update
+
+            # DEBUG
+            self.last_update[i,j] += update
         else:
             potentiation = (self.dt/self.tau_J) * self.X[i] * self.B_pos[j]
             depression = (self.dt/self.tau_J) * self.X[j] * self.B_neg[i]
-            self.J[i,j] = decay*self.J[i,j] + potentiation + depression
+            update = potentiation + depression
+            if update < self.update_min:  update = 0
+            self.J[i,j] = decay*self.J[i,j] + update
+
+            # DEBUG
+            self.last_update[i,j] += update 
         self.J[i,j] = np.clip(self.J[i,j], 0, 1)
 
     def _update_B_pos(self, k):
         decay = 1 - self.dt/self.tau_pos
-        self.B_pos[k] = decay*self.B_pos[k] + self.dt*self.A_pos*self.X[k]
+        activity = max(0, self.X[k] - self.B_offset)
+        self.B_pos[k] = decay*self.B_pos[k] + self.dt*self.A_pos*activity
 
     def _update_B_neg(self, k):
         decay = 1 - self.dt/self.tau_neg
-        self.B_neg[k] = decay*self.B_neg[k] + self.dt*self.A_neg*self.X[k]
+        activity = max(0, self.X[k] - self.B_offset)
+        self.B_neg[k] = decay*self.B_neg[k] + self.dt*self.A_neg*activity
 
     def _update_neuron_gain(self, k):
         self.neuron_gain = 1/np.sum(self.J, axis=0)

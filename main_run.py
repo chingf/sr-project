@@ -45,12 +45,14 @@ for step in np.arange(input.num_steps):
         dg_out, ca3_out = model.query(dg_input)
 
     # DEBUGGING PLOTS
-    if step % int(input.stay_to_hop_ratio*16) == 0 and step != 0:
+    if step % int(input.stay_to_hop_ratio*16) == 0:
         plt.figure(); plt.imshow(model.ca3.allX); plt.show()
-        plt.figure(); plt.imshow(model.ca3.get_T()); plt.colorbar();plt.show()
-        plt.figure(); plt.imshow(model.ca3.get_real_T()); plt.colorbar();plt.show()
-        plt.figure(); plt.imshow(model.ca3.J); plt.colorbar();plt.show();
-        plt.figure(); plt.imshow(model.ca3.get_M_hat()); plt.colorbar();plt.show();
+        plt.figure(); plt.imshow(model.ca3.get_T()); plt.colorbar(); plt.title("Est T"); plt.show()
+        plt.figure(); plt.imshow(model.ca3.get_real_T()); plt.colorbar();plt.title("Real T"); plt.show()
+        plt.figure(); plt.imshow(model.ca3.J); plt.colorbar();plt.title("J, no scaling");plt.show();
+        plt.figure(); plt.imshow(model.ca3.get_M_hat()); plt.colorbar();plt.title("Est M");plt.show();
+        plt.figure(); plt.imshow(model.ca3.last_update); plt.colorbar();plt.title("Update matrix");plt.show();
+        model.ca3.last_update = np.zeros(model.ca3.J.shape)
         import pdb; pdb.set_trace()
 
     if step in plot_params['plot_frames']: # If frame is included in animation
