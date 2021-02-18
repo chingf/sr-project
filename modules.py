@@ -44,16 +44,16 @@ class STDP_Net(object):
 
     def __init__(
             self, num_states,
-            A_pos=1.4, tau_pos=0.3, A_neg=0., tau_neg=1,
-            dt=0.1, decay_scale=0., tau_J=1, B_offset=0.5, update_min=1e-2
-            self_potentiation=0.02,
+            A_pos=8., tau_pos=0.15, A_neg=0., tau_neg=1,
+            dt=0.1, decay_scale=0.0, tau_J=1, B_offset=0.5, update_min=1e-2,
+            self_potentiation=0.03,
             global_inhib=0., activity_ceil=1.8, gamma_0=0.5
             ):
 
-        self.J = np.clip(0.01*np.random.rand(num_states, num_states), 0, 1)
+        self.J = np.clip(0.001*np.random.rand(num_states, num_states), 0, 1)
         self.B_pos = np.zeros(num_states)
         self.B_neg = np.zeros(num_states)
-        self.neuron_gain = 1/np.sum(self.J, axis=0)#np.ones(num_states)
+        self.neuron_gain = 1/np.sum(self.J, axis=0)
         self.num_states = num_states
 
         self.A_pos = A_pos
@@ -146,15 +146,18 @@ class STDP_Net(object):
     def _update_J_ij(self, i, j):
         decay = 1 - self.decay_scale*self.dt
         if i == j:
-            update = self.X[i]*self.self_potentiation
+            activity = max(0, self.X[i] - self.B_offset)
+            update = activity*self.self_potentiation
             if update < self.update_min:  update = 0
             self.J[i,j] = decay*self.J[i,j] + update
 
             # DEBUG
             self.last_update[i,j] += update
         else:
-            potentiation = (self.dt/self.tau_J) * self.X[i] * self.B_pos[j]
-            depression = (self.dt/self.tau_J) * self.X[j] * self.B_neg[i]
+            activity_i = max(0, self.X[i] - self.B_offset)
+            activity_j = max(0, self.X[j] - self.B_offset)
+            potentiation = (self.dt/self.tau_J) * activity_i * self.B_pos[j]
+            depression = (self.dt/self.tau_J) * activity_j * self.B_neg[i]
             update = potentiation + depression
             if update < self.update_min:  update = 0
             self.J[i,j] = decay*self.J[i,j] + update

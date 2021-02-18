@@ -6,7 +6,7 @@ from math import ceil, sqrt
 
 
 def sim_walk():
-    input = inputs.SimWalk(num_steps=500, stay_to_hop_ratio=3)
+    input = inputs.SimWalk(num_steps=500, stay_to_hop_ratio=2)
     sr_params = {
         'gamma': 0.9, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
         }
