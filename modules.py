@@ -47,8 +47,8 @@ class STDP_Net(object):
             self, num_states,
             A_pos=0.5, tau_pos=0.3, A_neg=0., tau_neg=1,
             dt=0.1, decay_scale=0., tau_J=1,
-            self_potentiation=0.03,
-            global_inhib=0., activity_ceil=100
+            self_potentiation=0.02,
+            global_inhib=0., activity_ceil=100, gamma_0=0.4
             ):
 
         self.J = np.clip(0.01*np.random.rand(num_states, num_states), 0, 1)
@@ -67,6 +67,7 @@ class STDP_Net(object):
         self.self_potentiation = self_potentiation
         self.global_inhib = global_inhib
         self.activity_ceil = activity_ceil
+        self.gamma_0 = gamma_0
 
         self.curr_input = None
         self.prev_input = None
@@ -74,7 +75,7 @@ class STDP_Net(object):
         # Below variables are useful for debugging
         self.real_T = 0.001*np.random.rand(num_states, num_states)
         self.X = np.zeros(num_states)*np.nan
-        self.allX = np.zeros((num_states, 40*8))
+        self.allX = np.zeros((num_states, 40*16))
         self.allX_t = 0
         self.all_updates = []
         self.synapse_count = np.zeros(self.J.shape) # Refractory period?
@@ -123,11 +124,13 @@ class STDP_Net(object):
         k[-half_len-1:] = self.A_pos * np.exp(-1*np.arange(half_len+1)/self.tau_pos)
         return k
 
-    def get_M_hat(self):
+    def get_M_hat(self, gamma=None):
         """ Inverts the learned T matrix to get putative M matrix """
 
+        if gamma is None:
+            gamma = self.gamma_0
         T = self.get_T()
-        return np.linalg.pinv(np.eye(T.shape[0]) - T.T)
+        return np.linalg.pinv(np.eye(T.shape[0]) - gamma*T.T)
 
     def get_T(self):
         """ Returns the learned T matrix, where T = J^T. """
