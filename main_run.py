@@ -34,6 +34,7 @@ plot_Us = []
 plot_Mhats = []
 plot_xs = []
 plot_ys = []
+print(np.sum(model.ca3.get_T(), axis=1))
 for step in np.arange(input.num_steps):
     dg_input = input.dg_inputs[:, step]
     dg_mode = input.dg_modes[step]
@@ -58,6 +59,7 @@ for step in np.arange(input.num_steps):
             text = ax.text((i+1)%16, i, "{:.2f}".format(T[i, (i+1)%16]),
                 ha="center", va="center", color="w", fontsize=5)
         plt.show()
+        print(np.sum(T, axis=1))
 
         plt.figure(); plt.imshow(model.ca3.get_real_T()); plt.colorbar();plt.title("Real T"); plt.show()
 

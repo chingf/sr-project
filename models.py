@@ -21,7 +21,7 @@ class AnalyticSR(object):
     def update(self):
         self.ca3.update()
 
-class STDPSR(object):
+class STDP_SR(object):
     def __init__(self, gamma, num_states):
         self.dg = modules.DG()
         self.ca3 = modules.STDP_Net(num_states)
@@ -41,4 +41,9 @@ class STDPSR(object):
     def update(self):
         self.ca3.update()
         self.prev_input = input
+
+class STDP_LR_SR(STDP_SR):
+    def __init__(self, gamma, num_states):
+        super().__init__(gamma, num_states)
+        self.ca3 = modules.STDP_LR_Net(num_states)
 
