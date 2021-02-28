@@ -192,15 +192,16 @@ class STDP_LR_Net(object):
 
     def __init__(
             self, num_states,
-            A_pos=8., tau_pos=0.2, A_neg=0., tau_neg=1,
-            dt=0.1, tau_J=1, B_offset=0.5, update_min=1e-2, gamma_T=0.95,
+            A_pos=7., tau_pos=0.12, A_neg=0., tau_neg=1,
+            dt=0.1, tau_J=1, B_offset=0.7, update_min=1e-1, gamma_T=0.99,
             self_potentiation=0.05,
-            global_inhib=0., activity_ceil=1.8, gamma_M0=0.5
+            global_inhib=0., activity_ceil=1., gamma_M0=0.5
             ):
 
-        self.J = np.clip(0.0005*np.random.rand(num_states, num_states), 0, 1)
+        self.J = np.clip(np.random.rand(num_states, num_states), 0, 1)
+        np.fill_diagonal(self.J, 0)
         self.J = self.J*(1/np.sum(self.J, axis=0))
-        self.eta_invs = np.sum(self.J, axis=0)
+        self.eta_invs = np.ones(self.J.shape[0])*0.001
         self.B_pos = np.zeros(num_states)
         self.B_neg = np.zeros(num_states)
         self.num_states = num_states
@@ -223,12 +224,13 @@ class STDP_LR_Net(object):
         self.prev_input = None
 
         # Below variables are useful for debugging
-        self.real_T = 0.001*np.random.rand(num_states, num_states)
+        self.real_T_tilde = 0.001*self.J.T.copy()
+        self.real_T_count = 0.001*np.ones(num_states)
         self.X = np.zeros(num_states)*np.nan
-        self.allX = np.zeros((num_states, 40*16))
+        self.allX = np.zeros((num_states, 260))
+        self.allBpos = np.zeros(self.allX.shape)
         self.allX_t = 0
         self.last_update = np.zeros(self.J.shape)
-        self.synapse_count = np.zeros(self.J.shape) # Refractory period?
     
     def forward(self, input):
         """ Returns activity of network given input. """
@@ -258,10 +260,15 @@ class STDP_LR_Net(object):
 
         for i in np.arange(self.num_states):
             for j in np.arange(self.num_states):
-                self._update_J_ij(i, j)
+                if i != j:
+                    self._update_J_ij(i, j)
+                else:
+                    self._update_J_ij(i, j)
 
-                
-        self.real_T[self.prev_input>0, self.curr_input>0] += 1
+        self.real_T_tilde = self.gamma_T*self.real_T_tilde
+        self.real_T_tilde[self.prev_input>0, self.curr_input>0] += 1
+        self.real_T_count = self.gamma_T*self.real_T_count
+        self.real_T_count[self.prev_input>0] += 1
 
     def get_stdp_kernel(self):
         """ Returns plasticity kernel for plotting or debugging. """
@@ -289,44 +296,75 @@ class STDP_LR_Net(object):
     def get_real_T(self):
         """ Returns the ideal T matrix """
 
-        return self.real_T/np.sum(self.real_T, axis=1)
+        return self.real_T_tilde/self.real_T_count[:,None]
 
     def _update_J_ij(self, i, j):
-        if self.prev_input[i] == 0: return # TODO: idealized
+        if self.prev_input[j] != 1: return # TODO: idealized
         eta = 1/self.eta_invs[j]
         decay = 1 - eta
         if i == j:
-            activity = max(0, self.X[i] - self.B_offset)
-            update = activity*self.self_potentiation*35 #TODO: variable
-            if update < self.update_min:  return
+            activity = 0 if self.X[i] < self.B_offset else self.X[i]
+            B_pos = 0 if self.B_pos[i] < self.update_min else self.B_pos[i]
+            potentiation = (self.dt/self.tau_J)*activity*B_pos
+            update = potentiation*1.65
             self.J[i,j] = decay*self.J[i,j] + eta*update
-
-            # DEBUG
+            if self.prev_input[j] == 1 and self.curr_input[i] == 1:
+                str1 = f'Correct self {i}: {update:.2f} '
+                str2 = f'with activity {self.X[i]:.2f} '
+                str3 = f'and plasticity {self.B_pos[j]:.2f}'
+                print(str1 + str2 + str3)
             self.last_update[i,j] += update
         else:
-            activity_i = max(0, self.X[i] - self.B_offset)
-            activity_j = max(0, self.X[j] - self.B_offset)
-            potentiation = (self.dt/self.tau_J) * activity_i * self.B_pos[j]
-            depression = (self.dt/self.tau_J) * activity_j * self.B_neg[i]
-            update = (potentiation + depression)*35 #TODO: variable
-            if update < self.update_min: return
+            activity_i = 0 if self.X[i] < self.B_offset else self.X[i]
+            activity_j = 0 if self.X[j] < self.B_offset else self.X[j]
+            B_pos = 0 if self.B_pos[j] < self.update_min else self.B_pos[j]
+            B_neg = 0 if self.B_neg[i] < self.update_min else self.B_neg[i]
+            potentiation = (self.dt/self.tau_J) * activity_i * B_pos
+            depression = (self.dt/self.tau_J) * activity_j * B_neg
+            update = (potentiation + depression)*10.08
+            if self.prev_input[j] == 1 and self.curr_input[i] == 1:
+                str1 = f'Correct {j} to {i}: {update:.2f} '
+                str2 = f'with activity {self.X[i]:.2f} '
+                str3 = f'and plasticity {self.B_pos[j]:.2f}'
+                print(str1 + str2 + str3)
+                #update = 1
+            elif self.prev_input[j] != 1 and self.curr_input[i] == 1:
+                if update > 0:
+                    str1 = f'Wrong plasticity, {j} to {i}: {update:.2f} '
+                    str2 = f'with activity {self.X[i]:.2f} '
+                    str3 = f'and plasticity {self.B_pos[j]:.2f}'
+                    print(str1 + str2 + str3)
+                    #update = 0
+            else:
+                if update > 0:
+                    str1 = f'Wrong totally, {j} to {i}: {update:.2f} '
+                    str2 = f'with activity {self.X[i]:.2f} '
+                    str3 = f'and plasticity {self.B_pos[j]:.2f}'
+                    print(str1 + str2 + str3)
+                    plt.figure(); plt.imshow(self.allX); plt.show()
+                    #update = 0
             self.J[i,j] = decay*self.J[i,j] + eta*update
 
             # DEBUG
-            self.last_update[i,j] += update 
+            self.last_update[i,j] += eta*update
         self.J[i,j] = np.clip(self.J[i,j], 0, 1)
 
     def _update_B_pos(self, k):
-        decay = 1 - self.dt/self.tau_pos
-        activity = max(0, self.X[k] - self.B_offset)
-        self.B_pos[k] = decay*self.B_pos[k] + self.dt*self.A_pos*activity
+        learning_rate = self.dt/self.tau_pos
+        decay = 1 - learning_rate
+        activity = 0 if self.X[k] < self.B_offset else 1
+        self.B_pos[k] = decay*self.B_pos[k] + learning_rate*self.A_pos*activity
+        self.B_pos[k] = min(self.B_pos[k], 6)
+
+        # DEBUG
+        self.allBpos[k, self.allX_t] = self.B_pos[k]
 
     def _update_B_neg(self, k):
-        decay = 1 - self.dt/self.tau_neg
-        activity = max(0, self.X[k] - self.B_offset)
-        self.B_neg[k] = decay*self.B_neg[k] + self.dt*self.A_neg*activity
+        learning_rate = self.dt/self.tau_neg
+        decay = 1 - learning_rate
+        activity = 0 if self.X[k] < self.B_offset else 1
+        self.B_neg[k] = decay*self.B_neg[k] + learning_rate*self.A_neg*activity
 
     def _update_eta_invs(self, k):
-        if self.curr_input[k] > 0: # TODO: idealized
-            self.eta_invs[k] = 1 + self.gamma_T*self.eta_invs[k]
+        self.eta_invs[k] = self.prev_input[k] + self.gamma_T*self.eta_invs[k]
 

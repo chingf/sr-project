@@ -46,7 +46,7 @@ for step in np.arange(input.num_steps):
         dg_out, ca3_out = model.query(dg_input)
 
     # DEBUGGING PLOTS
-    if step % int(input.stay_to_hop_ratio*16) == 0:
+    if step == input.num_steps-2: #step % 30 == 0:
         plt.figure(); plt.imshow(model.ca3.allX); plt.show()
 
         T = model.ca3.get_T()
@@ -68,6 +68,8 @@ for step in np.arange(input.num_steps):
         plt.figure(); plt.imshow(model.ca3.get_M_hat()); plt.colorbar();plt.title("Est M");plt.show();
 
         plt.figure(); plt.imshow(model.ca3.last_update); plt.colorbar();plt.title("Update matrix");plt.show();
+        plt.figure(); plt.imshow(model.ca3.allBpos); plt.colorbar();plt.title("Plasticity");plt.show();
+
         model.ca3.last_update = np.zeros(model.ca3.J.shape)
 
         import pdb; pdb.set_trace()
