@@ -10,7 +10,8 @@ from analysis.ExpData import ExpData
 
 class SimWalk(object):
     """
-    Simulates a walk around a 16-wedge circle in one direction
+    Simulates a walk around a 16-wedge circle in one direction where you may
+    stay or go
     """
 
     def __init__(
@@ -31,6 +32,38 @@ class SimWalk(object):
         zs = np.zeros(self.num_steps)
         for step in np.arange(self.num_steps):
             if step % self.stay_to_hop_ratio == 0:
+                curr_state = (curr_state + 1)%16
+            ys[step] = curr_state
+            dg_inputs[curr_state, step] = 1
+        return dg_inputs, dg_modes, xs, ys, zs
+
+class SimWalk2(object):
+    """
+    Simulates a walk around a 16-wedge circle in both directions. There is no
+    stay probability, just ratio of left-to-right go probability.
+    """
+
+    def __init__(
+            self, num_steps, left_right_bias=0.5
+            ):
+
+        self.num_steps = num_steps
+        self.left_right_bias = left_right_bias
+        self.num_states = self.num_spatial_states = 16
+        self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+
+    def _walk(self):
+        curr_state = 0
+        dg_inputs = np.zeros((self.num_states, self.num_steps))
+        dg_modes = np.zeros((self.num_steps))
+        xs = np.zeros(self.num_steps)
+        ys = np.zeros(self.num_steps)
+        zs = np.zeros(self.num_steps)
+        for step in np.arange(self.num_steps):
+            go_left = np.random.rand() < self.left_right_bias
+            if go_left:
+                curr_state = (curr_state - 1)%16
+            else:
                 curr_state = (curr_state + 1)%16
             ys[step] = curr_state
             dg_inputs[curr_state, step] = 1

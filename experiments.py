@@ -6,7 +6,27 @@ from math import ceil, sqrt
 
 
 def sim_walk():
-    input = inputs.SimWalk(num_steps=500, stay_to_hop_ratio=3)
+    input = inputs.SimWalk(num_steps=250, stay_to_hop_ratio=6)
+    sr_params = {
+        'gamma': 0.9, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
+        }
+    plot_params = {
+        'num_cells_to_plot': 16, 'history_size': input.num_steps, 'fps': 10,
+        'save_filename': 'simwalk.mp4',
+        'select_cells': np.arange(16), 'num_frames': 300,
+        'plot_frames': np.array([1e4])
+        }
+    model = models.STDP_LR_SR(sr_params['gamma'], input.num_states)
+#    plotter = plotting.SpatialPlot(
+#        input, plot_params['num_cells_to_plot'],
+#        plot_params['fps'], plot_params['select_cells'], plot_params['save_filename']
+#        )
+    plotter = None
+    return input, model, plotter, sr_params, plot_params
+
+
+def sim_walk2():
+    input = inputs.SimWalk2(num_steps=250, left_right_bias=0.2)
     sr_params = {
         'gamma': 0.9, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
         }
