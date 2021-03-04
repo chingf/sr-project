@@ -25,6 +25,9 @@ class SpatialPlot(object):
         self.save_filename = savedir / save_filename
         self.init_plot()
 
+    def set_save_filename(self, save_filename):
+        self.save_filename = savedir / save_filename
+
     def set_data(self, plot_data):
         self.plot_data = plot_data
 

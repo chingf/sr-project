@@ -11,7 +11,11 @@ import matplotlib.pyplot as plt
 experiments_dict = { # Possible experiments to run
     "rbyxywalk": experiments.rby_xywalk,
     "rbycachewalk": experiments.rby_cachewalk,
-    "sim_walk":experiments.sim_walk
+    "sim_walk":experiments.sim_walk,
+    "sim_walk2":experiments.sim_walk2,
+    "sim_walk3":experiments.sim_walk3,
+    "sim_walk4":experiments.sim_walk4,
+    "sim_walk5":experiments.sim_walk5
     }
 
 parser = argparse.ArgumentParser() # Parse user-provided arguments
@@ -22,19 +26,20 @@ experiment_loader = experiments_dict[args.experiment]
 model_filename = args.save
 input, model, plotter, sr_params, plot_params = experiment_loader()
 
-# DEBUGGING PLOT
+# Show STDP Kernel
 plt.figure()
 plt.plot(model.ca3.get_stdp_kernel(), linewidth=2)
 plt.title("STDP Kernel")
 plt.show()
 
+# Buffer to store variables throughout simulation
 plot_data = []
-plot_Ms = []
-plot_Us = []
-plot_Mhats = []
-plot_xs = []
-plot_ys = []
-print(np.sum(model.ca3.get_T(), axis=1))
+
+# Relevant performance tracking if model is estimating T
+T_probabilities = [np.mean(np.sum(model.ca3.get_T(), axis=1))]
+T_error = [0]
+
+# Go through simulation step by step
 for step in np.arange(input.num_steps):
     dg_input = input.dg_inputs[:, step]
     dg_mode = input.dg_modes[step]
@@ -46,7 +51,7 @@ for step in np.arange(input.num_steps):
         dg_out, ca3_out = model.query(dg_input)
 
     # DEBUGGING PLOTS
-    if step == input.num_steps-2: #step % 30 == 0:
+    if False: #step == input.num_steps-2: #step % 30 == 0:
         plt.figure(); plt.imshow(model.ca3.allX); plt.show()
 
         T = model.ca3.get_T()
@@ -61,37 +66,53 @@ for step in np.arange(input.num_steps):
         plt.show()
         print(np.sum(T, axis=1))
 
-        plt.figure(); plt.imshow(model.ca3.get_real_T()); plt.colorbar();plt.title("Real T"); plt.show()
+        plt.figure(); plt.imshow(model.ca3.get_real_T()); plt.colorbar();
+        plt.title("Real T"); plt.show()
 
-        plt.figure(); plt.imshow(model.ca3.J); plt.colorbar();plt.title("J, no scaling");plt.show();
+        plt.figure(); plt.imshow(model.ca3.J); plt.colorbar();
+        plt.title("J, no scaling");plt.show();
 
-        plt.figure(); plt.imshow(model.ca3.get_M_hat()); plt.colorbar();plt.title("Est M");plt.show();
+        plt.figure(); plt.imshow(model.ca3.get_M_hat()); plt.colorbar();
+        plt.title("Est M");plt.show();
 
-        plt.figure(); plt.imshow(model.ca3.last_update); plt.colorbar();plt.title("Update matrix");plt.show();
-        plt.figure(); plt.imshow(model.ca3.allBpos); plt.colorbar();plt.title("Plasticity");plt.show();
+        plt.figure(); plt.imshow(model.ca3.last_update); plt.colorbar();
+        plt.title("Update matrix");plt.show();
+
+        plt.figure(); plt.imshow(model.ca3.allBpos); plt.colorbar();
+        plt.title("Plasticity");plt.show();
 
         model.ca3.last_update = np.zeros(model.ca3.J.shape)
 
         import pdb; pdb.set_trace()
 
-    if step in plot_params['plot_frames']: # If frame is included in animation
+    # If this frame will be animated, save the relevant variables
+    if step in plot_params['plot_frames']:
         M, U, M_hat = get_sr_features(model.ca3.get_T(), sr_params)
         history_start = max(0, step - plot_params['history_size'])
-        for _ in range(plot_count):
-            plot_data.append([
-                dg_out, input.dg_modes[step], M, U, M_hat,
-                input.xs[:step], input.ys[:step], input.zs[:step]
-                ])
+        plot_data.append([
+            dg_out, input.dg_modes[step], M, U, M_hat,
+            input.xs[:step], input.ys[:step], input.zs[:step]
+            ])
+
+    # If model is estimating T, track the performance
+    if model.estimates_T:
+        T_probabilities.append(np.mean(np.sum(model.ca3.get_T(), axis=1)))
+        T_error.append(
+            np.mean(np.abs(model.ca3.get_T() - model.ca3.get_real_T()))
+            )
 
 print("Saving model...")
 pkl_objects = {
     'model': model, 'input': input, 'plotter':plotter,
-    'sr_params': sr_params, 'plot_params': plot_params
+    'sr_params': sr_params, 'plot_params': plot_params,
+    'T_probabilities': T_probabilities, 'T_error': T_error
     }
-with open('pickles/' + model_filename, 'wb') as f:
+with open('pickles/' + model_filename + ".p", 'wb') as f:
     pickle.dump(pkl_objects, f)
+print("Saved.")
 
 print("Animating SR development through experiment...")
 plotter.set_data(plot_data)
+plotter.set_save_filename(model_filename + ".mp4")
 plotter.animate()
 
