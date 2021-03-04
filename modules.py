@@ -193,7 +193,7 @@ class STDP_LR_Net(object):
     def __init__(
             self, num_states,
             A_pos=7., tau_pos=0.12, A_neg=0., tau_neg=1,
-            dt=0.1, tau_J=1, B_offset=0.7, update_min=1e-1, gamma_T=0.99,
+            dt=0.1, tau_J=1, B_offset=0.99, update_min=0, gamma_T=0.99,
             self_potentiation=0.05,
             global_inhib=0., activity_ceil=1., gamma_M0=0.5
             ):
@@ -227,35 +227,50 @@ class STDP_LR_Net(object):
         self.real_T_tilde = 0.001*self.J.T.copy()
         self.real_T_count = 0.001*np.ones(num_states)
         self.X = np.zeros(num_states)*np.nan
-        self.allX = np.zeros((num_states, 260))
+        self.allX = np.zeros((num_states, 2000))
+        self.allinputs = np.zeros(2000)
         self.allBpos = np.zeros(self.allX.shape)
-        self.allX_t = 0
+        self.allX_t = -1
         self.last_update = np.zeros(self.J.shape)
+        self.allMs = []
+        self.allMs_title = []
+        self.allTs = []
     
     def forward(self, input):
         """ Returns activity of network given input. """
 
         M_hat = self.get_M_hat()
-        activity = M_hat @ (input-self.global_inhib)
+        activity = M_hat.T @ (input-self.global_inhib)
         activity = np.clip(activity, 0, self.activity_ceil)
         self.prev_input = np.copy(self.curr_input)
         self.curr_input = input
         self.X = activity
 
-        # Update variables for debugging purposes
-        self.allX[:,self.allX_t] = activity
+        # DEBUG
+        try:
+            self.prev_state = np.argwhere(self.prev_input)[0,0]
+        except:
+            self.prev_state = -1
+        self.curr_state = np.argwhere(self.curr_input)[0,0]
         self.allX_t += 1
+        self.allX[:,self.allX_t] = activity
+        self.allinputs[self.allX_t] = self.curr_state
+        self.allMs.append(M_hat)
+        self.allMs_title.append(f'{self.prev_state} to {self.curr_state}')
+        self.allTs.append(self.get_T().copy())
 
         return activity
 
     def update(self):
         """ Plasticity update """
 
-        if self.prev_input.shape == (): return
-
         for k in np.arange(self.num_states):
             self._update_B_pos(k)
             self._update_B_neg(k)
+
+        if self.prev_input.shape == (): return
+
+        for k in np.arange(self.num_states):
             self._update_eta_invs(k)
 
         for i in np.arange(self.num_states):
@@ -286,7 +301,7 @@ class STDP_LR_Net(object):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-        return np.linalg.pinv(np.eye(T.shape[0]) - gamma*T.T)
+        return np.linalg.pinv(np.eye(T.shape[0]) - gamma*T)
 
     def get_T(self):
         """ Returns the learned T matrix, where T = J^T. """
@@ -310,9 +325,10 @@ class STDP_LR_Net(object):
             self.J[i,j] = decay*self.J[i,j] + eta*update
             if self.prev_input[j] == 1 and self.curr_input[i] == 1:
                 str1 = f'Correct self {i}: {update:.2f} '
-                str2 = f'with activity {self.X[i]:.2f} '
-                str3 = f'and plasticity {self.B_pos[j]:.2f}'
-                print(str1 + str2 + str3)
+                str2 = f'with i activity {self.X[i]:.2f} '
+                str3 = f'and j activity {self.X[j]:.2f} '
+                str4 = f'and j plasticity {self.B_pos[j]:.2f}'
+                print(str1 + str2 + str3 + str4)
             self.last_update[i,j] += update
         else:
             activity_i = 0 if self.X[i] < self.B_offset else self.X[i]
@@ -323,11 +339,21 @@ class STDP_LR_Net(object):
             depression = (self.dt/self.tau_J) * activity_j * B_neg
             update = (potentiation + depression)*10.08
             if self.prev_input[j] == 1 and self.curr_input[i] == 1:
+
+                curr_t = self.allX_t
+                if (self.allinputs[curr_t] != self.allinputs[curr_t-1]) and \
+                    (self.allinputs[curr_t-1] == self.allinputs[curr_t-2]) and \
+                    (self.allinputs[curr_t] == self.allinputs[curr_t-3]):
+                    print('\n Potential error: ')
+
                 str1 = f'Correct {j} to {i}: {update:.2f} '
-                str2 = f'with activity {self.X[i]:.2f} '
-                str3 = f'and plasticity {self.B_pos[j]:.2f}'
-                print(str1 + str2 + str3)
+                str2 = f'with i activity {self.X[i]:.2f} '
+                str3 = f'and j activity {self.X[j]:.2f} '
+                str4 = f'and j plasticity {self.B_pos[j]:.2f}'
+                print(str1 + str2 + str3 + str4)
                 #update = 1
+                if update > 1.5:
+                    import pdb; pdb.set_trace()
             elif self.prev_input[j] != 1 and self.curr_input[i] == 1:
                 if update > 0:
                     str1 = f'Wrong plasticity, {j} to {i}: {update:.2f} '
@@ -338,11 +364,13 @@ class STDP_LR_Net(object):
             else:
                 if update > 0:
                     str1 = f'Wrong totally, {j} to {i}: {update:.2f} '
-                    str2 = f'with activity {self.X[i]:.2f} '
-                    str3 = f'and plasticity {self.B_pos[j]:.2f}'
-                    print(str1 + str2 + str3)
+                    str2 = f'with i activity {self.X[i]:.2f} '
+                    str3 = f'and j activity {self.X[j]:.2f} '
+                    str4 = f'and j plasticity {self.B_pos[j]:.2f}'
+                    print(str1 + str2 + str3 + str4)
                     plt.figure(); plt.imshow(self.allX); plt.show()
                     #update = 0
+                    import pdb; pdb.set_trace()
             self.J[i,j] = decay*self.J[i,j] + eta*update
 
             # DEBUG
@@ -367,4 +395,7 @@ class STDP_LR_Net(object):
 
     def _update_eta_invs(self, k):
         self.eta_invs[k] = self.prev_input[k] + self.gamma_T*self.eta_invs[k]
+
+    def _decay_all_eta_invs(self):
+        self.eta_invs = self.gamma_T*self.eta_invs
 
