@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 from scipy.stats import binned_statistic_2d
 from math import ceil, sqrt
+from itertools import permutations
 from utils import pol2cart, downsample
 from analysis.config import h5_path_dict
 from analysis.ExpData import ExpData
@@ -68,6 +69,201 @@ class SimWalk2(object):
             ys[step] = curr_state
             dg_inputs[curr_state, step] = 1
         return dg_inputs, dg_modes, xs, ys, zs
+
+class SimWalk3(object):
+    """
+    Simulates a 2D random walk around a 10x10 arena.
+    """
+
+    def __init__(
+            self, num_steps, num_states
+            ):
+
+        self.num_steps = num_steps
+        self.num_states = int((ceil(sqrt(num_states)) + 1)**2)
+        self.num_xybins = int(sqrt(self.num_states))
+        self.xmin = 0; self.xmax = self.num_xybins
+        self.ymin = 0; self.ymax = self.num_xybins
+        self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+        self.num_steps = self.dg_inputs.shape[1]
+        self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
+
+    def unravel_state_vector(self, state_vector):
+        """
+        Given (num_states, ) vector of state activation, returns
+        (xybins, xybins) size matrix useful for visualization.
+        Since this is a spatial only task, the second returned matrix (which
+        indicates a different contex) is irrelevant.
+        """
+
+        unraveled_res = np.zeros((self.num_xybins, self.num_xybins))
+        xbins, ybins = np.unravel_index(
+            np.arange(self.num_states), (self.num_xybins, self.num_xybins)
+            )
+        unraveled_res[xbins, ybins] = state_vector
+        return unraveled_res, None
+
+    def get_onehot_states(self, xs, ys):
+        """
+        Given (T,) size xy vectors, where xys are already in bin indices,
+        returns (num_states, T) one-hot encoding of the associated state at
+        each time point.
+        """
+
+        encoding = np.zeros((self.num_states, xs.size))
+        states = np.ravel_multi_index(
+            (xs, ys), (self.num_xybins, self.num_xybins), mode='raise'
+            )
+        encoding[states, np.arange(states.size)] = 1
+        return encoding
+
+    def _walk(self):
+        dg_inputs = self.get_onehot_states(xs, ys, zs)
+        dg_modes = np.zeros(xs.size)
+        return dg_inputs, dg_modes, xs, ys, zs
+
+    def _walk(self):
+        curr_state = 0
+        dg_inputs = np.zeros((self.num_states, self.num_steps))
+        dg_modes = np.zeros((self.num_steps))
+        xs = np.zeros(self.num_steps).astype(int)
+        xs[0] = curr_x = np.random.choice(self.num_xybins)
+        ys = np.zeros(self.num_steps).astype(int)
+        ys[0] = curr_y = np.random.choice(self.num_xybins)
+        zs = np.zeros(self.num_steps).astype(int)
+        actions = permutations([-1,0,1], 2)
+        actions = [move for move in actions if move[0]*move[1] == 0]
+        for step in np.arange(1, self.num_steps):
+            move_set = [
+                move for move in actions if\
+                    self._in_range(curr_x + move[0], curr_y + move[1])
+                ]
+            move = move_set[np.random.choice(len(move_set))]
+            xs[step] = curr_x + move[0]
+            ys[step] = curr_y + move[1]
+            curr_x = xs[step]
+            curr_y = ys[step]
+        dg_inputs = self.get_onehot_states(xs, ys)
+        dg_modes = np.zeros(xs.size)
+        return dg_inputs, dg_modes, xs, ys, zs
+    
+    def _in_range(self, x, y):
+        return (0 <= x < self.num_xybins) and (0 <= y < self.num_xybins)
+
+class SimWalk4(object):
+    """
+    Simulates a 2D Levy flight around a 10x10 arena.
+    """
+
+    def __init__(
+            self, num_steps, walls
+            ):
+
+        self.walls = walls
+        self.num_steps = num_steps
+        self.num_states = (walls+1)**2
+        self.xmin = 0; self.xmax = walls
+        self.ymin = 0; self.ymax = walls
+        self.num_xybins = walls+1
+        self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+        self.num_steps = self.dg_inputs.shape[1]
+        self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
+
+    def unravel_state_vector(self, state_vector):
+        """
+        Given (num_states, ) vector of state activation, returns
+        (xybins, xybins) size matrix useful for visualization.
+        Since this is a spatial only task, the second returned matrix (which
+        indicates a different contex) is irrelevant.
+        """
+
+        unraveled_res = np.zeros((self.num_xybins, self.num_xybins))
+        xbins, ybins = np.unravel_index(
+            np.arange(self.num_states), (self.num_xybins, self.num_xybins)
+            )
+        unraveled_res[xbins, ybins] = state_vector
+        return unraveled_res, None
+
+    def get_onehot_states(self, xs, ys):
+        """
+        Given (T,) size xy vectors, returns (num_states, T) one-hot encoding of
+        the associated state at each time point.
+        """
+
+        encoding = np.zeros((self.num_states, xs.size))
+        _, _, _, states = binned_statistic_2d(
+            xs, ys, xs, bins=self.num_xybins-2
+            )
+        encoding[states, np.arange(states.size)] = 1
+        return encoding
+
+    def _walk(self):
+        dg_inputs = self.get_onehot_states(xs, ys, zs)
+        dg_modes = np.zeros(xs.size)
+        return dg_inputs, dg_modes, xs, ys, zs
+
+    def _walk(self):
+        xs = [self.walls/2]; ys = [self.walls/2];
+        thetas = 360*np.random.uniform(size=self.num_steps)
+        rhos = np.minimum(
+            np.random.gamma(shape=2, scale=1, size=self.num_steps),
+            np.ones(self.num_steps)*self.walls
+            )
+        #rhos = np.maximum( # No stay transitions
+        #    rhos,
+        #    np.ones(self.num_steps)
+        #    )
+        delta_xs, delta_ys = pol2cart(thetas, rhos)
+        for step in np.arange(1, self.num_steps):
+            xs.append(xs[step-1] + delta_xs[step])
+            ys.append(ys[step-1] + delta_ys[step])
+            if xs[step] > self.walls:
+                xs[step] = self.walls - (xs[step] - self.walls)
+            elif xs[step] < 0:
+                xs[step] = - xs[step]
+            if ys[step] > self.walls:
+                ys[step] = self.walls - (ys[step] - self.walls)
+            elif ys[step] < 0:
+                ys[step] = - ys[step]
+        xs = np.array(xs)
+        ys = np.array(ys)
+        zs = np.zeros(xs.size)
+        dg_inputs = self.get_onehot_states(xs, ys)
+        dg_modes = np.zeros(xs.shape)
+        return dg_inputs, dg_modes, xs, ys, zs
+    
+    def _in_range(self, x, y):
+        return (0 <= x < self.num_xybins) and (0 <= y < self.num_xybins)
+
+class SimWalk5(object):
+    """
+    Simulates a walk in a 1D ring, where you can go left/right/stay
+    """
+
+    def __init__(
+            self, num_steps, left_right_stay_prob=[1, 1, 1]
+            ):
+
+        self.num_steps = num_steps
+        self.left_right_stay_prob = np.array(left_right_stay_prob)
+        self.left_right_stay_prob = self.left_right_stay_prob/np.sum(self.left_right_stay_prob)
+        self.num_states = self.num_spatial_states = 16
+        self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+
+    def _walk(self):
+        curr_state = 0
+        dg_inputs = np.zeros((self.num_states, self.num_steps))
+        dg_modes = np.zeros((self.num_steps))
+        xs = np.zeros(self.num_steps)
+        ys = np.zeros(self.num_steps)
+        zs = np.zeros(self.num_steps)
+        for step in np.arange(self.num_steps):
+            action = np.random.choice([-1,0,1], p=self.left_right_stay_prob)
+            curr_state = (curr_state + action)%16
+            ys[step] = curr_state
+            dg_inputs[curr_state, step] = 1
+        return dg_inputs, dg_modes, xs, ys, zs
+
 
 class SimCacheWalk(object): #TODO
     """
