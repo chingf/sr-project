@@ -4,25 +4,15 @@ import argparse
 import pickle
 import experiments
 import plotting
-from utils import get_sr_features, debug_plot
+from utils import get_sr, get_sr_features, debug_plot
 
 import matplotlib.pyplot as plt
-
-experiments_dict = { # Possible experiments to run
-    "rbyxywalk": experiments.rby_xywalk,
-    "rbycachewalk": experiments.rby_cachewalk,
-    "sim_walk":experiments.sim_walk,
-    "sim_walk2":experiments.sim_walk2,
-    "sim_walk3":experiments.sim_walk3,
-    "sim_walk4":experiments.sim_walk4,
-    "sim_walk5":experiments.sim_walk5
-    }
 
 parser = argparse.ArgumentParser() # Parse user-provided arguments
 parser.add_argument('-e', '--experiment', help='Experiment Name', type=str)
 parser.add_argument('-s', '--save', help='Save model filename', type=str)
 args = parser.parse_args()
-experiment_loader = experiments_dict[args.experiment]
+experiment_loader = getattr(experiments, args.experiment)
 model_filename = args.save
 input, model, plotter, sr_params, plot_params = experiment_loader()
 
@@ -38,6 +28,9 @@ plot_data = []
 # Relevant performance tracking if model is estimating T
 T_probabilities = [np.mean(np.sum(model.ca3.get_T(), axis=1))]
 T_error = [0]
+test_gammas = [0.1, 0.25, 0.5, 0.99]
+M_error = [[0] for test_gamma in test_gammas]
+
 
 # Go through simulation step by step
 for step in np.arange(input.num_steps):
@@ -96,16 +89,20 @@ for step in np.arange(input.num_steps):
 
     # If model is estimating T, track the performance
     if model.estimates_T:
+        T_hat = model.ca3.get_T()
+        real_T = model.ca3.get_real_T()
         T_probabilities.append(np.mean(np.sum(model.ca3.get_T(), axis=1)))
-        T_error.append(
-            np.mean(np.abs(model.ca3.get_T() - model.ca3.get_real_T()))
-            )
+        T_error.append(np.mean(np.abs(T_hat - real_T)))
+        for gamma_idx, test_gamma in enumerate(test_gammas):
+            M_hat = get_sr(T_hat, test_gamma)
+            M = get_sr(real_T, test_gamma)
+            M_error[gamma_idx].append(np.mean(np.abs(M_hat - M)))
 
 print("Saving model...")
-pkl_objects = {
-    'model': model, 'input': input, 'plotter':plotter,
+pkl_objects = { #    'model': model, 'input': input, 'plotter':plotter,
     'sr_params': sr_params, 'plot_params': plot_params,
-    'T_probabilities': T_probabilities, 'T_error': T_error
+    'T_probabilities': T_probabilities, 'T_error': T_error,
+    'test_gammas': test_gammas, 'M_error': M_error
     }
 with open('pickles/' + model_filename + ".p", 'wb') as f:
     pickle.dump(pkl_objects, f)
