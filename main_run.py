@@ -1,5 +1,7 @@
 import numpy as np
 import time
+import sys
+import os
 import argparse
 import pickle
 import experiments
@@ -16,23 +18,23 @@ experiment_loader = getattr(experiments, args.experiment)
 model_filename = args.save
 input, model, plotter, sr_params, plot_params = experiment_loader()
 
-# Show STDP Kernel
-plt.figure()
-plt.plot(model.ca3.get_stdp_kernel(), linewidth=2)
-plt.title("STDP Kernel")
-plt.show()
-
 # Buffer to store variables throughout simulation
 plot_data = []
 
 # Relevant performance tracking if model is estimating T
+debug = False
 T_probabilities = [np.mean(np.sum(model.ca3.get_T(), axis=1))]
 T_error = [0]
 test_gammas = [0.1, 0.25, 0.5, 0.99]
 M_error = [[0] for test_gamma in test_gammas]
+M_mean = [[0.001] for test_gamma in test_gammas]
 
+# Test PCA
+xs = []
+#sys.stdout = open(os.devnull, 'w')
 
 # Go through simulation step by step
+print("Beginning walk")
 for step in np.arange(input.num_steps):
     dg_input = input.dg_inputs[:, step]
     dg_mode = input.dg_modes[step]
@@ -88,7 +90,7 @@ for step in np.arange(input.num_steps):
             ])
 
     # If model is estimating T, track the performance
-    if model.estimates_T:
+    if model.estimates_T and debug:
         T_hat = model.ca3.get_T()
         real_T = model.ca3.get_real_T()
         T_probabilities.append(np.mean(np.sum(model.ca3.get_T(), axis=1)))
@@ -97,12 +99,44 @@ for step in np.arange(input.num_steps):
             M_hat = get_sr(T_hat, test_gamma)
             M = get_sr(real_T, test_gamma)
             M_error[gamma_idx].append(np.mean(np.abs(M_hat - M)))
+            M_mean[gamma_idx].append(np.mean(M))
+
+    # Test PCA
+    #xs.append(ca3_out)
+
+# Test PCA
+#xs = np.array(xs) # (timesteps, states)
+#plt.figure()
+#plt.imshow(xs.T)
+#plt.show()
+#from statsmodels.tsa.api import ExponentialSmoothing
+#from sklearn.decomposition import PCA
+#pca = PCA(1)
+#M, U, M_hat = get_sr_features(model.ca3.get_T(), sr_params)
+#plt.figure();
+#plt.imshow(U);
+#plt.show()
+#plt.figure()
+#for alpha in [0.001, 0.005, 0.01, 0.1, 1]:
+#    smoothed_xs = []
+#    for state in range(xs.shape[1]):
+#        exp = ExponentialSmoothing(xs[:,state])
+#        exp_model = exp.fit(smoothing_level=alpha)
+#        result = exp_model.fittedvalues
+#        smoothed_xs.append(result)
+#    smoothed_xs = np.array(smoothed_xs) # (states, timesteps)
+#    pca.fit(smoothed_xs.T)
+#    y = pca.components_.squeeze()
+#    plt.plot(y + pca.mean_, label=str(alpha))
+#plt.legend()
+#plt.show()
 
 print("Saving model...")
-pkl_objects = { #    'model': model, 'input': input, 'plotter':plotter,
+pkl_objects = { 
+    'model': model, 'input': input, 'plotter':plotter,
     'sr_params': sr_params, 'plot_params': plot_params,
     'T_probabilities': T_probabilities, 'T_error': T_error,
-    'test_gammas': test_gammas, 'M_error': M_error
+    'test_gammas': test_gammas, 'M_error': M_error, 'M_mean': M_mean
     }
 with open('pickles/' + model_filename + ".p", 'wb') as f:
     pickle.dump(pkl_objects, f)
