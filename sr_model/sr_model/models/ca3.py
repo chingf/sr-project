@@ -1,18 +1,10 @@
 import numpy as np
+import torch
+import torch.nn as nn
+import module
 from utils import get_sr
 
-import matplotlib.pyplot as plt
-
-class DG(object):
-    def __init__(self):
-        pass
-
-    def forward(self, input, update_transition=True):
-        out = input.copy()
-        out[out != np.max(out)] = 0  # WTA dynamics
-        return out
-
-class CA3(object):
+class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
         self.T_tilde = np.clip(np.random.rand(num_states, num_states), 0, 1)
         self.T_tilde = 0.001*self.T_tilde*(1/np.sum(self.T_tilde, axis=0))
@@ -38,7 +30,7 @@ class CA3(object):
     def get_T(self):
         return self.T_tilde/self.state_counts[:,None]
 
-class STDP_CA3(object):
+class STDP_CA3(nn.Module):
     """
     STDP function k(x) is:
         k(x) = A_pos * exp{-x/tau_pos} for x > 0
@@ -248,4 +240,5 @@ class STDP_CA3(object):
 
     def _decay_all_eta_invs(self):
         self.eta_invs = self.gamma_T*self.eta_invs
+
 
