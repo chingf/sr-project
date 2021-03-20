@@ -3,9 +3,10 @@ import h5py
 from scipy.stats import binned_statistic_2d
 from math import ceil, sqrt
 from itertools import permutations
-from utils import pol2cart, downsample
 from analysis.config import h5_path_dict
 from analysis.ExpData import ExpData
+
+from sr_model.utils import pol2cart, downsample
 
 ## Artificial Simulations
 

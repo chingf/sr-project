@@ -1,11 +1,12 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import module
-from utils import get_sr
+from sr_model.models import module
+from sr_model.utils import get_sr
 
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
+        super(CA3, self).__init__()
         self.T_tilde = np.clip(np.random.rand(num_states, num_states), 0, 1)
         self.T_tilde = 0.001*self.T_tilde*(1/np.sum(self.T_tilde, axis=0))
         self.state_counts = 0.001*np.ones(num_states)
@@ -42,41 +43,20 @@ class STDP_CA3(nn.Module):
     """
 
     def __init__(
-            self, num_states, gamma_M0,
-            A_pos=7., tau_pos=0.12, A_neg=0., tau_neg=1,
-            dt=0.1, tau_J=1, B_offset=0.99, update_min=0, gamma_T=0.99,
-            self_potentiation=0.05,
-            global_inhib=0., activity_ceil=1.,
+            self, num_states, gamma_M0, gamma_T=0.99,
             debug=False, debug_print=False
             ):
 
-        self.J = np.clip(np.random.rand(num_states, num_states), 0, 1)
-        np.fill_diagonal(self.J, 0)
-        self.J = self.J*(1/np.sum(self.J, axis=0))
-        self.eta_invs = np.ones(self.J.shape[0])*0.001
-        self.B_pos = np.zeros(num_states)
-        self.B_neg = np.zeros(num_states)
+        super(STDP_CA3, self).__init__()
         self.num_states = num_states
-
-        self.A_pos = A_pos
-        self.tau_pos = tau_pos
-        self.A_neg = A_neg
-        self.tau_neg = tau_neg
-        self.dt = dt
-        self.tau_J = tau_J
-        self.B_offset = B_offset
-        self.update_min = update_min
         self.gamma_T = gamma_T
-        self.self_potentiation = self_potentiation
-        self.global_inhib = global_inhib
-        self.activity_ceil = activity_ceil
         self.gamma_M0 = gamma_M0
+
+        self.reset()
+        self._init_trainable()
 
         self.curr_input = None
         self.prev_input = None
-
-        self.real_T_tilde = 0.001*self.J.T.copy()
-        self.real_T_count = 0.001*np.ones(num_states)
 
         # Below variables are useful for debugging
         self.debug = debug
@@ -93,13 +73,19 @@ class STDP_CA3(nn.Module):
             self.allTs = []
     
     def forward(self, input, update_transition=True):
-        """ Returns activity of network given input. """
+        """
+        Returns activity of network given input. 
 
+        Args:
+            input: (batch, states)
+        """
+
+        input = torch.squeeze(input) # TODO: batching
         M_hat = self.get_M_hat()
-        activity = M_hat.T @ (input-self.global_inhib)
-        activity = np.clip(activity, 0, self.activity_ceil)
+        activity = torch.matmul(M_hat.t(), input)
+        activity = self._forward_activity_clamp(activity)
         if update_transition:
-            self.prev_input = np.copy(self.curr_input)
+            self.prev_input = self.curr_input # Was cloned?
             self.curr_input = input
             self.X = activity
     
@@ -122,14 +108,12 @@ class STDP_CA3(nn.Module):
     def update(self):
         """ Plasticity update """
 
-        for k in np.arange(self.num_states):
-            self._update_B_pos(k)
-            self._update_B_neg(k)
+        self._update_B_pos()
+        self._update_B_neg()
 
-        if self.prev_input.shape == (): return
+        if self.prev_input is None: return
 
-        for k in np.arange(self.num_states):
-            self._update_eta_invs(k)
+        self._update_eta_invs()
 
         for i in np.arange(self.num_states):
             for j in np.arange(self.num_states):
@@ -149,8 +133,12 @@ class STDP_CA3(nn.Module):
         k_len = 15
         k = np.zeros(k_len)
         half_len = k_len//2
-        k[:half_len] = -self.A_neg * np.exp(np.arange(-half_len, 0)/self.tau_neg)
-        k[-half_len-1:] = self.A_pos * np.exp(-1*np.arange(half_len+1)/self.tau_pos)
+        k[:half_len] = -self.A_neg.item() * np.exp(
+            np.arange(-half_len, 0)/self.tau_neg.item()
+            )
+        k[-half_len-1:] = self.A_pos.item() * np.exp(
+            -1*np.arange(half_len+1)/self.tau_pos.item()
+            )
         return k
 
     def get_M_hat(self, gamma=None):
@@ -159,86 +147,173 @@ class STDP_CA3(nn.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-        return np.linalg.pinv(np.eye(T.shape[0]) - gamma*T)
+        return torch.pinverse(torch.eye(T.shape[0]) - gamma*T)
 
     def get_T(self):
         """ Returns the learned T matrix, where T = J^T. """
 
-        return self.J.T
+        return self.J.t()
 
     def get_real_T(self):
         """ Returns the ideal T matrix """
 
         return self.real_T_tilde/self.real_T_count[:,None]
 
+    def reset(self):
+        self.J = np.clip(np.random.rand(self.num_states, self.num_states), 0, 1)
+        self.J = self.J*(1/np.sum(self.J, axis=0))
+        self.eta_invs = np.ones(self.J.shape[0])*0.001
+        self.B_pos = np.zeros(self.num_states)
+        self.B_neg = np.zeros(self.num_states)
+
+        # Detached Hebbian tensors
+        self.J = torch.tensor(self.J).float()
+        self.B_pos = torch.tensor(self.B_pos).float()
+        self.B_neg = torch.tensor(self.B_neg).float()
+        self.J.detach_()
+        self.B_pos.detach_()
+        self.B_neg.detach_()
+
+        self.prev_input = None
+        self.curr_input = None
+
+        self.real_T_tilde = 0.001*self.J.t().clone().numpy()
+        self.real_T_count = 0.001*np.ones(self.num_states)
+
     def _update_J_ij(self, i, j):
         if self.prev_input[j] != 1: return # TODO: idealized
         eta = 1/self.eta_invs[j]
         decay = 1 - eta
+        B_pos_j = torch.unsqueeze(self.B_pos[j], dim=0)
+        B_neg_i = torch.unsqueeze(self.B_neg[i], dim=0)
         if i == j:
-            activity = 0 if self.X[i] < self.B_offset else self.X[i]
-            B_pos = 0 if self.B_pos[i] < self.update_min else self.B_pos[i]
+            activity = self._update_activity_clamp(self.X[i])
+            B_pos = self.update_B_clamp(B_pos_j)
             potentiation = (self.dt/self.tau_J)*activity*B_pos
-            update = potentiation*1.65
-            self.J[i,j] = decay*self.J[i,j] + eta*update
+            update = potentiation*self.alpha_self
+            self.J[i,j] = torch.clamp(
+                decay*self.J[i,j] + eta*update, min=0, max=1
+                )
 
             # DEBUG
             if self.debug:
                 self.last_update[i,j] += update
             if self.debug_print and self.curr_input[i] == 1:
-                str1 = f'Correct self {i}: {update:.2f} '
-                str2 = f'with i activity {self.X[i]:.2f} '
-                str3 = f'and j activity {self.X[j]:.2f} '
-                str4 = f'and j plasticity {self.B_pos[j]:.2f}'
+                str1 = f'Correct self {i}: {update.item():.2f} '
+                str2 = f'with i activity {self.X[i].item():.2f} '
+                str3 = f'and j activity {self.X[j].item():.2f} '
+                str4 = f'and j plasticity {B_pos_j.item():.2f}'
                 print(str1 + str2 + str3 + str4)
         else:
-            activity_i = 0 if self.X[i] < self.B_offset else self.X[i]
-            activity_j = 0 if self.X[j] < self.B_offset else self.X[j]
-            B_pos = 0 if self.B_pos[j] < self.update_min else self.B_pos[j]
-            B_neg = 0 if self.B_neg[i] < self.update_min else self.B_neg[i]
+            activity_i = self._update_activity_clamp(self.X[i])
+            activity_j = self._update_activity_clamp(self.X[j])
+            B_pos = self.update_B_clamp(B_pos_j)
+            B_neg = self.update_B_clamp(B_neg_i)
             potentiation = (self.dt/self.tau_J) * activity_i * B_pos
             depression = (self.dt/self.tau_J) * activity_j * B_neg
-            update = (potentiation + depression)*10.08
-            self.J[i,j] = decay*self.J[i,j] + eta*update
+            update = (potentiation + depression)*self.alpha_other
+            self.J[i,j] = torch.clamp(
+                decay*self.J[i,j] + eta*update, min=0, max=1
+                )
 
             # DEBUG
             if self.debug:
                 self.last_update[i,j] += eta*update
             if self.debug_print and self.curr_input[i] == 1:
-                str1 = f'Correct {j} to {i}: {update:.2f} '
-                str2 = f'with i activity {self.X[i]:.2f} '
-                str3 = f'and j activity {self.X[j]:.2f} '
-                str4 = f'and j plasticity {self.B_pos[j]:.2f}'
+                str1 = f'Correct {j} to {i}: {update.item():.2f} '
+                str2 = f'with i activity {self.X[i].item():.2f} '
+                str3 = f'and j activity {self.X[j].item():.2f} '
+                str4 = f'and j plasticity {B_pos_j.item():.2f}'
                 print(str1 + str2 + str3 + str4)
             if self.debug_print and self.curr_input[i] != 1 and update > 0:
-                str1 = f'Wrong totally, {j} to {i}: {update:.2f} '
-                str2 = f'with i activity {self.X[i]:.2f} '
-                str3 = f'and j activity {self.X[j]:.2f} '
-                str4 = f'and j plasticity {self.B_pos[j]:.2f}'
+                str1 = f'Wrong totally, {j} to {i}: {update.item():.2f} '
+                str2 = f'with i activity {self.X[i].item():.2f} '
+                str3 = f'and j activity {self.X[j].item():.2f} '
+                str4 = f'and j plasticity {B_pos_j.item():.2f}'
                 print(str1 + str2 + str3 + str4)
-        self.J[i,j] = np.clip(self.J[i,j], 0, 1)
 
-    def _update_B_pos(self, k):
+    def _update_B_pos(self):
         learning_rate = self.dt/self.tau_pos
         decay = 1 - learning_rate
-        activity = 0 if self.X[k] < self.B_offset else 1
-        self.B_pos[k] = decay*self.B_pos[k] + learning_rate*self.A_pos*activity
-        self.B_pos[k] = min(self.B_pos[k], 6)
+        activity = self._update_activity_clamp(self.X)
+        self.B_pos = decay*self.B_pos + learning_rate*self.A_pos*activity
+        self.B_pos = self._update_B_ceiling(self.B_pos)
 
         # DEBUG
         if self.debug:
-            self.allBpos[k, self.allX_t] = self.B_pos[k]
+            self.allBpos[:, self.allX_t] = self.B_pos
 
-    def _update_B_neg(self, k):
+    def _update_B_neg(self):
         learning_rate = self.dt/self.tau_neg
         decay = 1 - learning_rate
-        activity = 0 if self.X[k] < self.B_offset else 1
-        self.B_neg[k] = decay*self.B_neg[k] + learning_rate*self.A_neg*activity
+        activity = self._update_activity_clamp(self.X)
+        self.B_neg = decay*self.B_neg + learning_rate*self.A_neg*activity
+        self.B_neg = self._update_B_ceiling(self.B_neg)
 
-    def _update_eta_invs(self, k):
-        self.eta_invs[k] = self.prev_input[k] + self.gamma_T*self.eta_invs[k]
+        # DEBUG
+        if self.debug:
+            self.allBneg[:, self.allX_t] = self.B_neg
+
+    def _update_eta_invs(self):
+        self.eta_invs = self.prev_input + self.gamma_T*self.eta_invs
 
     def _decay_all_eta_invs(self):
         self.eta_invs = self.gamma_T*self.eta_invs
 
+    def _forward_activity_clamp(self, x):
+        return torch.clamp(x, min=0 , max=1)
+#        clamp_x = nn.functional.sigmoid(
+#            x*self.fac_scale_1 + self.fac_bias_1
+#            )
+#        return self.fac_scale_2*clamp_x
+
+    def _update_activity_clamp(self, x):
+        return nn.functional.leaky_relu(x-0.99, negative_slope=1e-5)*100
+#        clamp_x = nn.functional.sigmoid(
+#            x*self.uac_scale_1 + self.uac_bias_1
+#            )
+#        return self.uac_scale_2*clamp_x
+
+    def _update_B_ceiling(self, x):
+        return torch.clamp(x, min=0, max=6)
+#        clamp_x = nn.functional.sigmoid(
+#            x*self.ubc_scale_1 + self.ubc_bias_1
+#            )
+#        return self.ubc_scale_2*clamp_x
+
+    def update_B_clamp(self, x):
+        return torch.clamp(x, min=0)
+
+    def _init_trainable(self):
+        self.A_pos = 7 #nn.Parameter(torch.ones(1)*7) # 7
+        self.tau_pos = nn.Parameter(torch.ones(1)*0.6) # .12
+        self.A_neg = 0 #nn.Parameter(torch.randn(1)) # 0
+        self.tau_neg = 1 #nn.Parameter(torch.randn(1)) # 1
+        self.dt = 0.1 #nn.Parameter(torch.randn(1)) # 0.1
+        self.tau_J = 1 #nn.Parameter(torch.randn(1)) # 1
+        self.alpha_self = 1.65 #nn.Parameter(torch.ones(1)) # 1.65
+        self.alpha_other = 10.08 #nn.Parameter(torch.ones(1)*8) # 10.08
+#        self.tau_pos.register_hook(print)
+
+        # Forward activity clamp
+#        self.fac_scale_1 = nn.Parameter(torch.randn(1))
+#        self.fac_bias_1 = nn.Parameter(torch.randn(1))
+#        self.fac_scale_2 = nn.Parameter(torch.randn(1))
+
+        # Update activity clamp
+#        self.uac_scale_1 = nn.Parameter(torch.randn(1))
+#        self.uac_bias_1 = nn.Parameter(torch.randn(1))
+#        self.uac_scale_2 = nn.Parameter(torch.randn(1))
+
+        # Update B ceiling
+#        self.ubc_scale_1 = nn.Parameter(torch.randn(1))
+#        self.ubc_bias_1 = nn.Parameter(torch.randn(1))
+#        self.ubc_scale_2 = nn.Parameter(torch.randn(1))
+
+        # Update B clamp
+#        self.update_B_clamp = nn.Sequential(
+#            nn.Linear(1, 1),
+#            nn.Sigmoid(),
+#            nn.Linear(1, 1, bias=False)
+#0.1 #            )
 
