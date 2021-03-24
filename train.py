@@ -14,8 +14,11 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 device = 'cpu'
 
 # Dataset Configs
-num_steps = 10
-num_states = 12
+num_steps = 100
+num_test_steps = 20
+min_start_step = 0
+max_start_step = 75
+num_states = 5
 datasets = [
     inputs.Sim1DWalk,
     inputs.Sim1DWalk,
@@ -70,10 +73,22 @@ for step in range(train_steps):
 
     time_task += time.time() - start_time
     start_time = time.time()
+
+    # Start randomly in the middle
+    start_step = np.random.choice(np.arange(min_start_step, max_start_step))
+    if start_step > num_test_steps:
+        _ = net(dg_inputs[:start_step,:,:], dg_modes[:start_step,:])
+        net.ca3.set_J_to_real_T()
+    else:
+        start_step = 0
+
     # zero the parameter gradients
     optimizer.zero_grad()
-
-    _, outputs = net(dg_inputs, dg_modes)
+    _, outputs = net(
+        dg_inputs[start_step:start_step+num_test_steps, :, :],
+        dg_modes[start_step:start_step+num_test_steps, :],
+        reset=start_step==0
+        )
 
     loss = criterion(
         net.ca3.get_T(),
@@ -108,7 +123,8 @@ for step in range(train_steps):
         print('Time per step {:0.3f}ms'.format(1e3*(time_task+time_net)/(step+1)))
         print('Total time on task {:0.3f}s, net {:0.3f}s'.format(time_task,
                                                                  time_net))
-        print(f'Tau-pos: {net.ca3.tau_pos.data.item()} with grad {grad_avg}')
+        print(f'{net.ca3.tau_pos.data.item()}')
+        print(f'{net.ca3._ceil.data.item()}')
         model_path = os.path.join(save_path, 'model.pt')
         torch.save(net.state_dict(), model_path)
         running_loss = 0.0
