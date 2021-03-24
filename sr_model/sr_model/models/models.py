@@ -57,7 +57,7 @@ class STDP_SR(module.Module):
         self.estimates_T = True
         self.stay_case = stay_case
 
-    def forward(self, dg_inputs, dg_modes):
+    def forward(self, dg_inputs, dg_modes, reset=True):
         """
         Args:
             dg_inputs: (steps, batch, states) one-hot inputs
@@ -66,7 +66,8 @@ class STDP_SR(module.Module):
 
         num_steps, batch_size, num_states = dg_inputs.shape
         out = []
-        self.ca3.reset()
+        if reset:
+            self.ca3.reset()
         for step in np.arange(num_steps):
             dg_input = dg_inputs[step, :, :]
             dg_mode = dg_modes[step, :]

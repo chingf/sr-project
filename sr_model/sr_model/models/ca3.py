@@ -4,6 +4,8 @@ import torch.nn as nn
 from sr_model.models import module
 from sr_model.utils import get_sr
 
+leaky_slope=1e-5
+
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
         super(CA3, self).__init__()
@@ -159,6 +161,11 @@ class STDP_CA3(nn.Module):
 
         return self.real_T_tilde/self.real_T_count[:,None]
 
+    def set_J_to_real_T(self):
+        """ Sets J to the correct transition matrix. """
+
+        self.J = torch.tensor(self.get_real_T().T).float()
+
     def reset(self):
         self.J = np.clip(np.random.rand(self.num_states, self.num_states), 0, 1)
         self.J = self.J*(1/np.sum(self.J, axis=0))
@@ -191,8 +198,8 @@ class STDP_CA3(nn.Module):
             B_pos = self.update_B_clamp(B_pos_j)
             potentiation = (self.dt/self.tau_J)*activity*B_pos
             update = potentiation*self.alpha_self
-            self.J[i,j] = torch.clamp(
-                decay*self.J[i,j] + eta*update, min=0, max=1
+            self.J[i,j] = self._forward_activity_clamp(
+                decay*self.J[i,j] + eta*update
                 )
 
             # DEBUG
@@ -212,8 +219,8 @@ class STDP_CA3(nn.Module):
             potentiation = (self.dt/self.tau_J) * activity_i * B_pos
             depression = (self.dt/self.tau_J) * activity_j * B_neg
             update = (potentiation + depression)*self.alpha_other
-            self.J[i,j] = torch.clamp(
-                decay*self.J[i,j] + eta*update, min=0, max=1
+            self.J[i,j] = self._forward_activity_clamp(
+                decay*self.J[i,j] + eta*update
                 )
 
             # DEBUG
@@ -233,7 +240,7 @@ class STDP_CA3(nn.Module):
                 print(str1 + str2 + str3 + str4)
 
     def _update_B_pos(self):
-        learning_rate = self.dt/self.tau_pos
+        learning_rate = self.tau_pos #self.dt/self.tau_pos .1/.12
         decay = 1 - learning_rate
         activity = self._update_activity_clamp(self.X)
         self.B_pos = decay*self.B_pos + learning_rate*self.A_pos*activity
@@ -261,38 +268,50 @@ class STDP_CA3(nn.Module):
         self.eta_invs = self.gamma_T*self.eta_invs
 
     def _forward_activity_clamp(self, x):
-        return torch.clamp(x, min=0 , max=1)
+        _ceil = self._ceil #1.2
+        _floor = 0
+        ceil_x = -1*(
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=leaky_slope) - _ceil
+            )
+        #floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=leaky_slope)
+        return ceil_x #floor_x
 #        clamp_x = nn.functional.sigmoid(
 #            x*self.fac_scale_1 + self.fac_bias_1
 #            )
 #        return self.fac_scale_2*clamp_x
 
     def _update_activity_clamp(self, x):
-        return nn.functional.leaky_relu(x-0.99, negative_slope=1e-5)*100
+        return nn.functional.leaky_relu(x-0.99, negative_slope=leaky_slope)*100
 #        clamp_x = nn.functional.sigmoid(
 #            x*self.uac_scale_1 + self.uac_bias_1
 #            )
 #        return self.uac_scale_2*clamp_x
 
     def _update_B_ceiling(self, x):
-        return torch.clamp(x, min=0, max=6)
+        _ceil = 6
+        ceil_x = -1*(
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=leaky_slope) - _ceil
+            )
+        return ceil_x
 #        clamp_x = nn.functional.sigmoid(
 #            x*self.ubc_scale_1 + self.ubc_bias_1
 #            )
 #        return self.ubc_scale_2*clamp_x
 
     def update_B_clamp(self, x):
-        return torch.clamp(x, min=0)
+        return x
+        #return torch.clamp(x, min=0)
 
     def _init_trainable(self):
-        self.A_pos = 7 #nn.Parameter(torch.ones(1)*7) # 7
-        self.tau_pos = nn.Parameter(torch.ones(1)*0.6) # .12
+        self.A_pos = 7 #nn.Parameter(torch.ones(1)*14) # 7
+        self.tau_pos = nn.Parameter(torch.ones(1)*(0.1/0.6)) # .12
         self.A_neg = 0 #nn.Parameter(torch.randn(1)) # 0
         self.tau_neg = 1 #nn.Parameter(torch.randn(1)) # 1
-        self.dt = 0.1 #nn.Parameter(torch.randn(1)) # 0.1
+        self.dt = 0.1 #nn.Parameter(torch.randn(1)*0.4) # 0.1
         self.tau_J = 1 #nn.Parameter(torch.randn(1)) # 1
         self.alpha_self = 1.65 #nn.Parameter(torch.ones(1)) # 1.65
         self.alpha_other = 10.08 #nn.Parameter(torch.ones(1)*8) # 10.08
+        self._ceil = nn.Parameter(torch.ones(1))
 #        self.tau_pos.register_hook(print)
 
         # Forward activity clamp
