@@ -14,49 +14,31 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 device = 'cpu'
 
 # Dataset Configs
-num_steps = 100
-num_test_steps = 20
-min_start_step = 0
-max_start_step = 75
-num_states = 5
-datasets = [
-    inputs.Sim1DWalk,
-    inputs.Sim1DWalk,
-    inputs.Sim1DWalk
-    ]
-datasets_configs = [
-    {'num_steps': num_steps, 'left_right_stay_prob': [1, 1, 1], 'num_states': num_states},
-    {'num_steps': num_steps, 'left_right_stay_prob': [7, 1, 1], 'num_states': num_states},
-    {'num_steps': num_steps, 'left_right_stay_prob': [1, 4, 1], 'num_states': num_states}
-    ]
-#datasets = [
-#    inputs.Sim1DWalk,
-#    inputs.Sim1DWalk,
-#    inputs.Sim1DWalk,
-#    inputs.Sim1DWalk,
-#    inputs.Sim2DLevyFlight
-#    ]
-#datasets_configs = [
-#    {'num_steps': num_steps, 'left_right_stay_prob': [1, 1, 1], 'num_states': num_states},
-#    {'num_steps': num_steps, 'left_right_stay_prob': [5, 1, 1], 'num_states': num_states},
-#    {'num_steps': num_steps, 'left_right_stay_prob': [1, 5, 1], 'num_states': num_states},
-#    {'num_steps': num_steps, 'left_right_stay_prob': [9, 1, 1], 'num_states': num_states},
-#    {'num_steps': num_steps, 'walls': int(np.sqrt(num_states) - 1)}
-#    ]
+datasets = [inputs.Sim1DWalk]
+datasets_config_ranges = [{
+    'num_steps': [5, 15, 30],
+    'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
+    'num_states': [5, 10, 15]
+    }]
 num_datasets = len(datasets)
+p = {
+    'num_steps': [1, 0, 0],
+    'num_states': [1, 0, 0]
+    }
 
 # Init net
 writer = SummaryWriter('./trained_models')
-net = STDP_SR(num_states=num_states, gamma=0.5)
+net = STDP_SR(num_states=2, gamma=0.5)
 criterion = nn.MSELoss(reduction='none')
 lr=1E-3
-optimizer = torch.optim.Adam(net.parameters(), lr=lr) #Adam
+weight_decay = 1E-3
+optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay) #Adam
 
 # Loss reporting
 running_loss = 0.0
 running_loss_reg = 0.0
 print_every_steps = 50
-train_steps = 10000
+train_steps = 50000
 time_task = 0
 time_net = 0
 save_path = './trained_models'
@@ -65,30 +47,25 @@ grad_avg = 0
 
 for step in range(train_steps):
     dataset = datasets[step % num_datasets]
-    dataset_config = datasets_configs[step % num_datasets]
+    dataset_config_rang = datasets_config_ranges[step % num_datasets]
+    dataset_config = {}
+    for key in dataset_config_rang:
+        num_samples = len(dataset_config_rang[key])
+        p_key = p[key] if key in p else None
+        sample_idx = np.random.choice(num_samples, p=p_key)
+        dataset_config[key] = dataset_config_rang[key][sample_idx]
     start_time = time.time()
     input = dataset(**dataset_config)
     dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device).unsqueeze(1)
     dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device).unsqueeze(1)
+    net.ca3.set_num_states(input.num_states)
 
     time_task += time.time() - start_time
     start_time = time.time()
 
-    # Start randomly in the middle
-    start_step = np.random.choice(np.arange(min_start_step, max_start_step))
-    if start_step > num_test_steps:
-        _ = net(dg_inputs[:start_step,:,:], dg_modes[:start_step,:])
-        net.ca3.set_J_to_real_T()
-    else:
-        start_step = 0
-
     # zero the parameter gradients
     optimizer.zero_grad()
-    _, outputs = net(
-        dg_inputs[start_step:start_step+num_test_steps, :, :],
-        dg_modes[start_step:start_step+num_test_steps, :],
-        reset=start_step==0
-        )
+    _, outputs = net(dg_inputs, dg_modes, reset=True)
 
     loss = criterion(
         net.ca3.get_T(),
@@ -96,6 +73,7 @@ for step in range(train_steps):
         )
     loss = torch.sum(torch.sum(loss, dim=1))
     loss.backward()
+    nn.utils.clip_grad_norm_(net.parameters(), 1)
     grad_avg += net.ca3.tau_pos.grad.item()
     optimizer.step()
 
@@ -123,12 +101,33 @@ for step in range(train_steps):
         print('Time per step {:0.3f}ms'.format(1e3*(time_task+time_net)/(step+1)))
         print('Total time on task {:0.3f}s, net {:0.3f}s'.format(time_task,
                                                                  time_net))
-        print(f'{net.ca3.tau_pos.data.item()}')
-        print(f'{net.ca3._ceil.data.item()}')
+        print(f'A_pos: {net.ca3.A_pos.data.item()}')
+        print(f'tau_pos: {net.ca3.tau_pos.data.item()}')
+        print(f'A_neg: {net.ca3.A_neg.data.item()}')
+        print(f'tau_neg: {net.ca3.tau_neg.data.item()}')
+        print(f'alpha_self: {net.ca3.alpha_self}')
+        print(f'alpha_other: {net.ca3.alpha_other.data.item()}')
+        print(f'ceil: {net.ca3._ceil.data.item()}')
+        print(f'floor: {net.ca3._update_floor.data.item()}')
         model_path = os.path.join(save_path, 'model.pt')
         torch.save(net.state_dict(), model_path)
         running_loss = 0.0
         grad_avg = 0
+
+    if step == 50*print_every_steps:
+        for key in p:
+            p[key] = [0.8, 0.2, 0]
+    elif step == 80*print_every_steps:
+        for key in p:
+            p[key] = [0.5, 0.5, 0]
+    elif step == 110*print_every_steps:
+        for key in p:
+            p[key] = [0.4, 0.4, 0.2]
+    elif step == 140*print_every_steps:
+        for key in p:
+            p[key] = None
+
+
 
 writer.close()
 print('Finished Training\n')

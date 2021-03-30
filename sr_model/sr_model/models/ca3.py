@@ -4,7 +4,6 @@ import torch.nn as nn
 from sr_model.models import module
 from sr_model.utils import get_sr
 
-leaky_slope=1e-5
 
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
@@ -60,6 +59,8 @@ class STDP_CA3(nn.Module):
         self.curr_input = None
         self.prev_input = None
 
+        self.leaky_slope=1e-5
+
         # Below variables are useful for debugging
         self.debug = debug
         self.debug_print = debug_print
@@ -73,6 +74,12 @@ class STDP_CA3(nn.Module):
             self.allMs = []
             self.allMs_title = []
             self.allTs = []
+
+    def set_num_states(self, num_states):
+        self.num_states = num_states
+
+    def set_leaky_slope(self, new_slope):
+        self.leaky_slope = new_slope
     
     def forward(self, input, update_transition=True):
         """
@@ -135,11 +142,11 @@ class STDP_CA3(nn.Module):
         k_len = 15
         k = np.zeros(k_len)
         half_len = k_len//2
-        k[:half_len] = -self.A_neg.item() * np.exp(
-            np.arange(-half_len, 0)/self.tau_neg.item()
+        k[:half_len] = 10*self.A_neg.data.item() * np.exp(
+            np.arange(-half_len, 0)/self.tau_neg.data.item()
             )
-        k[-half_len-1:] = self.A_pos.item() * np.exp(
-            -1*np.arange(half_len+1)/self.tau_pos.item()
+        k[-half_len-1:] = 10*self.A_pos.data.item() * np.exp(
+            -1*np.arange(half_len+1)/self.tau_pos.data.item()
             )
         return k
 
@@ -149,7 +156,14 @@ class STDP_CA3(nn.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-        return torch.pinverse(torch.eye(T.shape[0]) - gamma*T)
+        try:
+            M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+        except:
+            print("Pseudo-Inverse did not converge.")
+            M_hat = torch.linalg.pinv(
+                torch.eye(T.shape[0]) - gamma*T + torch.eye(T.shape[0])*1e-3
+                )
+        return M_hat
 
     def get_T(self):
         """ Returns the learned T matrix, where T = J^T. """
@@ -195,8 +209,7 @@ class STDP_CA3(nn.Module):
         B_neg_i = torch.unsqueeze(self.B_neg[i], dim=0)
         if i == j:
             activity = self._update_activity_clamp(self.X[i])
-            B_pos = self.update_B_clamp(B_pos_j)
-            potentiation = (self.dt/self.tau_J)*activity*B_pos
+            potentiation = (self.dt/self.tau_J)*activity*B_pos_j
             update = potentiation*self.alpha_self
             self.J[i,j] = self._forward_activity_clamp(
                 decay*self.J[i,j] + eta*update
@@ -214,11 +227,9 @@ class STDP_CA3(nn.Module):
         else:
             activity_i = self._update_activity_clamp(self.X[i])
             activity_j = self._update_activity_clamp(self.X[j])
-            B_pos = self.update_B_clamp(B_pos_j)
-            B_neg = self.update_B_clamp(B_neg_i)
-            potentiation = (self.dt/self.tau_J) * activity_i * B_pos
-            depression = (self.dt/self.tau_J) * activity_j * B_neg
-            update = (potentiation + depression)*self.alpha_other
+            potentiation = (self.dt/self.tau_J) * activity_i * B_pos_j
+            depression = (self.dt/self.tau_J) * activity_j * B_neg_i
+            update = (potentiation + depression)*self.alpha_other*10 #TODO: scaling
             self.J[i,j] = self._forward_activity_clamp(
                 decay*self.J[i,j] + eta*update
                 )
@@ -240,10 +251,13 @@ class STDP_CA3(nn.Module):
                 print(str1 + str2 + str3 + str4)
 
     def _update_B_pos(self):
-        learning_rate = self.tau_pos #self.dt/self.tau_pos .1/.12
+        learning_rate = self._0_1_clamp(self.tau_pos) # self.dt/self.tau_pos .1/.12
+        #learning_rate = nn.functional.leaky_relu(
+        #    self.tau_pos, negative_slope=self.leaky_slope
+        #    )
         decay = 1 - learning_rate
         activity = self._update_activity_clamp(self.X)
-        self.B_pos = decay*self.B_pos + learning_rate*self.A_pos*activity
+        self.B_pos = decay*self.B_pos + learning_rate*self.A_pos*activity*10 #TODO: scaling
         self.B_pos = self._update_B_ceiling(self.B_pos)
 
         # DEBUG
@@ -251,10 +265,10 @@ class STDP_CA3(nn.Module):
             self.allBpos[:, self.allX_t] = self.B_pos
 
     def _update_B_neg(self):
-        learning_rate = self.dt/self.tau_neg
+        learning_rate = self._0_1_clamp(self.tau_neg)
         decay = 1 - learning_rate
         activity = self._update_activity_clamp(self.X)
-        self.B_neg = decay*self.B_neg + learning_rate*self.A_neg*activity
+        self.B_neg = decay*self.B_neg + learning_rate*self.A_neg*activity*10 #TODO: scaling
         self.B_neg = self._update_B_ceiling(self.B_neg)
 
         # DEBUG
@@ -267,72 +281,50 @@ class STDP_CA3(nn.Module):
     def _decay_all_eta_invs(self):
         self.eta_invs = self.gamma_T*self.eta_invs
 
-    def _forward_activity_clamp(self, x):
-        _ceil = self._ceil #1.2
+    def _0_1_clamp(self, x):
+        _ceil = 1 #1.2
         _floor = 0
         ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=leaky_slope) - _ceil
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
             )
-        #floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=leaky_slope)
+        floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
+        return floor_x
+
+    def _forward_activity_clamp(self, x):
+        _ceil = self._ceil #1.2
+        _floor = -10
+        ceil_x = -1*(
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
+            )
+        #floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
         return ceil_x #floor_x
-#        clamp_x = nn.functional.sigmoid(
-#            x*self.fac_scale_1 + self.fac_bias_1
-#            )
-#        return self.fac_scale_2*clamp_x
 
     def _update_activity_clamp(self, x):
-        return nn.functional.leaky_relu(x-0.99, negative_slope=leaky_slope)*100
-#        clamp_x = nn.functional.sigmoid(
-#            x*self.uac_scale_1 + self.uac_bias_1
-#            )
-#        return self.uac_scale_2*clamp_x
+        u_floor = self._ceil - torch.abs(self._update_floor)
+        return nn.functional.leaky_relu(x-u_floor, negative_slope=self.leaky_slope)*100
 
     def _update_B_ceiling(self, x):
         _ceil = 6
         ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=leaky_slope) - _ceil
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
             )
         return ceil_x
-#        clamp_x = nn.functional.sigmoid(
-#            x*self.ubc_scale_1 + self.ubc_bias_1
-#            )
-#        return self.ubc_scale_2*clamp_x
-
-    def update_B_clamp(self, x):
-        return x
-        #return torch.clamp(x, min=0)
 
     def _init_trainable(self):
-        self.A_pos = 7 #nn.Parameter(torch.ones(1)*14) # 7
-        self.tau_pos = nn.Parameter(torch.ones(1)*(0.1/0.6)) # .12
-        self.A_neg = 0 #nn.Parameter(torch.randn(1)) # 0
-        self.tau_neg = 1 #nn.Parameter(torch.randn(1)) # 1
-        self.dt = 0.1 #nn.Parameter(torch.randn(1)*0.4) # 0.1
+        self.A_pos = nn.Parameter(torch.rand(1)) # 7
+        self.tau_pos = nn.Parameter(torch.rand(1))
+        self.A_neg = nn.Parameter(torch.randn(1)) # 0
+        self.tau_neg = nn.Parameter(torch.rand(1)) # 1
+        self.dt = .1 #nn.Parameter(torch.abs(torch.randn(1))) # 0.1
         self.tau_J = 1 #nn.Parameter(torch.randn(1)) # 1
         self.alpha_self = 1.65 #nn.Parameter(torch.ones(1)) # 1.65
-        self.alpha_other = 10.08 #nn.Parameter(torch.ones(1)*8) # 10.08
-        self._ceil = nn.Parameter(torch.ones(1))
-#        self.tau_pos.register_hook(print)
-
-        # Forward activity clamp
-#        self.fac_scale_1 = nn.Parameter(torch.randn(1))
-#        self.fac_bias_1 = nn.Parameter(torch.randn(1))
-#        self.fac_scale_2 = nn.Parameter(torch.randn(1))
-
-        # Update activity clamp
-#        self.uac_scale_1 = nn.Parameter(torch.randn(1))
-#        self.uac_bias_1 = nn.Parameter(torch.randn(1))
-#        self.uac_scale_2 = nn.Parameter(torch.randn(1))
-
-        # Update B ceiling
-#        self.ubc_scale_1 = nn.Parameter(torch.randn(1))
-#        self.ubc_bias_1 = nn.Parameter(torch.randn(1))
-#        self.ubc_scale_2 = nn.Parameter(torch.randn(1))
-
-        # Update B clamp
-#        self.update_B_clamp = nn.Sequential(
-#            nn.Linear(1, 1),
-#            nn.Sigmoid(),
-#            nn.Linear(1, 1, bias=False)
-#0.1 #            )
+        self.alpha_other = nn.Parameter(torch.ones(1)) # 10.08
+        p1 = nn.Parameter(torch.abs(torch.randn(1))/2)
+        p2 = nn.Parameter(torch.ones(1))
+        if p1 < p2:
+            self._update_floor = p1
+            self._ceil = p2
+        else:
+            self._update_floor = p2
+            self._ceil = p1
 
