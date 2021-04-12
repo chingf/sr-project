@@ -25,7 +25,7 @@ plot_data = []
 debug = False
 T_probabilities = [np.mean(np.sum(model.ca3.get_T(), axis=1))]
 T_error = [0]
-test_gammas = [0.1, 0.25, 0.5, 0.99]
+test_gammas = [0.5, 0.8, 0.9, 0.99]
 M_error = [[0] for test_gamma in test_gammas]
 M_mean = [[0.001] for test_gamma in test_gammas]
 
