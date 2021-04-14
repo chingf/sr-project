@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from sr_model.models import module
 from sr_model.utils import get_sr
+from sr_model.utils_modules import LeakyClamp, LeakyThreshold
 
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
@@ -43,7 +44,7 @@ class STDP_CA3(nn.Module):
     """
 
     def __init__(
-            self, num_states, gamma_M0, gamma_T=0.99,
+            self, num_states, gamma_M0, gamma_T=0.99, leaky_slope=1e-5,
             debug=False, debug_print=False
             ):
 
@@ -51,14 +52,14 @@ class STDP_CA3(nn.Module):
         self.num_states = num_states
         self.gamma_T = gamma_T
         self.gamma_M0 = gamma_M0
+        self.leaky_slope = leaky_slope
 
         self.reset()
+        self._init_constants()
         self._init_trainable()
 
         self.curr_input = None
         self.prev_input = None
-
-        self.leaky_slope=1e-5
 
         # Below variables are useful for debugging
         self.debug = debug
@@ -77,9 +78,6 @@ class STDP_CA3(nn.Module):
     def set_num_states(self, num_states):
         self.num_states = num_states
 
-    def set_leaky_slope(self, new_slope):
-        self.leaky_slope = new_slope
-    
     def forward(self, input, update_transition=True):
         """
         Returns activity of network given input. 
@@ -91,9 +89,9 @@ class STDP_CA3(nn.Module):
         input = torch.squeeze(input) # TODO: batching
         M_hat = self.get_M_hat()
         activity = torch.matmul(M_hat.t(), input)
-        activity = self._forward_activity_clamp(activity)
+        activity = self.forward_activity_clamp(activity)
         if update_transition:
-            self.prev_input = self.curr_input # Was cloned?
+            self.prev_input = self.curr_input
             self.curr_input = input
             self.X = activity
     
@@ -135,16 +133,16 @@ class STDP_CA3(nn.Module):
         self.real_T_count = self.gamma_T*self.real_T_count
         self.real_T_count[self.prev_input>0] += 1
 
-    def get_stdp_kernel(self):
+    def get_stdp_kernel(self, kernel_len=15):
         """ Returns plasticity kernel for plotting or debugging. """
 
-        k_len = 15
-        k = np.zeros(k_len)
-        half_len = k_len//2
-        k[:half_len] = 10*self.A_neg.data.item() * np.exp(
+        k = np.zeros(kernel_len)
+        half_len = kernel_len//2
+        scaling = self.A_scaling
+        k[:half_len] = scaling*self.A_neg.data.item() * np.exp(
             np.arange(-half_len, 0)/self.tau_neg.data.item()
             )
-        k[-half_len-1:] = 10*self.A_pos.data.item() * np.exp(
+        k[-half_len-1:] = scaling*self.A_pos.data.item() * np.exp(
             -1*np.arange(half_len+1)/self.tau_pos.data.item()
             )
         return k
@@ -156,7 +154,7 @@ class STDP_CA3(nn.Module):
             gamma = self.gamma_M0
         T = self.get_T()
         try:
-            M_hat = torch.linalg.pinv(torch.eye(T.shape[0])*1.07 - gamma*T)
+            M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
         except:
             print("Pseudo-Inverse did not converge.")
             M_hat = torch.linalg.pinv(
@@ -208,10 +206,10 @@ class STDP_CA3(nn.Module):
         B_neg_i = torch.unsqueeze(self.B_neg[i], dim=0)
         
         if i == j:
-            activity = self._update_activity_clamp(self.X[i])
+            activity = self.update_activity_clamp(self.X[i])
             potentiation = (self.dt/self.tau_J)*activity*B_pos_j*self.prev_input[j]
-            update = self._update_plasticity_clamp(potentiation*self.alpha_self)
-            self.J[i,j] = self._J_weight_clamp(
+            update = self.update_clamp(potentiation*self.alpha_self)
+            self.J[i,j] = self.J_weight_clamp(
                 decay*self.J[i,j] + eta*update
                 )
 
@@ -231,13 +229,13 @@ class STDP_CA3(nn.Module):
                 str4 = f'and j plasticity {B_pos_j.item():.2f}'
                 print(str1 + str2 + str3 + str4)
         else:
-            activity_i = self._update_activity_clamp(self.X[i])
-            activity_j = self._update_activity_clamp(self.X[j])
+            activity_i = self.update_activity_clamp(self.X[i])
+            activity_j = self.update_activity_clamp(self.X[j])
             potentiation = (self.dt/self.tau_J) * activity_i * B_pos_j
             depression = (self.dt/self.tau_J) * activity_j * B_neg_i
-            update = (potentiation + depression)*self.alpha_other*10 #TODO: scaling
-            update = self._update_plasticity_clamp(update)
-            self.J[i,j] = self._J_weight_clamp(
+            update = (potentiation + depression)*self.alpha_other*self.alpha_other_scaling
+            update = self.update_clamp(update)
+            self.J[i,j] = self.J_weight_clamp(
                 decay*self.J[i,j] + eta*update
                 )
 
@@ -258,24 +256,24 @@ class STDP_CA3(nn.Module):
                 print(str1 + str2 + str3 + str4)
 
     def _update_B_pos(self):
-        learning_rate = self._0_1_clamp(self.tau_pos) # self.dt/self.tau_pos .1/.12
+        learning_rate = self.learning_rate_clamp(self.tau_pos)
         decay = 1 - learning_rate
-        activity = self._update_activity_clamp(self.X)
-        self.B_pos = decay*self.B_pos + learning_rate*self.A_pos*activity*10
-        #self.B_pos = self._update_B_ceiling(self.B_pos)
+        activity = self.update_activity_clamp(self.X) #TODO: needed here?
+        A = self.A_pos * self.A_scaling
+        self.B_pos = decay*self.B_pos + learning_rate*A*activity
+        self.B_pos = self.B_integration_clamp(self.B_pos)
 
-        # DEBUG
         if self.debug:
             self.allBpos[:, self.allX_t] = self.B_pos
 
     def _update_B_neg(self):
-        learning_rate = self._0_1_clamp(self.tau_neg)
+        learning_rate = self.learning_rate_clamp(self.tau_neg)
         decay = 1 - learning_rate
-        activity = self._update_activity_clamp(self.X)
-        self.B_neg = decay*self.B_neg + learning_rate*self.A_neg*activity*10
-        self.B_neg = self._update_B_ceiling(self.B_neg)
+        activity = self.update_activity_clamp(self.X) #TODO: needed here?
+        A = self.A_neg * self.A_scaling
+        self.B_neg = decay*self.B_neg + learning_rate*A*activity
+        self.B_neg = self.B_integration_clamp(self.B_neg)
 
-        # DEBUG
         if self.debug:
             self.allBneg[:, self.allX_t] = self.B_neg
 
@@ -285,120 +283,57 @@ class STDP_CA3(nn.Module):
     def _decay_all_eta_invs(self):
         self.eta_invs = self.gamma_T*self.eta_invs
 
-    def _0_1_clamp(self, x):
-        _ceil = 1 #1.2
-        _floor = 0
-        ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
-            )
-        floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
-        return floor_x
+    def _init_constants(self):
+        self.dt = 1
+        self.tau_J = 1
+        self.alpha_self = 3.15
+        self.A_scaling = 100 # Useful for gradient descent
+        self.alpha_other_scaling = 10 # Useful for gradient descent
 
-    def _J_weight_clamp(self, x):
-        _ceil = 1
-        _floor = 0
-        ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
-            )
-        floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
-        return floor_x
-
-    def _forward_activity_clamp(self, x):
-        _ceil = self._ceil #1.2
-        _floor = -10
-        ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
-            )
-        #floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
-        return ceil_x #floor_x
-
-    def _update_plasticity_clamp(self, x):
-        x_0 = 0.2
-        x_1 = 1.0
-        offset = x_0
-        scale = 1/(x_1 - x_0)
-        x = (x - offset)*scale
-        _ceil = 1
-        _floor = 0
-        ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
-            )
-        floor_x = nn.functional.leaky_relu(x, negative_slope=self.leaky_slope)
-        return floor_x
-
-        x = x*(x >= 0.2).float()
-        return x
-
-    def _update_activity_clamp(self, x):
-        #x = x*(x >= 0.5).float()
-        #return x
-
-        x_0 = 0.6
-        x_1 = 1.0
-        offset = x_0
-        scale = 1/(x_1 - x_0)
-        x = (x - offset)*scale
-        _ceil = 1
-        _floor = 0
-        ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
-            )
-        floor_x = nn.functional.leaky_relu(x, negative_slope=self.leaky_slope)
-        return floor_x
-
-
-    def _update_B_ceiling(self, x):
-        _ceil = 6
-        ceil_x = -1*(
-            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
-            )
-        return ceil_x
+        self.learning_rate_clamp = LeakyClamp(floor=0, ceil=1)
+        self.J_weight_clamp = LeakyClamp(floor=0, ceil=1) # Might not be needed
+        self.forward_activity_clamp = LeakyClamp(floor=None, ceil=1) # Might not be needed
+        self.B_integration_clamp = LeakyClamp(floor=-6, ceil=6) # Might not be needed
 
     def _init_trainable(self):
         self.A_pos = nn.Parameter(torch.rand(1))
         self.tau_pos = nn.Parameter(torch.rand(1))
         self.A_neg = nn.Parameter(torch.zeros(1))
         self.tau_neg = nn.Parameter(torch.ones(1))
-        self.dt = .1
-        self.tau_J = 1
-        self.alpha_self = 1.65
         self.alpha_other = nn.Parameter(torch.ones(1))
-        p1 = nn.Parameter(torch.abs(torch.randn(1))/2)
-        p2 = nn.Parameter(torch.ones(1))
-        if p1 < p2:
-            self._update_floor = p1
-            self._ceil = p2
-        else:
-            self._update_floor = p2
-            self._ceil = p1
 
-        self.A_neg.requires_grad = False
-        self.tau_neg.requires_grad = False
-        
-        self._init_ideal()
+        self.update_clamp = LeakyThreshold(
+            x0=nn.Parameter(torch.abs(torch.randn(1)/2)),
+            x1=1, floor=0, ceil=None
+            )
+        self.update_activity_clamp = LeakyThreshold(
+            x0=nn.Parameter(torch.abs(torch.randn(1))),
+            x1=1, floor=0, ceil=None
+            )
 
-    def _init_ideal(self):
-        self.A_pos = nn.Parameter(torch.ones(1)*0.7)
-        self.tau_pos = nn.Parameter(torch.ones(1)*(.1/0.12)) #0.99
-        self.A_neg = nn.Parameter(torch.zeros(1))
-        self.tau_neg = nn.Parameter(torch.ones(1))
-        self.dt = .1
-        self.tau_J = 1
-        self.alpha_self = 1.5
-        self.alpha_other = nn.Parameter(torch.ones(1)*1.008)
-        p1 = nn.Parameter(torch.ones(1))
-        p2 = nn.Parameter(torch.ones(1)*0.01)
-        if p1 < p2:
-            self._update_floor = p1
-            self._ceil = p2
-        else:
-            self._update_floor = p2
-            self._ceil = p1
+    def reset_trainable_ideal(self, requires_grad=True):
+        nn.init.constant_(self.A_pos, 3.5)
+        nn.init.constant_(self.tau_pos, 0.1/0.12)
+        nn.init.constant_(self.A_neg, 0.)
+        nn.init.constant_(self.tau_neg, 1.)
+        nn.init.constant_(self.alpha_other, 1.8)
+        self.update_clamp = LeakyThreshold(
+            x0=nn.Parameter(torch.ones(1)*0.3),
+            x1=1, floor=0, ceil=None
+            )
+        self.update_activity_clamp = LeakyThreshold(
+            x0=nn.Parameter(torch.ones(1)*0.7),
+            x1=1, floor=0, ceil=None
+            )
 
-        self._ceil.requires_grad = False
-        self.A_neg.requires_grad = False
-
-        #for param in self.parameters():
-        #    param.requires_grad = False
+        if not requires_grad:
+            for param in self.parameters():
+                param.requires_grad = False
        
+    def set_differentiability(self, differentiable):
+        self.differentiable = differentiable
+        if differentiable == True:
+            self.negative_slope = self.leaky_slope
+        else:
+            self.negative_slope = 0
 

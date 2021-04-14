@@ -64,18 +64,14 @@ for step in range(train_steps):
 
     # zero the parameter gradients
     optimizer.zero_grad()
-    try:
-        _, outputs = net(dg_inputs, dg_modes, reset=True)
-    except Exception as e:
-        print(e)
-        import pdb; pdb.set_trace()
+    _, outputs = net(dg_inputs, dg_modes, reset=True)
 
     loss = criterion(
         net.ca3.get_T(),
         torch.tensor(net.ca3.get_real_T()).float()
         )
     loss = torch.sum(torch.sum(loss, dim=1))
-    loss.backward()
+    loss.backward(retain_graph=True)
     nn.utils.clip_grad_norm_(net.parameters(), 1)
 
     for param in net.parameters():
@@ -115,8 +111,8 @@ for step in range(train_steps):
         print(f'tau_neg: {net.ca3.tau_neg.data.item()}')
         print(f'alpha_self: {net.ca3.alpha_self}')
         print(f'alpha_other: {net.ca3.alpha_other.data.item()}')
-        print(f'ceil: {net.ca3._ceil.data.item()}')
-        print(f'floor: {net.ca3._update_floor.data.item()}')
+        print(f'Update clamp: {net.ca3.update_clamp.x0.data.item()}')
+        print(f'Update activity clamp: {net.ca3.update_activity_clamp.x0.data.item()}')
         model_path = os.path.join(save_path, 'model.pt')
         torch.save(net.state_dict(), model_path)
         running_loss = 0.0
