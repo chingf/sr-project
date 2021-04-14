@@ -31,6 +31,7 @@ dataset_config = {
 net = STDP_SR(num_states=num_states, gamma=0.5)
 net.load_state_dict(torch.load(model_path))
 net.ca3.set_leaky_slope(0)
+#net.ca3._init_ideal()
 
 # Make input
 input = dataset(**dataset_config)

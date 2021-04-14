@@ -16,14 +16,13 @@ device = 'cpu'
 # Dataset Configs
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
-    'num_steps': [5, 15, 30],
+    'num_steps': [3, 5, 15, 30],
     'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
     'num_states': [5, 10, 15]
     }]
 num_datasets = len(datasets)
 p = {
-    'num_steps': [1, 0, 0],
-    'num_states': [1, 0, 0]
+    'num_steps': [0.8, 0.2, 0, 0],
     }
 
 # Init net
@@ -65,7 +64,11 @@ for step in range(train_steps):
 
     # zero the parameter gradients
     optimizer.zero_grad()
-    _, outputs = net(dg_inputs, dg_modes, reset=True)
+    try:
+        _, outputs = net(dg_inputs, dg_modes, reset=True)
+    except Exception as e:
+        print(e)
+        import pdb; pdb.set_trace()
 
     loss = criterion(
         net.ca3.get_T(),
@@ -74,6 +77,11 @@ for step in range(train_steps):
     loss = torch.sum(torch.sum(loss, dim=1))
     loss.backward()
     nn.utils.clip_grad_norm_(net.parameters(), 1)
+
+    for param in net.parameters():
+        if torch.isnan(param):
+            import pdb; pdb.set_trace()
+
     grad_avg += net.ca3.tau_pos.grad.item()
     optimizer.step()
 
@@ -116,18 +124,16 @@ for step in range(train_steps):
 
     if step == 50*print_every_steps:
         for key in p:
-            p[key] = [0.8, 0.2, 0]
+            p[key] = [0.3, 0.6, 0.1, 0]
     elif step == 80*print_every_steps:
         for key in p:
-            p[key] = [0.5, 0.5, 0]
+            p[key] = [0, 0.5, 0.5, 0]
     elif step == 110*print_every_steps:
         for key in p:
-            p[key] = [0.4, 0.4, 0.2]
+            p[key] = [0, 0.4, 0.4, 0.2]
     elif step == 140*print_every_steps:
         for key in p:
             p[key] = None
-
-
 
 writer.close()
 print('Finished Training\n')

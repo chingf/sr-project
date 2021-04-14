@@ -4,7 +4,6 @@ import torch.nn as nn
 from sr_model.models import module
 from sr_model.utils import get_sr
 
-
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
         super(CA3, self).__init__()
@@ -110,7 +109,7 @@ class STDP_CA3(nn.Module):
                 self.allinputs[self.allX_t] = self.curr_state
                 self.allMs.append(M_hat)
                 self.allMs_title.append(f'{self.prev_state} to {self.curr_state}')
-                self.allTs.append(self.get_T().copy())
+                self.allTs.append(self.get_T().clone())
 
         return activity
 
@@ -161,7 +160,7 @@ class STDP_CA3(nn.Module):
         except:
             print("Pseudo-Inverse did not converge.")
             M_hat = torch.linalg.pinv(
-                torch.eye(T.shape[0]) - gamma*T + torch.eye(T.shape[0])*1e-3
+                torch.eye(T.shape[0]) - gamma*T + torch.eye(T.shape[0])*1e-1
                 )
         return M_hat
 
@@ -204,22 +203,29 @@ class STDP_CA3(nn.Module):
     def _update_J_ij(self, i, j):
         if self.prev_input[j] != 1: return # TODO: idealized
         eta = 1/self.eta_invs[j]
-        decay = 1 - eta
+        decay = (self.eta_invs[j] - self.prev_input[j])/self.eta_invs[j]
         B_pos_j = torch.unsqueeze(self.B_pos[j], dim=0)
         B_neg_i = torch.unsqueeze(self.B_neg[i], dim=0)
+        
         if i == j:
             activity = self._update_activity_clamp(self.X[i])
-            potentiation = (self.dt/self.tau_J)*activity*B_pos_j
+            potentiation = (self.dt/self.tau_J)*activity*B_pos_j*self.prev_input[j]
             update = potentiation*self.alpha_self
-            self.J[i,j] = self._forward_activity_clamp(
+            self.J[i,j] = self._J_weight_clamp(
                 decay*self.J[i,j] + eta*update
                 )
 
             # DEBUG
             if self.debug:
                 self.last_update[i,j] += update
-            if self.debug_print and self.curr_input[i] == 1:
+            if self.debug_print and self.curr_input[i]==1 and self.prev_input[j]==1:
                 str1 = f'Correct self {i}: {update.item():.2f} '
+                str2 = f'with i activity {self.X[i].item():.2f} '
+                str3 = f'and j activity {self.X[j].item():.2f} '
+                str4 = f'and j plasticity {B_pos_j.item():.2f}'
+                print(str1 + str2 + str3 + str4)
+            if self.debug_print and (self.curr_input[i]!=1 or self.prev_input[j]!=1) and update > 1e-4:
+                str1 = f'Incorrect self {i}: {update.item():.2f} '
                 str2 = f'with i activity {self.X[i].item():.2f} '
                 str3 = f'and j activity {self.X[j].item():.2f} '
                 str4 = f'and j plasticity {B_pos_j.item():.2f}'
@@ -230,20 +236,20 @@ class STDP_CA3(nn.Module):
             potentiation = (self.dt/self.tau_J) * activity_i * B_pos_j
             depression = (self.dt/self.tau_J) * activity_j * B_neg_i
             update = (potentiation + depression)*self.alpha_other*10 #TODO: scaling
-            self.J[i,j] = self._forward_activity_clamp(
+            self.J[i,j] = self._J_weight_clamp(
                 decay*self.J[i,j] + eta*update
                 )
 
             # DEBUG
             if self.debug:
                 self.last_update[i,j] += eta*update
-            if self.debug_print and self.curr_input[i] == 1:
+            if self.debug_print and self.curr_input[i]==1 and self.prev_input[j]==1:
                 str1 = f'Correct {j} to {i}: {update.item():.2f} '
                 str2 = f'with i activity {self.X[i].item():.2f} '
                 str3 = f'and j activity {self.X[j].item():.2f} '
                 str4 = f'and j plasticity {B_pos_j.item():.2f}'
                 print(str1 + str2 + str3 + str4)
-            if self.debug_print and self.curr_input[i] != 1 and update > 0:
+            if self.debug_print and (self.curr_input[i] != 1 or self.prev_input[j]!=1) and update > 1e-4:
                 str1 = f'Wrong totally, {j} to {i}: {update.item():.2f} '
                 str2 = f'with i activity {self.X[i].item():.2f} '
                 str3 = f'and j activity {self.X[j].item():.2f} '
@@ -252,13 +258,10 @@ class STDP_CA3(nn.Module):
 
     def _update_B_pos(self):
         learning_rate = self._0_1_clamp(self.tau_pos) # self.dt/self.tau_pos .1/.12
-        #learning_rate = nn.functional.leaky_relu(
-        #    self.tau_pos, negative_slope=self.leaky_slope
-        #    )
         decay = 1 - learning_rate
         activity = self._update_activity_clamp(self.X)
-        self.B_pos = decay*self.B_pos + learning_rate*self.A_pos*activity*10 #TODO: scaling
-        self.B_pos = self._update_B_ceiling(self.B_pos)
+        self.B_pos = decay*self.B_pos + learning_rate*self.A_pos*activity*10
+        #self.B_pos = self._update_B_ceiling(self.B_pos)
 
         # DEBUG
         if self.debug:
@@ -268,7 +271,7 @@ class STDP_CA3(nn.Module):
         learning_rate = self._0_1_clamp(self.tau_neg)
         decay = 1 - learning_rate
         activity = self._update_activity_clamp(self.X)
-        self.B_neg = decay*self.B_neg + learning_rate*self.A_neg*activity*10 #TODO: scaling
+        self.B_neg = decay*self.B_neg + learning_rate*self.A_neg*activity*10
         self.B_neg = self._update_B_ceiling(self.B_neg)
 
         # DEBUG
@@ -290,6 +293,15 @@ class STDP_CA3(nn.Module):
         floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
         return floor_x
 
+    def _J_weight_clamp(self, x):
+        _ceil = 1
+        _floor = 0
+        ceil_x = -1*(
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
+            )
+        floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
+        return floor_x
+
     def _forward_activity_clamp(self, x):
         _ceil = self._ceil #1.2
         _floor = -10
@@ -300,8 +312,30 @@ class STDP_CA3(nn.Module):
         return ceil_x #floor_x
 
     def _update_activity_clamp(self, x):
-        u_floor = self._ceil - torch.abs(self._update_floor)
-        return nn.functional.leaky_relu(x-u_floor, negative_slope=self.leaky_slope)*100
+        #x = x*(x >= 0.99).float()
+        #return x
+
+        #u_floor = self._ceil - torch.abs(self._update_floor)
+        #return nn.functional.leaky_relu(x-u_floor, negative_slope=self.leaky_slope)*100
+
+        #x0 = 0.9
+        #slope = 20
+        #try:
+        #    print(x)
+        #    return 1/(1 + torch.exp(-slope*(x-x0)))
+        #except Exception as e:
+        #    print(e)
+        #    import pdb; pdb.set_trace()
+
+        x = (x - 0.98)*50
+        _ceil = 1
+        _floor = 0
+        ceil_x = -1*(
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
+            )
+        floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
+        return floor_x
+
 
     def _update_B_ceiling(self, x):
         _ceil = 6
@@ -311,14 +345,14 @@ class STDP_CA3(nn.Module):
         return ceil_x
 
     def _init_trainable(self):
-        self.A_pos = nn.Parameter(torch.rand(1)) # 7
+        self.A_pos = nn.Parameter(torch.rand(1))
         self.tau_pos = nn.Parameter(torch.rand(1))
-        self.A_neg = nn.Parameter(torch.randn(1)) # 0
-        self.tau_neg = nn.Parameter(torch.rand(1)) # 1
-        self.dt = .1 #nn.Parameter(torch.abs(torch.randn(1))) # 0.1
-        self.tau_J = 1 #nn.Parameter(torch.randn(1)) # 1
-        self.alpha_self = 1.65 #nn.Parameter(torch.ones(1)) # 1.65
-        self.alpha_other = nn.Parameter(torch.ones(1)) # 10.08
+        self.A_neg = nn.Parameter(torch.zeros(1))
+        self.tau_neg = nn.Parameter(torch.ones(1))
+        self.dt = .1
+        self.tau_J = 1
+        self.alpha_self = 1.65
+        self.alpha_other = nn.Parameter(torch.ones(1))
         p1 = nn.Parameter(torch.abs(torch.randn(1))/2)
         p2 = nn.Parameter(torch.ones(1))
         if p1 < p2:
@@ -327,4 +361,34 @@ class STDP_CA3(nn.Module):
         else:
             self._update_floor = p2
             self._ceil = p1
+
+        self.A_neg.requires_grad = False
+        self.tau_neg.requires_grad = False
+        
+        self._init_ideal()
+
+    def _init_ideal(self):
+        self.A_pos = nn.Parameter(torch.ones(1)*0.7)
+        self.tau_pos = nn.Parameter(torch.ones(1)*(.1/0.12)) #0.99
+        self.A_neg = nn.Parameter(torch.zeros(1))
+        self.tau_neg = nn.Parameter(torch.ones(1))
+        self.dt = .1
+        self.tau_J = 1
+        self.alpha_self = 1.65
+        self.alpha_other = nn.Parameter(torch.ones(1)*1.008)
+        p1 = nn.Parameter(torch.ones(1))
+        p2 = nn.Parameter(torch.ones(1)*0.01)
+        if p1 < p2:
+            self._update_floor = p1
+            self._ceil = p2
+        else:
+            self._update_floor = p2
+            self._ceil = p1
+
+        self._ceil.requires_grad = False
+        self.A_neg.requires_grad = False
+
+        #for param in self.parameters():
+        #    param.requires_grad = False
+       
 
