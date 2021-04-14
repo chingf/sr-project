@@ -156,7 +156,7 @@ class STDP_CA3(nn.Module):
             gamma = self.gamma_M0
         T = self.get_T()
         try:
-            M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+            M_hat = torch.linalg.pinv(torch.eye(T.shape[0])*1.07 - gamma*T)
         except:
             print("Pseudo-Inverse did not converge.")
             M_hat = torch.linalg.pinv(
@@ -201,7 +201,7 @@ class STDP_CA3(nn.Module):
         self.real_T_count = 0.001*np.ones(self.num_states)
 
     def _update_J_ij(self, i, j):
-        if self.prev_input[j] != 1: return # TODO: idealized
+        #if self.prev_input[j] != 1: return # TODO: idealized
         eta = 1/self.eta_invs[j]
         decay = (self.eta_invs[j] - self.prev_input[j])/self.eta_invs[j]
         B_pos_j = torch.unsqueeze(self.B_pos[j], dim=0)
@@ -210,7 +210,7 @@ class STDP_CA3(nn.Module):
         if i == j:
             activity = self._update_activity_clamp(self.X[i])
             potentiation = (self.dt/self.tau_J)*activity*B_pos_j*self.prev_input[j]
-            update = potentiation*self.alpha_self
+            update = self._update_plasticity_clamp(potentiation*self.alpha_self)
             self.J[i,j] = self._J_weight_clamp(
                 decay*self.J[i,j] + eta*update
                 )
@@ -236,6 +236,7 @@ class STDP_CA3(nn.Module):
             potentiation = (self.dt/self.tau_J) * activity_i * B_pos_j
             depression = (self.dt/self.tau_J) * activity_j * B_neg_i
             update = (potentiation + depression)*self.alpha_other*10 #TODO: scaling
+            update = self._update_plasticity_clamp(update)
             self.J[i,j] = self._J_weight_clamp(
                 decay*self.J[i,j] + eta*update
                 )
@@ -311,23 +312,19 @@ class STDP_CA3(nn.Module):
         #floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
         return ceil_x #floor_x
 
+    def _update_plasticity_clamp(self, x):
+        x = x*(x >= 0.2).float()
+        return x
+
     def _update_activity_clamp(self, x):
-        #x = x*(x >= 0.99).float()
-        #return x
+        x = x*(x >= 0.5).float()
+        return x
 
-        #u_floor = self._ceil - torch.abs(self._update_floor)
-        #return nn.functional.leaky_relu(x-u_floor, negative_slope=self.leaky_slope)*100
-
-        #x0 = 0.9
-        #slope = 20
-        #try:
-        #    print(x)
-        #    return 1/(1 + torch.exp(-slope*(x-x0)))
-        #except Exception as e:
-        #    print(e)
-        #    import pdb; pdb.set_trace()
-
-        x = (x - 0.98)*50
+        x_0 = 0.6
+        x_1 = 1.0
+        offset = x_0
+        scale = 1/(x_1 - x_0)
+        x = (x - offset)*scale
         _ceil = 1
         _floor = 0
         ceil_x = -1*(
@@ -374,7 +371,7 @@ class STDP_CA3(nn.Module):
         self.tau_neg = nn.Parameter(torch.ones(1))
         self.dt = .1
         self.tau_J = 1
-        self.alpha_self = 1.65
+        self.alpha_self = 1.5
         self.alpha_other = nn.Parameter(torch.ones(1)*1.008)
         p1 = nn.Parameter(torch.ones(1))
         p2 = nn.Parameter(torch.ones(1)*0.01)
