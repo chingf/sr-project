@@ -313,12 +313,25 @@ class STDP_CA3(nn.Module):
         return ceil_x #floor_x
 
     def _update_plasticity_clamp(self, x):
+        x_0 = 0.2
+        x_1 = 1.0
+        offset = x_0
+        scale = 1/(x_1 - x_0)
+        x = (x - offset)*scale
+        _ceil = 1
+        _floor = 0
+        ceil_x = -1*(
+            nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
+            )
+        floor_x = nn.functional.leaky_relu(x, negative_slope=self.leaky_slope)
+        return floor_x
+
         x = x*(x >= 0.2).float()
         return x
 
     def _update_activity_clamp(self, x):
-        x = x*(x >= 0.5).float()
-        return x
+        #x = x*(x >= 0.5).float()
+        #return x
 
         x_0 = 0.6
         x_1 = 1.0
@@ -330,7 +343,7 @@ class STDP_CA3(nn.Module):
         ceil_x = -1*(
             nn.functional.leaky_relu(-x + _ceil, negative_slope=self.leaky_slope) - _ceil
             )
-        floor_x = nn.functional.leaky_relu(ceil_x, negative_slope=self.leaky_slope)
+        floor_x = nn.functional.leaky_relu(x, negative_slope=self.leaky_slope)
         return floor_x
 
 
