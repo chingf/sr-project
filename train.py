@@ -22,20 +22,19 @@ datasets_config_ranges = [{
     }]
 num_datasets = len(datasets)
 p = {
-    'num_steps': [0.8, 0.2, 0, 0],
+    'num_steps': [0.6, 0.4, 0., 0],
     }
 
 # Init net
 writer = SummaryWriter('./trained_models')
-net = STDP_SR(num_states=2, gamma=0.5)
+net = STDP_SR(num_states=2, gamma=0.4)
 criterion = nn.MSELoss(reduction='none')
 lr=1E-3
-weight_decay = 1E-3
+weight_decay = 0
 optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay) #Adam
 
 # Loss reporting
 running_loss = 0.0
-running_loss_reg = 0.0
 print_every_steps = 50
 train_steps = 50000
 time_task = 0
@@ -71,12 +70,8 @@ for step in range(train_steps):
         torch.tensor(net.ca3.get_real_T()).float()
         )
     loss = torch.sum(torch.sum(loss, dim=1))
-    loss.backward(retain_graph=True)
-    nn.utils.clip_grad_norm_(net.parameters(), 1)
-
-    for param in net.parameters():
-        if torch.isnan(param):
-            import pdb; pdb.set_trace()
+    loss.backward()
+    #nn.utils.clip_grad_norm_(net.parameters(), 1)
 
     grad_avg += net.ca3.tau_pos.grad.item()
     optimizer.step()
@@ -109,7 +104,7 @@ for step in range(train_steps):
         print(f'tau_pos: {net.ca3.tau_pos.data.item()}')
         print(f'A_neg: {net.ca3.A_neg.data.item()}')
         print(f'tau_neg: {net.ca3.tau_neg.data.item()}')
-        print(f'alpha_self: {net.ca3.alpha_self}')
+        print(f'alpha_self: {net.ca3.alpha_self.data.item()}')
         print(f'alpha_other: {net.ca3.alpha_other.data.item()}')
         print(f'Update clamp: {net.ca3.update_clamp.x0.data.item()}')
         print(f'Update activity clamp: {net.ca3.update_activity_clamp.x0.data.item()}')
@@ -123,7 +118,7 @@ for step in range(train_steps):
             p[key] = [0.3, 0.6, 0.1, 0]
     elif step == 80*print_every_steps:
         for key in p:
-            p[key] = [0, 0.5, 0.5, 0]
+            p[key] = [0.2, 0.3, 0.5, 0]
     elif step == 110*print_every_steps:
         for key in p:
             p[key] = [0, 0.4, 0.4, 0.2]

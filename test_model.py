@@ -19,7 +19,7 @@ model_path = save_path + model_file
 device = 'cpu'
 
 # Dataset Configs
-num_steps = 100
+num_steps = 200
 num_states = 16
 dataset = inputs.Sim1DWalk
 dataset_config = {
@@ -30,10 +30,10 @@ dataset_config = {
 # Init net
 net = STDP_SR(num_states=num_states, gamma=0.5)
 net.load_state_dict(torch.load(model_path))
-net.ca3.reset_trainable_ideal()
+#net.ca3.reset_trainable_ideal_0()
 net.ca3.set_differentiability(False)
-net.ca3.debug_print = True
-#net.ca3.gamma_M0 = 0.1
+#net.ca3.debug_print = True
+net.ca3.gamma_M0 = 0.4
 
 # Make input
 input = dataset(**dataset_config)

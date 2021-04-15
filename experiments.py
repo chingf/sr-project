@@ -12,7 +12,7 @@ def sim_1dwalk():
         num_steps=1000, left_right_stay_prob=[0, 1, 0.5], num_states=50
         )
     sr_params = {
-        'gamma': 0.5, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
+        'gamma': 0.4, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
         }
     plot_params = {
         'num_cells_to_plot': 16, 'history_size': input.num_steps, 'fps': 30,
@@ -29,7 +29,7 @@ def sim_1dwalk():
 def sim_2dwalk():
     input = inputs.Sim2DWalk(num_steps=1000, num_states=100)
     sr_params = {
-        'gamma': 0.5, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
+        'gamma': 0.4, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
         }
     plot_params = {
         'num_cells_to_plot': 16, 'history_size': input.num_steps, 'fps': 30,
@@ -47,7 +47,7 @@ def sim_2dwalk():
 def sim_2dlevy():
     input = inputs.Sim2DLevyFlight(num_steps=1000, walls=25)
     sr_params = {
-       'gamma': 0.5, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
+       'gamma': 0.4, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
         }
     plot_params = {
         'num_cells_to_plot': 16, 'history_size': input.num_steps, 'fps': 30,
@@ -68,7 +68,7 @@ def sim_2dlevy():
 def rby_xywalk():
     input = inputs.RBYXYWalk(num_states=25*25, downsample_factor=10)
     sr_params = {
-        'gamma': 0.5, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
+        'gamma': 0.4, 'recon_dim': ceil(sqrt(sqrt(input.num_states)))
         }
     plot_params = {
         'num_cells_to_plot': 25, 'history_size': input.num_steps, 'fps': 30,

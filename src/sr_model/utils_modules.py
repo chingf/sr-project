@@ -29,13 +29,14 @@ class LeakyThreshold(nn.Module):
         super(LeakyThreshold, self).__init__()
         self.x0 = x0
         self.x1 = x1
-        self.offset = x0
-        self.scale = 1/(x1 - x0)
         self.floor = floor
         self.ceil = ceil
 
     def forward(self, input, negative_slope=0):
-        input = (input - self.offset)/self.scale
+        offset = self.x0
+        scale = 1/(self.x1 - self.x0)
+        input = (input - offset)*scale
+
         if self.ceil is not None:
             input = -1*(nn.functional.leaky_relu(
                 -input + self.ceil, negative_slope=negative_slope
