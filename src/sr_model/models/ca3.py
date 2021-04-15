@@ -262,22 +262,26 @@ class STDP_CA3(nn.Module):
                 print(str1 + str2 + str3 + str4)
 
     def _update_B_pos(self):
-        learning_rate = self.learning_rate_clamp(self.tau_pos, self.leaky_slope)
-        decay = 1 - learning_rate
+        tau_pos = nn.functional.leaky_relu(
+            self.tau_pos, negative_slope=self.leaky_slope
+            )
+        decay = 1 - 1/tau_pos
         activity = self.update_activity_clamp(self.X, self.leaky_slope)
         A = self.A_pos * self.A_scaling
-        self.B_pos = decay*self.B_pos + learning_rate*A*activity
+        self.B_pos = decay*self.B_pos + A*activity
         self.B_pos = self.B_integration_clamp(self.B_pos, self.leaky_slope)
 
         if self.debug:
             self.allBpos[:, self.allX_t] = self.B_pos
 
     def _update_B_neg(self):
-        learning_rate = self.learning_rate_clamp(self.tau_neg, self.leaky_slope)
-        decay = 1 - learning_rate
+        tau_neg = nn.functional.leaky_relu(
+            self.tau_neg, negative_slope=self.leaky_slope
+            )
+        decay = 1 - 1/tau_neg
         activity = self.update_activity_clamp(self.X, self.leaky_slope)
         A = self.A_neg * self.A_scaling
-        self.B_neg = decay*self.B_neg + learning_rate*A*activity
+        self.B_neg = decay*self.B_neg + A*activity
         self.B_neg = self.B_integration_clamp(self.B_neg, self.leaky_slope)
 
         if self.debug:
@@ -306,12 +310,13 @@ class STDP_CA3(nn.Module):
         self.A_pos = nn.Parameter(torch.rand(1))
         self.tau_pos = nn.Parameter(torch.rand(1)*2)
         self.A_neg = nn.Parameter(-torch.abs(torch.rand(1)))
+        nn.init.constant_(self.A_neg, -0.)
         self.tau_neg = nn.Parameter(torch.abs(torch.rand(1)))
         self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
         self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
 
         self.update_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.abs(torch.randn(1))),
+            x0=nn.Parameter(torch.abs(torch.rand(1)/2)),
             x1=1, floor=0, ceil=1.
             )
         self.update_activity_clamp = LeakyThreshold(
@@ -319,12 +324,12 @@ class STDP_CA3(nn.Module):
             x1=1, floor=0, ceil=None
             )
 
-        #self.reset_trainable_ideal()
+        self.reset_trainable_ideal()
 
     def reset_trainable_ideal(self, requires_grad=True):
         nn.init.constant_(self.A_pos, 0.5) #0.69)
-        nn.init.constant_(self.tau_pos, 0.8742)
-        nn.init.constant_(self.A_neg, -0.)
+        nn.init.constant_(self.tau_pos, 1.15) #0.8742)
+        nn.init.constant_(self.A_neg, -0)
         nn.init.constant_(self.tau_neg, 1.)
         nn.init.constant_(self.alpha_other, .18) #0.82)
         nn.init.constant_(self.alpha_self, 0.2) #1)
