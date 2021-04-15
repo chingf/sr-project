@@ -12,28 +12,27 @@ from torch.utils.tensorboard import SummaryWriter
 from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 
-model_file = 'model.pt'
+model_file = 'model_2.pt'
 save_path = './trained_models/'
 model_path = save_path + model_file
 
 device = 'cpu'
 
 # Dataset Configs
-num_steps = 200
+num_steps = 100
 num_states = 16
 dataset = inputs.Sim1DWalk
 dataset_config = {
-    'num_steps': num_steps, 'left_right_stay_prob': [1, 1, 1],
+    'num_steps': num_steps, 'left_right_stay_prob': [5, 1, 1],
     'num_states': num_states
     }
 
 # Init net
-net = STDP_SR(num_states=num_states, gamma=0.5)
+net = STDP_SR(num_states=num_states, gamma=0.4)
 net.load_state_dict(torch.load(model_path))
-#net.ca3.reset_trainable_ideal_0()
 net.ca3.set_differentiability(False)
-#net.ca3.debug_print = True
-net.ca3.gamma_M0 = 0.4
+net.ca3.reset_trainable_ideal()
+net.ca3.debug_print = False
 
 # Make input
 input = dataset(**dataset_config)
@@ -42,10 +41,17 @@ dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device).unsqueeze(1)
 
 with torch.no_grad():
     _, outputs = net(dg_inputs, dg_modes, reset=True)
-
+    est_T = net.ca3.get_T().detach().numpy()
+    real_T = net.ca3.get_real_T()
+    err = np.mean(np.abs(est_T - real_T))
+    print(f'MAE: {err}')
+    
 plt.figure()
-plt.plot(net.ca3.get_stdp_kernel())
+plt.plot(net.ca3.get_stdp_kernel(), linewidth=2)
+plt.xticks([])
+plt.axvline(7, color="gray")
 plt.show()
+
 fig, axs = plt.subplots(1, 2)
 im0 = axs[0].imshow(net.ca3.get_real_T())
 axs[0].set_title("Real T")
