@@ -49,7 +49,7 @@ class Sim2DWalk(object):
             ):
 
         self.num_steps = num_steps
-        self.num_states = int((ceil(sqrt(num_states)) + 1)**2)
+        self.num_states = int((ceil(sqrt(num_states)))**2)
         self.num_xybins = int(sqrt(self.num_states))
         self.xmin = 0; self.xmax = self.num_xybins
         self.ymin = 0; self.ymax = self.num_xybins
