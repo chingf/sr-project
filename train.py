@@ -16,7 +16,8 @@ device = 'cpu'
 # Dataset Configs
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
-    'num_steps': [3, 5, 15, 30],
+    #'num_steps': [3, 5, 15, 30],
+    'num_steps': [3, 10, 20, 40],
     'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
     'num_states': [5, 10, 15]
     }]
@@ -113,16 +114,16 @@ for step in range(train_steps):
         running_loss = 0.0
         grad_avg = 0
 
-    if step == 50*print_every_steps:
+    if step == 30*print_every_steps:
         for key in p:
             p[key] = [0.3, 0.6, 0.1, 0]
-    elif step == 80*print_every_steps:
+    elif step == 50*print_every_steps:
         for key in p:
             p[key] = [0.2, 0.3, 0.5, 0]
-    elif step == 110*print_every_steps:
+    elif step == 80*print_every_steps:
         for key in p:
             p[key] = [0, 0.4, 0.4, 0.2]
-    elif step == 140*print_every_steps:
+    elif step == 100*print_every_steps:
         for key in p:
             p[key] = None
 
