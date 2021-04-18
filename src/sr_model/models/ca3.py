@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from sr_model.models import module
 from sr_model.utils import get_sr
-from sr_model.utils_modules import LeakyClamp, LeakyThreshold
+from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThreshold
 
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
@@ -121,12 +121,7 @@ class STDP_CA3(nn.Module):
 
         self._update_eta_invs()
 
-        for i in np.arange(self.num_states):
-            for j in np.arange(self.num_states):
-                if i != j:
-                    self._update_J_ij(i, j)
-                else:
-                    self._update_J_ij(i, j)
+        self._update_J()
 
         self.real_T_tilde = self.gamma_T*self.real_T_tilde
         self.real_T_tilde[self.prev_input>0, self.curr_input>0] += 1
@@ -153,13 +148,15 @@ class STDP_CA3(nn.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-        try:
-            M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
-        except:
-            print("Pseudo-Inverse did not converge.")
-            M_hat = torch.linalg.pinv(
-                torch.eye(T.shape[0]) - gamma*T + torch.eye(T.shape[0])*1e-1
-                )
+        M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+#        try:
+#        except:
+#            print("Pseudo-Inverse did not converge.")
+#            if torch.any(torch.isnan(T)):
+#                raise Exception('No')
+#            M_hat = torch.linalg.pinv(
+#                torch.eye(T.shape[0]) - gamma*T + torch.eye(T.shape[0])*1e-3
+#                )
         return M_hat
 
     def get_T(self):
@@ -186,6 +183,7 @@ class STDP_CA3(nn.Module):
 
         # Detached Hebbian tensors
         self.J = torch.tensor(self.J).float()
+        self.eta_invs = torch.tensor(self.eta_invs).float()
         self.B_pos = torch.tensor(self.B_pos).float()
         self.B_neg = torch.tensor(self.B_neg).float()
         self.J.detach_()
@@ -198,68 +196,63 @@ class STDP_CA3(nn.Module):
         self.real_T_tilde = 0.001*self.J.t().clone().numpy()
         self.real_T_count = 0.001*np.ones(self.num_states)
 
-    def _update_J_ij(self, i, j):
-        #if self.prev_input[j] != 1: return # TODO: idealized
-        eta = 1/self.eta_invs[j]
-        decay = (self.eta_invs[j] - self.prev_input[j])/self.eta_invs[j]
-        B_pos_j = torch.unsqueeze(self.B_pos[j], dim=0)
-        B_neg_i = torch.unsqueeze(self.B_neg[i], dim=0)
-        
-        if i == j:
-            activity = self.update_activity_clamp(self.X[i], self.leaky_slope)
-            potentiation = (self.dt/self.tau_J)*activity*B_pos_j*self.prev_input[j]
-            update = self.update_clamp(
-                potentiation*self.alpha_self*self.alpha_self_scaling,
-                self.leaky_slope
-                )
-            self.J[i,j] = self.J_weight_clamp(
-                decay*self.J[i,j] + eta*update, self.leaky_slope
-                )
+    def _update_J(self):
 
-            # DEBUG
-            if self.debug:
-                self.last_update[i,j] += update
-            if self.debug_print and self.curr_input[i]==1 and self.prev_input[j]==1:
-                str1 = f'Correct self {i}: {update.item():.2f} '
-                str2 = f'with i activity {self.X[i].item():.2f} '
-                str3 = f'and j activity {self.X[j].item():.2f} '
-                str4 = f'and j plasticity {B_pos_j.item():.2f}'
-                print(str1 + str2 + str3 + str4)
-            if self.debug_print and (self.curr_input[i]!=1 or self.prev_input[j]!=1) and update > 1e-4:
-                str1 = f'Incorrect self {i}: {update.item():.2f} '
-                str2 = f'with i activity {self.X[i].item():.2f} '
-                str3 = f'and j activity {self.X[j].item():.2f} '
-                str4 = f'and j plasticity {B_pos_j.item():.2f}'
-                print(str1 + str2 + str3 + str4)
-        else:
-            activity_i = self.update_activity_clamp(self.X[i], self.leaky_slope)
-            activity_j = self.update_activity_clamp(self.X[j], self.leaky_slope)
-            potentiation = (self.dt/self.tau_J) * activity_i * B_pos_j
-            depression = (self.dt/self.tau_J) * activity_j * B_neg_i
-            update = (potentiation + depression)*self.alpha_other*self.alpha_other_scaling
-            if update < 0:
-                update = -1 *self.update_clamp(-update, self.leaky_slope)
-            else:
-                update = self.update_clamp(update, self.leaky_slope)
-            self.J[i,j] = self.J_weight_clamp(
-                decay*self.J[i,j] + eta*update, self.leaky_slope
-                )
+        num_states = self.num_states
+        # Format learning rates for each neuron's outgoing synapses (shared by js)
+        etas = 1/self.eta_invs # (N,)
+        etas = torch.tile(etas, (num_states, 1)) # (N, N)
+        decays = (self.eta_invs - self.prev_input)/self.eta_invs # (N,)
+        decays = torch.tile(decays, (num_states, 1)) # (N, N)
 
-            # DEBUG
-            if self.debug:
-                self.last_update[i,j] += eta*update
-            if self.debug_print and self.curr_input[i]==1 and self.prev_input[j]==1:
-                str1 = f'Correct {j} to {i}: {update.item():.2f} '
-                str2 = f'with i activity {self.X[i].item():.2f} '
-                str3 = f'and j activity {self.X[j].item():.2f} '
-                str4 = f'and j plasticity {B_pos_j.item():.2f}'
-                print(str1 + str2 + str3 + str4)
-            if self.debug_print and (self.curr_input[i] != 1 or self.prev_input[j]!=1) and update > 1e-4:
-                str1 = f'Wrong totally, {j} to {i}: {update.item():.2f} '
-                str2 = f'with i activity {self.X[i].item():.2f} '
-                str3 = f'and j activity {self.X[j].item():.2f} '
-                str4 = f'and j plasticity {B_pos_j.item():.2f}'
-                print(str1 + str2 + str3 + str4)
+        # Get activity and plasticity integration
+        B_pos = torch.unsqueeze(self.B_pos, dim=0) # (1, N)
+        B_neg = torch.unsqueeze(self.B_neg, dim=0) # (1, N)
+        activity = self.update_activity_clamp(self.X, self.leaky_slope) # (N,)
+        activity = torch.unsqueeze(activity, dim=0) # (1, N)
+
+        # Calculate potentiation and depression over all i,j for i != j
+        potentiation = (self.dt/self.tau_J) * activity.t() * B_pos # (N, N); activity i, B_pos j
+        depression = (self.dt/self.tau_J) * B_neg.t() * activity # (N, N); B_neg i, activity j
+        update = (potentiation + depression)*self.alpha_other*self.alpha_other_scaling
+
+        # Calculate self-potentiation
+        self_potentiation = (self.dt/self.tau_J)*activity*B_pos*self.prev_input
+        self_update = self_potentiation*self.alpha_self*self.alpha_self_scaling
+        diag_mask = torch.ones(num_states, num_states) - torch.eye(num_states)
+        update = update*diag_mask + torch.diag(torch.squeeze(self_update))
+
+        # Make the update over all N^2 synapses
+        update = self.update_clamp(update)
+        self.J = self.J_weight_clamp(
+            decays*self.J + etas*update, self.leaky_slope
+            )
+
+#        if i == j:
+#            activity = self.update_activity_clamp(self.X[i], self.leaky_slope)
+#            potentiation = (self.dt/self.tau_J)*activity*B_pos_j*self.prev_input[j]
+#            update = self.update_clamp(
+#                potentiation*self.alpha_self*self.alpha_self_scaling,
+#                self.leaky_slope
+#                )
+#            self.J[i,j] = self.J_weight_clamp(
+#                decay*self.J[i,j] + eta*update, self.leaky_slope
+#                )
+#
+#        else:
+#            activity_i = self.update_activity_clamp(self.X[i], self.leaky_slope)
+#            activity_j = self.update_activity_clamp(self.X[j], self.leaky_slope)
+#            potentiation = (self.dt/self.tau_J) * activity_i * B_pos_j
+#            depression = (self.dt/self.tau_J) * activity_j * B_neg_i
+#            update = (potentiation + depression)*self.alpha_other*self.alpha_other_scaling
+#            if update < 0:
+#                update = -1 *self.update_clamp(-update, self.leaky_slope)
+#            else:
+#                update = self.update_clamp(update, self.leaky_slope)
+#            self.J[i,j] = self.J_weight_clamp(
+#                decay*self.J[i,j] + eta*update, self.leaky_slope
+#                )
+
 
     def _update_B_pos(self):
         tau_pos = nn.functional.leaky_relu(
@@ -315,7 +308,7 @@ class STDP_CA3(nn.Module):
         self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
         self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
 
-        self.update_clamp = LeakyThreshold(
+        self.update_clamp = TwoSidedLeakyThreshold(
             x0=nn.Parameter(torch.abs(torch.rand(1)/2)),
             x1=1, floor=0, ceil=1.
             )
@@ -327,18 +320,18 @@ class STDP_CA3(nn.Module):
         self.reset_trainable_ideal()
 
     def reset_trainable_ideal(self, requires_grad=True):
-        nn.init.constant_(self.A_pos, 0.5) #0.69)
-        nn.init.constant_(self.tau_pos, 1.15) #0.8742)
-        nn.init.constant_(self.A_neg, -0)
-        nn.init.constant_(self.tau_neg, 1.)
-        nn.init.constant_(self.alpha_other, .18) #0.82)
-        nn.init.constant_(self.alpha_self, 0.2) #1)
+        nn.init.constant_(self.A_pos, 1) #0.5
+        nn.init.constant_(self.tau_pos, 1.4) #1.15
+        nn.init.constant_(self.A_neg, 0.15) #0
+        nn.init.constant_(self.tau_neg, 1.) #1
+        nn.init.constant_(self.alpha_other, .18)
+        nn.init.constant_(self.alpha_self, 0.2)
         self.update_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.ones(1)*.2),
+            x0=nn.Parameter(torch.ones(1)*.1), #0.2
             x1=1, floor=0, ceil=1.
             )
         self.update_activity_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.ones(1)*0.7),
+            x0=nn.Parameter(torch.ones(1)*0.5), #0.7
             x1=1, floor=0, ceil=None
             )
 
