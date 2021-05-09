@@ -13,6 +13,8 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 
 device = 'cpu'
 
+save_path = './trained_models'
+
 # Dataset Configs
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
@@ -27,7 +29,7 @@ p = {
     }
 
 # Init net
-writer = SummaryWriter('./trained_models')
+writer = SummaryWriter(save_path)
 net = STDP_SR(num_states=2, gamma=0.4)
 criterion = nn.MSELoss(reduction='none')
 lr=1E-3
@@ -40,7 +42,6 @@ print_every_steps = 50
 train_steps = 50000
 time_task = 0
 time_net = 0
-save_path = './trained_models'
 
 grad_avg = 0
 

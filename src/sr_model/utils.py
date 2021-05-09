@@ -2,6 +2,7 @@ import numpy as np
 from math import ceil
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import torch
 
 def pol2cart(thetas, rhos):
     xs = rhos * np.cos(np.radians(thetas))
@@ -15,19 +16,19 @@ def downsample(vector, factor):
     return downsamp_vec   
 
 def get_sr(T, gamma):
-    D = np.diag(T @ np.ones(T.shape[0]))
-    P = np.linalg.inv(D) @ T
-    M = np.linalg.pinv(np.eye(P.shape[0]) - gamma*P)
+    D = torch.diag(T @ torch.ones(T.shape[0]))
+    P = torch.inverse(D) @ T
+    M = torch.linalg.pinv(torch.eye(P.shape[0]) - gamma*P)
     return M
 
 def get_sr_features(T, sr_params):
     gamma = sr_params['gamma']
     recon_dim = sr_params['recon_dim']
-    D = np.diag(T @ np.ones(T.shape[0]))
-    P = np.linalg.inv(D) @ T
-    M = np.linalg.pinv(np.eye(P.shape[0]) - sr_params['gamma']*P)
-    U, S, V = np.linalg.svd(M)
-    M_hat = np.dot(U[:,:recon_dim]*S[:recon_dim], V[:recon_dim,:])
+    D = torch.diag(T @ torch.ones(T.shape[0]))
+    P = torch.inverse(D) @ T
+    M = torch.linalg.pinv(torch.eye(P.shape[0]) - sr_params['gamma']*P)
+    U, S, V = torch.linalg.svd(M)
+    M_hat = torch.matmul(U[:,:recon_dim]*S[:recon_dim], V[:recon_dim,:])
     return M, U, M_hat
 
 def debug_plot(state_vector, input, title):

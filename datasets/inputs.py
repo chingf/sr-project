@@ -409,16 +409,24 @@ class RBYXYWalk(object):
         return dg_inputs, dg_modes, xs, ys, zs
 
 class RBYCacheWalk(object):
-    def __init__(self, num_spatial_states, downsample_factor, skip_frame):
+    def __init__(
+            self, num_spatial_states, downsample_factor, skip_frame,
+            vel_thresh=0, event_window=1
+            ):
+
         f = h5py.File(h5_path_dict['RBY45'][3].as_posix(), 'r')
         self.exp_data = ExpData(f)
         self.xmin = 0; self.xmax = 425
         self.ymin = 0; self.ymax = 425
+
         self.downsample_factor = downsample_factor
         self.skip_frame = skip_frame
-        self.num_spatial_states = int((ceil(sqrt(num_spatial_states)) + 1)**2)
+        self.num_spatial_states = int(ceil(sqrt(num_spatial_states))**2)
         self.num_xybins = int(sqrt(self.num_spatial_states))
         self.num_states = self.num_spatial_states + 16
+        self.vel_thresh = vel_thresh
+        self.event_window = event_window
+
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
         self.num_steps = self.dg_inputs.shape[1]
         self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
@@ -491,16 +499,21 @@ class RBYCacheWalk(object):
         dg_modes = np.zeros(xs.size)
 
         np.random.seed(0)
-        valid_frames = np.random.choice(
-            [0, 1], xs.size, p=[self.skip_frame, 1-self.skip_frame]
-            ).astype(bool)
+        if self.skip_frame is not None:
+            valid_frames = np.random.choice(
+                [0, 1], xs.size, p=[self.skip_frame, 1-self.skip_frame]
+                ).astype(bool)
+        else:
+            valid_frames = np.ones(xs.size).astype(bool)
 
-        valid_frames = np.logical_and(valid_frames, self.exp_data.speeds > 6)
+        valid_frames = np.logical_and(
+            valid_frames, self.exp_data.speeds > self.vel_thresh
+            )
 
         # Add cache/retrieval modes and states
         exp_data = self.exp_data
         c_hops, r_hops, ch_hops, noncrch_hops = exp_data.get_crch_hops()
-        event_window = 1 # in frames
+        event_window = self.event_window # in frames
         for idx, hop in enumerate(c_hops): # Cache
             poke = exp_data.event_pokes[exp_data.cache_event][idx]
             zs[poke-event_window:poke+event_window] = 1
