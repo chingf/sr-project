@@ -3,8 +3,13 @@ import h5py
 from scipy.stats import binned_statistic_2d
 from math import ceil, sqrt
 from itertools import permutations
-from analysis.config import h5_path_dict
-from analysis.ExpData import ExpData
+
+try:
+    from analysis.config import h5_path_dict
+    from analysis.ExpData import ExpData
+except:
+    import warnings
+    warnings.warn("Emily's experimental data could not be loaded.")
 
 from sr_model.utils import pol2cart, downsample
 
