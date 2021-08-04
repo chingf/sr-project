@@ -5,3 +5,4 @@ videos
 .ipynb_checkpoints
 sr_model/sr_model.egg-info
 trained_models/
+figures/
