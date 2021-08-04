@@ -411,8 +411,11 @@ class RBYXYWalk(object):
 class RBYCacheWalk(object):
     def __init__(
             self, num_spatial_states, downsample_factor, skip_frame,
-            vel_thresh=0, event_window=1
+            vel_thresh=0, event_window=1, set_to_wedges=False
             ):
+
+        if set_to_wedges and num_spatial_states != 17:
+            raise ValueError("If walk is defined on wedges, spatial states must be 17")
 
         f = h5py.File(h5_path_dict['RBY45'][3].as_posix(), 'r')
         self.exp_data = ExpData(f)
@@ -421,11 +424,15 @@ class RBYCacheWalk(object):
 
         self.downsample_factor = downsample_factor
         self.skip_frame = skip_frame
-        self.num_spatial_states = int(ceil(sqrt(num_spatial_states))**2)
-        self.num_xybins = int(sqrt(self.num_spatial_states))
-        self.num_states = self.num_spatial_states + 16
         self.vel_thresh = vel_thresh
         self.event_window = event_window
+        self.set_to_wedges = set_to_wedges
+        if set_to_wedges:
+            self.num_spatial_states = num_spatial_states
+        else:
+            self.num_spatial_states = int(ceil(sqrt(num_spatial_states))**2)
+            self.num_xybins = int(sqrt(self.num_spatial_states))
+        self.num_states = self.num_spatial_states + 16
 
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
         self.num_steps = self.dg_inputs.shape[1]
@@ -438,11 +445,15 @@ class RBYCacheWalk(object):
         returns a (16, 1) matrix useful for context visualization.
         """
 
-        unraveled_spatial = np.zeros((self.num_xybins, self.num_xybins))
-        xbins, ybins = np.unravel_index(
-            np.arange(self.num_spatial_states), (self.num_xybins, self.num_xybins)
-            )
-        unraveled_spatial[xbins, ybins] = state_vector[:self.num_spatial_states]
+        if self.set_to_wedges:
+            unraveled_spatial = np.zeros((17, 1))
+            unraveled_spatial = state_vector[:17]
+        else:
+            unraveled_spatial = np.zeros((self.num_xybins, self.num_xybins))
+            xbins, ybins = np.unravel_index(
+                np.arange(self.num_spatial_states), (self.num_xybins, self.num_xybins)
+                )
+            unraveled_spatial[xbins, ybins] = state_vector[:self.num_spatial_states]
         unraveled_context = np.zeros((16, 1))
         unraveled_context = state_vector[self.num_spatial_states:, np.newaxis]
         return unraveled_spatial, unraveled_context
@@ -454,9 +465,12 @@ class RBYCacheWalk(object):
         """
 
         encoding = np.zeros((self.num_states, xs.size))
-        _, _, _, states = binned_statistic_2d(
-            xs, ys, xs, bins=self.num_xybins-2
-            )
+        if self.set_to_wedges:
+            states = xs - 1
+        else:
+            _, _, _, states = binned_statistic_2d(
+                xs, ys, xs, bins=self.num_xybins-2
+                )
         encoding[states, np.arange(states.size)] = 1
         for t in np.argwhere(zs>0).squeeze():
             encoding[:,t] = 0
@@ -475,15 +489,18 @@ class RBYCacheWalk(object):
             cache_interaction: (16,) np array of cache interactions at each wedge
         """
 
-        wedge_xs = np.zeros(16)
-        wedge_ys = np.zeros(16)
-        for wedge in range(16):
-            wedge_frames = self.exp_data.wedges == wedge+1
-            wedge_xs[wedge] = np.mean(self.exp_data.x[wedge_frames])
-            wedge_ys[wedge] = np.mean(self.exp_data.y[wedge_frames])
-        wedge_states = np.argmax(
-            self.get_onehot_states(wedge_xs, wedge_ys, np.zeros(16)), axis=0
-            )
+        if self.set_to_wedges:
+            wedge_states = np.arange(16)
+        else:
+            wedge_xs = np.zeros(16)
+            wedge_ys = np.zeros(16)
+            for wedge in range(16):
+                wedge_frames = self.exp_data.wedges == wedge+1
+                wedge_xs[wedge] = np.mean(self.exp_data.x[wedge_frames])
+                wedge_ys[wedge] = np.mean(self.exp_data.y[wedge_frames])
+            wedge_states = np.argmax(
+                self.get_onehot_states(wedge_xs, wedge_ys, np.zeros(16)), axis=0
+                )
 
         cache_inputs = self.dg_inputs[self.num_spatial_states:,:]
         cache_inputs = cache_inputs[:, np.sum(cache_inputs, axis=0) > 0]
@@ -493,8 +510,12 @@ class RBYCacheWalk(object):
         return wedge_states, cache_interactions
 
     def _walk(self):
-        xs = self.exp_data.x
-        ys = self.exp_data.y
+        if self.set_to_wedges:
+            xs = self.exp_data.wedges
+            ys = np.zeros(xs.size)
+        else:
+            xs = self.exp_data.x
+            ys = self.exp_data.y
         zs = np.zeros(xs.size)
         dg_modes = np.zeros(xs.size)
 
