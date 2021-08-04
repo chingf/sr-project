@@ -45,9 +45,7 @@ datasets_config_ranges = [{
     'num_states': [5, 10, 15]
     }]
 num_datasets = len(datasets)
-p = {
-    'num_steps': [0.8, 0.2, 0.0],
-    }
+p = {} # Scheduling typically not needed for CMA-ES
 
 # Init net
 writer = SummaryWriter(save_path)
@@ -142,19 +140,6 @@ for step in range(train_steps):
         time_step = 0
         running_loss = 0.0
         grad_avg = 0
-
-    if step == 2000:
-        for key in p:
-            p[key] = [0.7, 0.2, 0.1]
-    elif step == 4000:
-        for key in p:
-            p[key] = [0.6, 0.25, 0.15]
-    elif step == 6000:
-        for key in p:
-            p[key] = [0.5, 0.25, 0.25]
-    elif step == 7000:
-        for key in p:
-            p[key] = None
 
 writer.close()
 print('Finished Training\n')
