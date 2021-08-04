@@ -277,10 +277,9 @@ class STDP_CA3(nn.Module):
 
     def _init_trainable(self):
         self.A_pos = nn.Parameter(torch.rand(1))
-        self.tau_pos = nn.Parameter(torch.rand(1)*2)
+        self.tau_pos = nn.Parameter(1 + torch.randn(1)*0.1)
         self.A_neg = nn.Parameter(-torch.abs(torch.rand(1)))
-        nn.init.constant_(self.A_neg, -0.)
-        self.tau_neg = nn.Parameter(torch.abs(torch.rand(1)))
+        self.tau_neg = nn.Parameter(1 + torch.randn(1)*0.1)
         self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
         self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
 
@@ -292,8 +291,6 @@ class STDP_CA3(nn.Module):
             x0=nn.Parameter(torch.abs(torch.rand(1))),
             x1=1, floor=0, ceil=None
             )
-
-        self.reset_trainable_ideal()
 
     def reset_trainable_ideal(self, requires_grad=True):
         nn.init.constant_(self.A_pos, 1) #0.5
