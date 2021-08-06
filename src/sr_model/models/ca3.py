@@ -54,6 +54,7 @@ class STDP_CA3(nn.Module):
 
     def __init__(
             self, num_states, gamma_M0, gamma_T=0.99, leaky_slope=1e-4,
+            A_pos_sign=None, A_neg_sign=None,
             debug=False, debug_print=False
             ):
 
@@ -62,6 +63,8 @@ class STDP_CA3(nn.Module):
         self.gamma_T = gamma_T
         self.gamma_M0 = gamma_M0
         self.leaky_slope = leaky_slope
+        self.A_pos_sign = A_pos_sign
+        self.A_neg_sign = A_neg_sign
 
         self.reset()
         self._init_constants()
@@ -143,10 +146,18 @@ class STDP_CA3(nn.Module):
         k = np.zeros(kernel_len)
         half_len = kernel_len//2
         scaling = self.A_scaling
-        k[:half_len] = scaling*self.A_neg.data.item() * np.exp(
+        if self.A_pos_sign is not None:
+            A_pos = self.A_pos_sign * torch.abs(self.A_pos)
+        else:
+            A_pos = self.A_pos
+        if self.A_neg_sign is not None:
+            A_neg = self.A_neg_sign * torch.abs(self.A_neg)
+        else:
+            A_neg = self.A_neg
+        k[:half_len] = scaling*A_neg.data.item() * np.exp(
             np.arange(-half_len, 0)/self.tau_neg.data.item()
             )
-        k[-half_len-1:] = scaling*self.A_pos.data.item() * np.exp(
+        k[-half_len-1:] = scaling*A_pos.data.item() * np.exp(
             -1*np.arange(half_len+1)/self.tau_pos.data.item()
             )
         return k
@@ -236,7 +247,11 @@ class STDP_CA3(nn.Module):
             )
         decay = 1 - 1/tau_pos
         activity = self.update_activity_clamp(self.X, self.leaky_slope)
-        A = self.A_pos * self.A_scaling
+        if self.A_pos_sign is not None:
+            A_pos = self.A_pos_sign * torch.abs(self.A_pos)
+        else:
+            A_pos = self.A_pos
+        A = A_pos * self.A_scaling
         self.B_pos = decay*self.B_pos + A*activity
         self.B_pos = self.B_integration_clamp(self.B_pos, self.leaky_slope)
 
@@ -249,7 +264,11 @@ class STDP_CA3(nn.Module):
             )
         decay = 1 - 1/tau_neg
         activity = self.update_activity_clamp(self.X, self.leaky_slope)
-        A = self.A_neg * self.A_scaling
+        if self.A_neg_sign is not None:
+            A_neg = self.A_neg_sign * torch.abs(self.A_neg)
+        else:
+            A_neg = self.A_neg
+        A = A_neg * self.A_scaling
         self.B_neg = decay*self.B_neg + A*activity
         self.B_neg = self.B_integration_clamp(self.B_neg, self.leaky_slope)
 

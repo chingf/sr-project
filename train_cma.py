@@ -37,7 +37,7 @@ def train(
     # Loss reporting
     running_loss = 0.0
     print_every_steps = 50
-    train_steps = 50000
+    train_steps = 200
     time_step = 0
     time_net = 0
     grad_avg = 0
@@ -51,8 +51,7 @@ def train(
         dataset_config = {}
         for key in dataset_config_rang:
             num_samples = len(dataset_config_rang[key])
-            p_key = p[key] if key in p else None
-            sample_idx = np.random.choice(num_samples, p=p_key)
+            sample_idx = np.random.choice(num_samples)
             dataset_config[key] = dataset_config_rang[key][sample_idx]
         input = dataset(**dataset_config)
         dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device).unsqueeze(1)
@@ -126,7 +125,8 @@ def train(
             grad_avg = 0
     
     writer.close()
-    print('Finished Training\n')
+    print('Finished Training\n', file=print_file)
+    return net, running_loss
 
 def flatten_parameters(net):
     parameters = []

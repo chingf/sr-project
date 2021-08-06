@@ -116,7 +116,8 @@ def train(
             grad_avg = 0
 
     writer.close()
-    print('Finished Training\n')
+    print('Finished Training\n', file=print_file)
+    return net, running_loss
 
 if __name__ == "__main__":
     save_path = './trained_models'
