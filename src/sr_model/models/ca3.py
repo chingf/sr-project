@@ -54,7 +54,7 @@ class STDP_CA3(nn.Module):
 
     def __init__(
             self, num_states, gamma_M0, gamma_T=0.99, leaky_slope=1e-4,
-            A_pos_sign=None, A_neg_sign=None
+            A_pos_sign=None, A_neg_sign=None, approx_B=False
             ):
 
         super(STDP_CA3, self).__init__()
@@ -64,6 +64,8 @@ class STDP_CA3(nn.Module):
         self.leaky_slope = leaky_slope
         self.A_pos_sign = A_pos_sign
         self.A_neg_sign = A_neg_sign
+        self.approx_B = approx_B
+        self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
 
         self.reset()
         self._init_constants()
@@ -74,6 +76,7 @@ class STDP_CA3(nn.Module):
 
     def set_num_states(self, num_states):
         self.num_states = num_states
+        self.x_queue = torch.zeros((self.num_states, self.x_queue_length))
 
     def forward(self, input, update_transition=True):
         """
@@ -91,6 +94,8 @@ class STDP_CA3(nn.Module):
             self.prev_input = self.curr_input
             self.curr_input = input
             self.X = activity
+        self.x_queue[:, :-1] = self.x_queue[:, 1:]
+        self.x_queue[:, -1] = activity
         return activity
 
     def update(self):
@@ -178,6 +183,8 @@ class STDP_CA3(nn.Module):
         self.real_T_tilde = 0.001*self.J.t().clone().numpy()
         self.real_T_count = 0.001*np.ones(self.num_states)
 
+        nn.init.constant_(self.x_queue, 0)
+
     def _update_J(self):
 
         num_states = self.num_states
@@ -212,34 +219,51 @@ class STDP_CA3(nn.Module):
             decays*self.J + etas*update, self.leaky_slope
             )
 
-
     def _update_B_pos(self):
-        tau_pos = nn.functional.leaky_relu(
-            self.tau_pos, negative_slope=self.leaky_slope
-            )
-        decay = 1 - self.dt/tau_pos
-        activity = self.update_activity_clamp(self.X, self.leaky_slope)
+        # Calculate scaling factor
         if self.A_pos_sign is not None:
             A_pos = self.A_pos_sign * torch.abs(self.A_pos)
         else:
             A_pos = self.A_pos
         A = A_pos * self.A_scaling * self.dt
-        self.B_pos = decay*self.B_pos + A*activity
-        self.B_pos = self.B_integration_clamp(self.B_pos, self.leaky_slope)
+        tau_pos = nn.functional.leaky_relu(
+            self.tau_pos, negative_slope=self.leaky_slope
+            )
+
+        # Either use Euler integration or calculate convolution
+        if self.approx_B:
+            decay = 1 - self.dt/tau_pos
+            activity = self.update_activity_clamp(self.X, self.leaky_slope)
+            self.B_pos = decay*self.B_pos + A*activity
+            self.B_pos = self.B_integration_clamp(self.B_pos, self.leaky_slope)
+        else:
+            exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_pos)
+            exp_function = torch.nan_to_num(exp_function, posinf=1E10, neginf=1E10)
+            convolution = self.update_activity_clamp(self.x_queue, self.leaky_slope) @ exp_function
+            self.B_pos = A*convolution
 
     def _update_B_neg(self):
-        tau_neg = nn.functional.leaky_relu(
-            self.tau_neg, negative_slope=self.leaky_slope
-            )
-        decay = 1 - self.dt/tau_neg
-        activity = self.update_activity_clamp(self.X, self.leaky_slope)
+        # Calculate scaling factor 
         if self.A_neg_sign is not None:
             A_neg = self.A_neg_sign * torch.abs(self.A_neg)
         else:
             A_neg = self.A_neg
         A = A_neg * self.A_scaling * self.dt
-        self.B_neg = decay*self.B_neg + A*activity
-        self.B_neg = self.B_integration_clamp(self.B_neg, self.leaky_slope)
+        tau_neg = nn.functional.leaky_relu(
+            self.tau_neg, negative_slope=self.leaky_slope
+            )
+
+        # Either use Euler integration or calculate convolution
+        if self.approx_B:
+            decay = 1 - self.dt/tau_neg
+            activity = self.update_activity_clamp(self.X, self.leaky_slope)
+            self.B_neg = decay*self.B_neg + A*activity
+            self.B_neg = self.B_integration_clamp(self.B_neg, self.leaky_slope)
+        else:
+            exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_neg)
+            exp_function = torch.nan_to_num(exp_function, posinf=1E10, neginf=1E10)
+            convolution = self.update_activity_clamp(self.x_queue,self.leaky_slope) @ exp_function
+            self.B_neg = A*convolution
 
     def _update_eta_invs(self):
         self.eta_invs = self.prev_input + self.gamma_T*self.eta_invs
@@ -259,6 +283,9 @@ class STDP_CA3(nn.Module):
 
         self.J_weight_clamp = LeakyClamp(floor=None, ceil=None) # Not needed
         self.B_integration_clamp = LeakyClamp(floor=None, ceil=None) # Not needed
+
+        self.x_queue_length = 20 # max needed for tau of 4
+        self.x_queue = torch.zeros((self.num_states, self.x_queue_length))
 
     def _init_trainable(self):
         self.A_pos = nn.Parameter(torch.rand(1))
