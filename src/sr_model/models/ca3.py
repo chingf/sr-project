@@ -226,11 +226,13 @@ class STDP_CA3(nn.Module):
         # Calculate potentiation and depression over all i,j for i != j
         potentiation = (self.dt/self.tau_J) * activity.t() * B_pos # (N, N); activity i, B_pos j
         depression = (self.dt/self.tau_J) * B_neg.t() * activity # (N, N); B_neg i, activity j
-        update = (potentiation + depression)*self.alpha_other*self.alpha_other_scaling
+        alpha_other = torch.abs(self.alpha_other)*self.alpha_other_scaling
+        update = (potentiation + depression)*alpha_other*alpha_other
 
         # Calculate self-potentiation (i == j)
         self_potentiation = (self.dt/self.tau_J)*activity*B_pos*self.prev_input
-        self_update = self_potentiation*self.alpha_self*self.alpha_self_scaling
+        alpha_self = torch.abs(self.alpha_self)*self.alpha_self_scaling
+        self_update = self_potentiation*alpha_self
         diag_mask = torch.ones(num_states, num_states) - torch.eye(num_states)
         update = update*diag_mask + torch.diag(torch.squeeze(self_update))
 
