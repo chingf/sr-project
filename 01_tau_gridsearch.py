@@ -8,8 +8,8 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 from train_cma import train
 
 experiment_dir = './trained_models/01_tau_gridsearch/'
-tau_negs = np.linspace(0.8, 1.6, num=10, endpoint=True)
-tau_poses = np.linspace(0.8, 1.6, num=10, endpoint=True)
+tau_negs = np.linspace(0.25, 4., num=15, endpoint=True)
+tau_poses = np.linspace(0.25, 4., num=15, endpoint=True)
 A_signs = [1, -1]
 
 datasets = [inputs.Sim1DWalk]
@@ -24,6 +24,7 @@ for tau_neg in tau_negs:
     for tau_pos in tau_poses:
         for A_pos_sign in A_signs:
             for A_neg_sign in A_signs:
+                if A_pos_sign*tau_pos < -1.5: continue
                 args.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
 
 def main():
@@ -34,7 +35,7 @@ def main():
         'tau_neg_axes': tau_neg_axes, 'tau_pos_axes': tau_pos_axes,
         'vals': vals
         }
-    job_results = Parallel(n_jobs=7)(delayed(grid_train)(arg) for arg in args)
+    job_results = Parallel(n_jobs=5)(delayed(grid_train)(arg) for arg in args)
     for res in job_results:
         tau_neg_axes.append(res[0])
         tau_pos_axes.append(res[1])
@@ -65,12 +66,17 @@ def grid_train(arg):
     net.ca3.tau_neg.requires_grad = False
 
     # Train
-    try:
-        net, running_loss = train(
-            save_path, net, datasets, datasets_config_ranges
-            )
-    except RuntimeError:
-        running_loss = np.nan
+    losses = []
+    for _ in range(3):
+        try:
+            net, loss = train(
+                save_path, net, datasets, datasets_config_ranges
+                )
+            losses.append(loss)
+            if loss == 0.0: break # No need to run more iterations
+        except RuntimeError:
+            losses.append(np.nan)
+    running_loss = np.nanmin(losses)
     
     # Save vals
     with open(save_path + 'net_configs.p', 'wb') as f:
