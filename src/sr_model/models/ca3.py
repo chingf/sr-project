@@ -115,11 +115,9 @@ class STDP_CA3(nn.Module):
         self.real_T_count = self.gamma_T*self.real_T_count
         self.real_T_count[self.prev_input>0] += 1
 
-    def get_stdp_kernel(self, kernel_len=15):
+    def get_stdp_kernel(self, kernel_len=20):
         """ Returns plasticity kernel for plotting or debugging. """
 
-        k = np.zeros(kernel_len)
-        half_len = kernel_len//2
         scaling = self.A_scaling
         if self.A_pos_sign is not None:
             A_pos = self.A_pos_sign * torch.abs(self.A_pos)
@@ -129,13 +127,18 @@ class STDP_CA3(nn.Module):
             A_neg = self.A_neg_sign * torch.abs(self.A_neg)
         else:
             A_neg = self.A_neg
-        k[:half_len] = scaling*A_neg.data.item() * np.exp(
-            np.arange(-half_len, 0)/self.tau_neg.data.item()
+       
+        pos_xs = -1*np.arange(0, kernel_len+0.01, 0.5)
+        pos_ys = scaling*A_pos.data.item() * np.exp(
+            pos_xs/self.tau_pos.data.item()
             )
-        k[-half_len-1:] = scaling*A_pos.data.item() * np.exp(
-            -1*np.arange(half_len+1)/self.tau_pos.data.item()
+        neg_xs = np.arange(-kernel_len, 0.01, 0.5)
+        neg_ys = scaling*A_neg.data.item() * np.exp(
+            neg_xs/self.tau_neg.data.item()
             )
-        return k
+        xs = np.concatenate((neg_xs, -1*pos_xs))
+        ys = np.concatenate((neg_ys, pos_ys))
+        return xs, ys
 
     def get_M_hat(self, gamma=None):
         """ Inverts the learned T matrix to get putative M matrix """
