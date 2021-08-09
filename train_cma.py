@@ -36,8 +36,9 @@ def train(
     
     # Loss reporting
     running_loss = 0.0
+    prev_running_loss = 0.0
     print_every_steps = 50
-    train_steps = 200
+    train_steps = 201
     time_step = 0
     time_net = 0
     grad_avg = 0
@@ -121,12 +122,13 @@ def train(
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
+            prev_running_loss = running_loss
             running_loss = 0.0
             grad_avg = 0
     
     writer.close()
     print('Finished Training\n', file=print_file)
-    return net, running_loss
+    return net, prev_running_loss
 
 def flatten_parameters(net):
     parameters = []
@@ -155,4 +157,6 @@ if __name__ == "__main__":
         'num_states': [5, 10, 15]
         }]
     net = STDP_SR(num_states=2, gamma=0.4)
+    nn.init.constant_(net.ca3.tau_pos, 4)
+    net.ca3.tau_pos.requires_grad = False
     train(save_path, net, datasets, datasets_config_ranges)
