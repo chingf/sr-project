@@ -60,7 +60,7 @@ def train(
         # Backprop the loss
         loss = criterion(
             net.ca3.get_T(),
-            torch.tensor(net.ca3.get_real_T()).float()
+            torch.tensor(net.ca3.get_ideal_T_estimate()).float()
             )
         loss = torch.sum(torch.sum(loss, dim=1))
         loss.backward()

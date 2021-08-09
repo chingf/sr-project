@@ -151,15 +151,15 @@ class STDP_CA3(nn.Module):
 
         return self.J.t()
 
-    def get_real_T(self):
+    def get_ideal_T_estimate(self):
         """ Returns the ideal T matrix """
 
         return self.real_T_tilde/self.real_T_count[:,None]
 
-    def set_J_to_real_T(self):
+    def set_J_to_T_estimate(self):
         """ Sets J to the correct transition matrix. """
 
-        self.J = torch.tensor(self.get_real_T().T).float()
+        self.J = torch.tensor(self.get_ideal_T_estimate().T).float()
 
     def reset(self):
         self.J = np.clip(np.random.rand(self.num_states, self.num_states), 0, 1)

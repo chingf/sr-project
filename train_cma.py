@@ -17,7 +17,8 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 device = 'cpu'
 
 def train(
-    save_path, net, datasets, datasets_config_ranges, print_file=None
+    save_path, net, datasets, datasets_config_ranges, print_file=None,
+    train_steps=201, print_every_steps=50
     ):
 
     # Initializations
@@ -37,8 +38,6 @@ def train(
     # Loss reporting
     running_loss = 0.0
     prev_running_loss = 0.0
-    print_every_steps = 50
-    train_steps = 201
     time_step = 0
     time_net = 0
     grad_avg = 0
@@ -70,7 +69,7 @@ def train(
             _, outputs = net(dg_inputs, dg_modes, reset=True)
             loss = criterion(
                 net.ca3.get_T(),
-                torch.tensor(net.ca3.get_real_T()).float()
+                torch.tensor(net.ca3.get_ideal_T_estimate()).float()
                 )
             loss = torch.sum(torch.sum(loss, dim=1))
             losses.append(loss.item())
@@ -157,6 +156,7 @@ if __name__ == "__main__":
         'num_states': [5, 10, 15]
         }]
     net = STDP_SR(num_states=2, gamma=0.4)
-    nn.init.constant_(net.ca3.tau_pos, 4)
-    net.ca3.tau_pos.requires_grad = False
-    train(save_path, net, datasets, datasets_config_ranges)
+    train(
+        save_path, net, datasets, datasets_config_ranges, train_steps=1001,
+        print_every_steps=2
+        )
