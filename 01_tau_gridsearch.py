@@ -7,9 +7,9 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train_cma import train
 
-experiment_dir = './trained_models/01_tau_gridsearch/'
-tau_negs = np.linspace(0.25, 4., num=15, endpoint=True)
-tau_poses = np.linspace(0.25, 4., num=15, endpoint=True)
+experiment_dir = './trained_models/01_tau_gridsearch_2/'
+tau_negs = np.arange(0.25, 4.25, 0.25)
+tau_poses = np.arange(0.25, 4.25, 0.25)
 A_signs = [1, -1]
 
 datasets = [inputs.Sim1DWalk]
@@ -24,7 +24,7 @@ for tau_neg in tau_negs:
     for tau_pos in tau_poses:
         for A_pos_sign in A_signs:
             for A_neg_sign in A_signs:
-                if A_pos_sign*tau_pos < -1.5: continue
+                if A_pos_sign*tau_pos < -1.: continue
                 args.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
 
 def main():
