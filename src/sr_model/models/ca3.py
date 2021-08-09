@@ -54,8 +54,7 @@ class STDP_CA3(nn.Module):
 
     def __init__(
             self, num_states, gamma_M0, gamma_T=0.99, leaky_slope=1e-4,
-            A_pos_sign=None, A_neg_sign=None,
-            debug=False, debug_print=False
+            A_pos_sign=None, A_neg_sign=None
             ):
 
         super(STDP_CA3, self).__init__()
@@ -72,20 +71,6 @@ class STDP_CA3(nn.Module):
 
         self.curr_input = None
         self.prev_input = None
-
-        # Below variables are useful for debugging
-        self.debug = debug
-        self.debug_print = debug_print
-        if debug:
-            self.X = np.zeros(num_states)*np.nan
-            self.allX = np.zeros((num_states, 2000))
-            self.allinputs = np.zeros(2000)
-            self.allBpos = np.zeros(self.allX.shape)
-            self.allX_t = -1
-            self.last_update = np.zeros(self.J.shape)
-            self.allMs = []
-            self.allMs_title = []
-            self.allTs = []
 
     def set_num_states(self, num_states):
         self.num_states = num_states
@@ -106,21 +91,6 @@ class STDP_CA3(nn.Module):
             self.prev_input = self.curr_input
             self.curr_input = input
             self.X = activity
-    
-            # DEBUG
-            if self.debug:
-                try:
-                    self.prev_state = np.argwhere(self.prev_input)[0,0]
-                except:
-                    self.prev_state = -1
-                self.curr_state = np.argwhere(self.curr_input)[0,0]
-                self.allX_t += 1
-                self.allX[:,self.allX_t] = activity
-                self.allinputs[self.allX_t] = self.curr_state
-                self.allMs.append(M_hat)
-                self.allMs_title.append(f'{self.prev_state} to {self.curr_state}')
-                self.allTs.append(self.get_T().clone())
-
         return activity
 
     def update(self):
@@ -247,35 +217,29 @@ class STDP_CA3(nn.Module):
         tau_pos = nn.functional.leaky_relu(
             self.tau_pos, negative_slope=self.leaky_slope
             )
-        decay = 1 - 1/tau_pos
+        decay = 1 - self.dt/tau_pos
         activity = self.update_activity_clamp(self.X, self.leaky_slope)
         if self.A_pos_sign is not None:
             A_pos = self.A_pos_sign * torch.abs(self.A_pos)
         else:
             A_pos = self.A_pos
-        A = A_pos * self.A_scaling
+        A = A_pos * self.A_scaling * self.dt
         self.B_pos = decay*self.B_pos + A*activity
         self.B_pos = self.B_integration_clamp(self.B_pos, self.leaky_slope)
-
-        if self.debug:
-            self.allBpos[:, self.allX_t] = self.B_pos
 
     def _update_B_neg(self):
         tau_neg = nn.functional.leaky_relu(
             self.tau_neg, negative_slope=self.leaky_slope
             )
-        decay = 1 - 1/tau_neg
+        decay = 1 - self.dt/tau_neg
         activity = self.update_activity_clamp(self.X, self.leaky_slope)
         if self.A_neg_sign is not None:
             A_neg = self.A_neg_sign * torch.abs(self.A_neg)
         else:
             A_neg = self.A_neg
-        A = A_neg * self.A_scaling
+        A = A_neg * self.A_scaling * self.dt
         self.B_neg = decay*self.B_neg + A*activity
         self.B_neg = self.B_integration_clamp(self.B_neg, self.leaky_slope)
-
-        if self.debug:
-            self.allBneg[:, self.allX_t] = self.B_neg
 
     def _update_eta_invs(self):
         self.eta_invs = self.prev_input + self.gamma_T*self.eta_invs
