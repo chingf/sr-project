@@ -3,12 +3,12 @@ import h5py
 from scipy.stats import binned_statistic_2d
 from math import ceil, sqrt
 from itertools import permutations
+import warnings
 
 try:
     from analysis.config import h5_path_dict
     from analysis.ExpData import ExpData
 except:
-    import warnings
     warnings.warn("Emily's experimental data could not be loaded.")
 
 from sr_model.utils import pol2cart, downsample
@@ -29,6 +29,14 @@ class Sim1DWalk(object):
         self.left_right_stay_prob = self.left_right_stay_prob/np.sum(self.left_right_stay_prob)
         self.num_states = num_states
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+
+    def get_true_T(self):
+        true_T = np.zeros((self.num_states, self.num_states))
+        for i in range(self.num_states):
+            true_T[i, i-1] = self.left_right_stay_prob[0]
+            true_T[i, i] = self.left_right_stay_prob[1]
+            true_T[i, (i+1)%self.num_states] = self.left_right_stay_prob[2]
+        return true_T
 
     def _walk(self):
         curr_state = 0
@@ -91,10 +99,18 @@ class Sim2DWalk(object):
         encoding[states, np.arange(states.size)] = 1
         return encoding
 
-    def _walk(self):
-        dg_inputs = self.get_onehot_states(xs, ys, zs)
-        dg_modes = np.zeros(xs.size)
-        return dg_inputs, dg_modes, xs, ys, zs
+    def get_true_T(self):
+        true_T = np.zeros((self.num_states, self.num_states))
+        _get_flat_idx = lambda x, y: x*self.num_xybins + y
+        for x in np.arange(self.num_xybins):
+            for y in np.arange(self.num_xybins):
+                curr_idx = _get_flat_idx(x, y)
+                for action in [(0,0), (1,0), (-1,0), (0,1), (0,-1)]:
+                    new_idx = _get_flat_idx(x+action[0], y+action[1])
+                    if self._in_range(x+action[0], y+action[1]):
+                        true_T[curr_idx, new_idx] = 1
+        true_T = true_T/(np.sum(true_T,axis=1)[:,None])
+        return true_T
 
     def _walk(self):
         curr_state = 0
@@ -105,8 +121,7 @@ class Sim2DWalk(object):
         ys = np.zeros(self.num_steps).astype(int)
         ys[0] = curr_y = np.random.choice(self.num_xybins)
         zs = np.zeros(self.num_steps).astype(int)
-        actions = permutations([-1,0,1], 2)
-        actions = [move for move in actions if move[0]*move[1] == 0]
+        actions = [(0,0), (1,0), (-1,0), (0,1), (0,-1)]
         for step in np.arange(1, self.num_steps):
             move_set = [
                 move for move in actions if\
@@ -170,6 +185,11 @@ class Sim2DLevyFlight(object):
             )
         encoding[states, np.arange(states.size)] = 1
         return encoding
+
+    def get_true_T(self):
+        warnings.warn("True T estimate not implemented in Levy Flight dataset")
+        true_T = np.zeros((self.num_states, self.num_states))
+        return true_T
 
     def _walk(self):
         dg_inputs = self.get_onehot_states(xs, ys, zs)
@@ -281,6 +301,11 @@ class SimCacheWalk(object): #TODO
         
         return self.wedge_states, cache_interactions
 
+    def get_true_T(self):
+        warnings.warn("True T estimate not implemented in SimCacheWalk dataset")
+        true_T = np.zeros((self.num_states, self.num_states))
+        return true_T
+
     def _get_wedge_states(self):
         """
         Will use the average xy position of each wedge to get the state associated
@@ -391,6 +416,11 @@ class RBYXYWalk(object):
             )
         encoding[states, np.arange(states.size)] = 1
         return encoding
+
+    def get_true_T(self):
+        warnings.warn("True T estimate not implemented in RBYXY dataset")
+        true_T = np.zeros((self.num_states, self.num_states))
+        return true_T
 
     def _walk(self):
         xs = self.exp_data.x
@@ -513,6 +543,11 @@ class RBYCacheWalk(object):
         cache_interactions = np.histogram(cache_inputs, np.arange(17))[0]
         
         return wedge_states, cache_interactions
+
+    def get_true_T(self):
+        warnings.warn("True T estimate not implemented in RBYCacheWalk dataset")
+        true_T = np.zeros((self.num_states, self.num_states))
+        return true_T
 
     def _walk(self):
         if self.set_to_wedges:
