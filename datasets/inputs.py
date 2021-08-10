@@ -145,9 +145,11 @@ class Sim2DLevyFlight(object):
     """
 
     def __init__(
-            self, num_steps, walls
+            self, num_steps, walls, alpha=2, beta=1
             ):
 
+        self.alpha = alpha
+        self.beta = beta
         self.walls = walls
         self.num_steps = num_steps
         self.num_states = (walls+1)**2
@@ -200,7 +202,7 @@ class Sim2DLevyFlight(object):
         xs = [self.walls/2]; ys = [self.walls/2];
         thetas = 360*np.random.uniform(size=self.num_steps)
         rhos = np.minimum(
-            np.random.gamma(shape=2, scale=1, size=self.num_steps),
+            np.random.gamma(shape=self.alpha, scale=self.beta, size=self.num_steps),
             np.ones(self.num_steps)*self.walls
             )
         #rhos = np.maximum( # No stay transitions
