@@ -54,7 +54,9 @@ class STDP_CA3(nn.Module):
 
     def __init__(
             self, num_states, gamma_M0, gamma_T=0.99999, leaky_slope=1e-4,
-            A_pos_sign=None, A_neg_sign=None, approx_B=False
+            A_pos_sign=None, A_neg_sign=None,
+            approx_B=False,
+            output_params={}
             ):
 
         super(STDP_CA3, self).__init__()
@@ -65,6 +67,10 @@ class STDP_CA3(nn.Module):
         self.A_pos_sign = A_pos_sign
         self.A_neg_sign = A_neg_sign
         self.approx_B = approx_B
+        self.output_params = {
+            'num_iterations': np.inf, 'input_clamp': np.inf, 'nonlinearity': None
+            }
+        self.output_params.update(output_params)
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
 
         self.reset()
@@ -97,16 +103,17 @@ class STDP_CA3(nn.Module):
         return activity
 
     def get_recurrent_output(self, input):
-        num_iterations = 5 #np.inf
-        input_clamp = 5 
-        nonlinearity = None
+        num_iterations = self.output_params['num_iterations']
+        input_clamp = self.output_params['input_clamp']
+        nonlinearity = self.output_params['nonlinearity']
+
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat()
             activity = torch.matmul(M_hat.t(), input)
             activity = self.forward_activity_clamp(activity, self.leaky_slope)
         else:
-            activity = torch.zeros_like(self.x_queue[:, -1])
-            dt = 1./num_iterations
+            activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: test without setting to zero
+            dt = 1./num_iterations #TODO: proper dt?
             for iteration in range(num_iterations):
                 dxdt = -self.decay_factor * activity + torch.matmul(self.gamma_M0*self.J, activity)
                 if iteration <= input_clamp:
