@@ -6,3 +6,5 @@ videos
 sr_model/sr_model.egg-info
 trained_models/
 figures/
+*.png
+*.pdf

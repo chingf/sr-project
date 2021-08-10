@@ -107,17 +107,6 @@ def train(
                 'Time per step {:0.3f}s, net {:0.3f}s'.format(time_step, time_net),
                  file=print_file
                 )
-            print(f'A_pos: {net.ca3.A_pos.data.item()}', file=print_file )
-            print(f'tau_pos: {net.ca3.tau_pos.data.item()}', file=print_file )
-            print(f'A_neg: {net.ca3.A_neg.data.item()}', file=print_file )
-            print(f'tau_neg: {net.ca3.tau_neg.data.item()}', file=print_file )
-            print(f'alpha_self: {net.ca3.alpha_self.data.item()}', file=print_file )
-            print(f'alpha_other: {net.ca3.alpha_other.data.item()}', file=print_file )
-            print(f'Update clamp: {net.ca3.update_clamp.x0.data.item()}', file=print_file)
-            print(
-                f'Update activity clamp: {net.ca3.update_activity_clamp.x0.data.item()}',
-                file=print_file
-                )
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -148,15 +137,20 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models'
-    datasets = [inputs.Sim1DWalk]
-    datasets_config_ranges = [{
-        'num_steps': [3, 10, 15],
+    save_path = './trained_models/longer_gamma'
+    datasets = [
+        inputs.Sim1DWalk,
+        #inputs.Sim2DWalk
+        ]
+    datasets_config_ranges = [
+        {
+        'num_steps': [3, 10, 20, 30],
         'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-        'num_states': [5, 10, 15]
-        }]
-    net = STDP_SR(num_states=2, gamma=0.4)
+        'num_states': [5, 10, 15, 25, 36]
+        },
+        #{'num_steps': [25, 35], 'num_states': [25, 36]}
+        ]
+    net = STDP_SR(num_states=2, gamma=0.9)
     train(
-        save_path, net, datasets, datasets_config_ranges, train_steps=1001,
-        print_every_steps=2
+        save_path, net, datasets, datasets_config_ranges, train_steps=1001
         )

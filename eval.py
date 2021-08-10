@@ -14,7 +14,7 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 
 device = 'cpu'
 
-def eval(save_path):
+def eval(save_path, datasets):
     """
     Evaluates the performance of a model on three datasets. Looks for a model.pt
     and net_configs.p file in SAVE_PATH.
@@ -34,12 +34,6 @@ def eval(save_path):
     net.load_state_dict(torch.load(model_path))
     net.ca3.set_differentiability(False)
     
-    # Dataset Configs
-    datasets = [ 
-        inputs.Sim1DWalk(num_steps=8000, left_right_stay_prob=[5,1,1], num_states=64),
-        inputs.Sim2DWalk(num_steps=8000, num_states=64),
-        inputs.Sim2DLevyFlight(num_steps=8000, walls=7)
-        ]
     results_true_v_rnn = []
     results_est_v_rnn = []
     results_true_v_est = []
@@ -49,13 +43,15 @@ def eval(save_path):
             res_true_v_rnn = []
             res_est_v_rnn = []
             res_true_v_est = []
+            net.ca3.set_num_states(dset.num_states)
 
             dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
             dg_modes = torch.from_numpy(dset.dg_modes.T).float().to(device).unsqueeze(1)
             for step in range(dset.num_steps):
                 curr_dg_input = dg_inputs[step].unsqueeze(0)
                 curr_dg_mode = dg_modes[step].unsqueeze(0)
-                _, outputs = net(curr_dg_input, curr_dg_mode, reset=False)
+                reset = True if step == 0 else False
+                _, outputs = net(curr_dg_input, curr_dg_mode, reset=reset)
                 rnn_T = net.ca3.get_T().detach().numpy()
 
                 true_T = dset.get_true_T()
@@ -77,7 +73,17 @@ def eval(save_path):
 
 if __name__ == "__main__":
     save_path = './trained_models/'
-    results_true_v_rnn, results_est_v_rnn, results_true_v_est = eval(save_path)
+
+    datasets = [ 
+        inputs.Sim1DWalk(num_steps=8000, left_right_stay_prob=[1,1,1], num_states=64),
+        inputs.Sim1DWalk(num_steps=8000, left_right_stay_prob=[5,1,1], num_states=64),
+        inputs.Sim2DWalk(num_steps=8000, num_states=64),
+        inputs.Sim2DLevyFlight(num_steps=8000, walls=7)
+        ]
+
+    results_true_v_rnn, results_est_v_rnn, results_true_v_est = eval(
+        save_path, datasets
+        )
 
     plt.figure();
     plt.plot(results_true_v_rnn[0], 'r-', label='1D Walk (RNN)')
@@ -88,6 +94,8 @@ if __name__ == "__main__":
     plt.ylabel("MAE")
     plt.xlabel("Timestep of Simulation")
     plt.legend()
+    plt.tight_layout()
+    plt.savefig('eval_true_v_rnn.png', dpi=300)
     plt.show()
 
     plt.figure();
@@ -98,5 +106,8 @@ if __name__ == "__main__":
     plt.ylabel("MAE")
     plt.xlabel("Timestep of Simulation")
     plt.legend()
+    plt.tight_layout()
+    plt.ylim(0, 0.01)
+    plt.savefig('eval_est_v_rnn.png', dpi=300)
     plt.show()
 
