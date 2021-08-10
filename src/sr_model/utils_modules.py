@@ -25,7 +25,7 @@ class LeakyThreshold(nn.Module):
     A leaky threshold function
     """
 
-    def __init__(self, x0, x1, floor=0, ceil=None):
+    def __init__(self, x0=0, x1=1, floor=0, ceil=None):
         super(LeakyThreshold, self).__init__()
         self.x0 = x0
         self.x1 = x1
