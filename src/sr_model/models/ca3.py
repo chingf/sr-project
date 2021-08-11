@@ -5,6 +5,8 @@ from sr_model.models import module
 from sr_model.utils import get_sr
 from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThreshold
 
+posinf = 1E20
+
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
         super(CA3, self).__init__()
@@ -137,7 +139,7 @@ class STDP_CA3(nn.Module):
                 # Iterate activity
                 dxdt = -activity + current
                 activity = activity + dt*dxdt
-                activity = torch.nan_to_num(activity, posinf=1E20) # for training
+                activity = torch.nan_to_num(activity, posinf=posinf) # for training
             activity = self.forward_activity_clamp(activity, self.leaky_slope)
         return activity
 
@@ -238,7 +240,7 @@ class STDP_CA3(nn.Module):
 
         num_states = self.num_states
         # Format learning rates for each neuron's outgoing synapses (shared by js)
-        etas = torch.nan_to_num(1/self.eta_invs, posinf=1) # (N,)
+        etas = torch.nan_to_num(1/self.eta_invs, posinf=posinf) # for training
         etas = self.learning_rate_clamp(etas)
         etas = torch.tile(etas, (num_states, 1)) # (N, N)
         decays = (self.eta_invs - self.prev_input)/self.eta_invs # (N,)
@@ -289,7 +291,7 @@ class STDP_CA3(nn.Module):
             self.B_pos = self.B_integration_clamp(self.B_pos, self.leaky_slope)
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_pos)
-            exp_function = torch.nan_to_num(exp_function, posinf=1E10, neginf=1E10)
+            exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
             convolution = self.update_activity_clamp(self.x_queue, self.leaky_slope) @ exp_function
             self.B_pos = A*convolution
 
@@ -312,7 +314,7 @@ class STDP_CA3(nn.Module):
             self.B_neg = self.B_integration_clamp(self.B_neg, self.leaky_slope)
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_neg)
-            exp_function = torch.nan_to_num(exp_function, posinf=1E10, neginf=1E10)
+            exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
             convolution = self.update_activity_clamp(self.x_queue,self.leaky_slope) @ exp_function
             self.B_neg = A*convolution
 
@@ -344,7 +346,7 @@ class STDP_CA3(nn.Module):
         self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
 
         self.update_clamp = LeakyThreshold(
-            x0=0, #nn.Parameter(torch.abs(torch.rand(1)/2)),
+            x0=nn.Parameter(torch.abs(torch.rand(1)/2)),
             x1=1, floor=0, ceil=1
             ) # Floor and ceil is necessary to bound update
 
