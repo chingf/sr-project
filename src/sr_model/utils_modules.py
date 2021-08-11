@@ -36,6 +36,7 @@ class LeakyThreshold(nn.Module):
         offset = self.x0
         scale = 1/(self.x1 - self.x0)
         input = (input - offset)*scale
+        input = torch.nan_to_num(input)
 
         if self.ceil is not None:
             input = -1*(nn.functional.leaky_relu(
