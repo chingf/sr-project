@@ -1,8 +1,10 @@
+import os
+os.chdir('../')
+
 import pickle
 import numpy as np
 import torch.nn as nn
 from joblib import Parallel, delayed
-import os
 
 from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
