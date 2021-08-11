@@ -5,7 +5,7 @@ from sr_model.models import module
 from sr_model.utils import get_sr
 from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThreshold
 
-posinf = 1E20
+posinf = 1E30
 
 class CA3(module.Module):
     def __init__(self, num_states, gamma_M0, gamma_T=1.):
@@ -71,7 +71,8 @@ class STDP_CA3(nn.Module):
         self.approx_B = approx_B
         self.output_params = {
             'num_iterations': np.inf, 'input_clamp': np.inf,
-            'nonlinearity': None, 'transform_activity': False
+            'nonlinearity': None, 'transform_activity': False,
+            'clamp_activity': True
             }
         self.output_params.update(output_params)
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
@@ -110,11 +111,13 @@ class STDP_CA3(nn.Module):
         input_clamp = self.output_params['input_clamp']
         nonlinearity = self.output_params['nonlinearity']
         transform_activity = self.output_params['transform_activity']
+        clamp_activity = self.output_params['clamp_activity']
 
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat()
+            if transform_activity:
+                input = input*self.output_param_scale + self.output_param_bias
             activity = torch.matmul(M_hat.t(), input)
-            activity = self.forward_activity_clamp(activity, self.leaky_slope)
         else:
             activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: without zero?
             dt = 1.
@@ -140,6 +143,7 @@ class STDP_CA3(nn.Module):
                 dxdt = -activity + current
                 activity = activity + dt*dxdt
                 activity = torch.nan_to_num(activity, posinf=posinf) # for training
+        if clamp_activity:
             activity = self.forward_activity_clamp(activity, self.leaky_slope)
         return activity
 
@@ -266,6 +270,7 @@ class STDP_CA3(nn.Module):
         update = update*diag_mask + torch.diag(torch.squeeze(self_update))
 
         # Make the update over all N^2 synapses
+        update = torch.nan_to_num(update,posinf=posinf)
         update = self.update_clamp(update)
         self.J = self.J_weight_clamp(
             decays*self.J + etas*update, self.leaky_slope
