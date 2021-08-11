@@ -48,15 +48,16 @@ def grid_train(arg):
         'gamma':gamma,
         'ca3_kwargs': {'output_params':{'num_iterations':rstep, 'input_clamp':rstep}}
         }
-    for idx in range(5):
+    for idx in range(3):
         net = STDP_SR(
             num_states=2, gamma=gamma, ca3_kwargs=net_configs['ca3_kwargs']
             )
         net, loss = train(
-            save_path, net, datasets, datasets_config_ranges, train_steps=301
+            save_path, net, datasets, datasets_config_ranges, train_steps=801,
+            early_stop=True
             )
         losses.append(loss)
-        if loss == 0.0: break # No need to run more iterations
+        if loss < 1E-4: break # No need to run more iterations
     val = np.nanmin(losses)
     with open(save_path + 'net_configs.p', 'wb') as f:
         pickle.dump(net_configs, f)
