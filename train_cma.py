@@ -18,7 +18,7 @@ device = 'cpu'
 
 def train(
     save_path, net, datasets, datasets_config_ranges, print_file=None,
-    train_steps=201, print_every_steps=50
+    train_steps=201, print_every_steps=50, early_stop=False
     ):
 
     # Initializations
@@ -37,10 +37,11 @@ def train(
     
     # Loss reporting
     running_loss = 0.0
-    prev_running_loss = 0.0
+    prev_running_loss = np.inf
     time_step = 0
     time_net = 0
     grad_avg = 0
+    end_training = False
     
     for step in range(train_steps):
         start_time = time.time()
@@ -110,9 +111,13 @@ def train(
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
+            if (prev_running_loss < 1E-4) and (running_loss < 1E-4) and early_stop:
+                end_training = True
             prev_running_loss = running_loss
             running_loss = 0.0
             grad_avg = 0
+        if end_training:
+            break
     
     writer.close()
     print('Finished Training\n', file=print_file)
@@ -137,10 +142,9 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/longer_gamma'
+    save_path = './trained_models/'
     datasets = [
         inputs.Sim1DWalk,
-        #inputs.Sim2DWalk
         ]
     datasets_config_ranges = [
         {
@@ -148,9 +152,15 @@ if __name__ == "__main__":
         'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
         'num_states': [5, 10, 15, 25, 36]
         },
-        #{'num_steps': [25, 35], 'num_states': [25, 36]}
         ]
-    net = STDP_SR(num_states=2, gamma=0.9)
+    output_params = {
+        'num_iterations':50, 'input_clamp':30, 'nonlinearity': None,
+        'transform_activity': False, 'clamp_activity': True
+        }
+    net = STDP_SR(
+        num_states=2, gamma=0.4, ca3_kwargs={'output_params':output_params}
+        )
     train(
-        save_path, net, datasets, datasets_config_ranges, train_steps=1001
+        save_path, net, datasets, datasets_config_ranges, train_steps=801,
+        early_stop=True
         )
