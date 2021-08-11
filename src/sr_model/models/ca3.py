@@ -68,7 +68,8 @@ class STDP_CA3(nn.Module):
         self.A_neg_sign = A_neg_sign
         self.approx_B = approx_B
         self.output_params = {
-            'num_iterations': np.inf, 'input_clamp': np.inf, 'nonlinearity': None
+            'num_iterations': np.inf, 'input_clamp': np.inf,
+            'nonlinearity': None, 'transform_activity': False
             }
         self.output_params.update(output_params)
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
@@ -106,29 +107,38 @@ class STDP_CA3(nn.Module):
         num_iterations = self.output_params['num_iterations']
         input_clamp = self.output_params['input_clamp']
         nonlinearity = self.output_params['nonlinearity']
+        transform_activity = self.output_params['transform_activity']
 
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat()
             activity = torch.matmul(M_hat.t(), input)
             activity = self.forward_activity_clamp(activity, self.leaky_slope)
         else:
-            activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: without zero
-            dt = 1./num_iterations #TODO: proper dt?
+            activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: without zero?
+            dt = 1.
             for iteration in range(num_iterations):
-                transf_activity = activity*self.output_param_scale + self.output_param_bias
-                current = torch.matmul(self.gamma_M0*self.J, transf_activity)
+                # Option: linearly transform activity to calculate rec. current
+                if transform_activity:
+                    _activity = activity*self.output_param_scale + self.output_param_bias
+                else:
+                    _activity = activity
+                current = torch.matmul(self.gamma_M0*self.J, _activity)
 
+                # Option: provide input
                 if iteration <= input_clamp:
                     current = current + input
 
+                # Option: apply nonlinearity onto current
                 if nonlinearity is 'sigmoid':
                     current = torch.nn.functional.sigmoid(current)
                 elif nonlinearity is 'tanh':
                     current = torch.nn.functional.tanh(current)
 
-                dxdt = -self.decay_factor * activity + current
+                # Iterate activity
+                dxdt = -activity + current
                 activity = activity + dt*dxdt
-        #activity = self.forward_activity_clamp(activity, self.leaky_slope)
+                activity = torch.nan_to_num(activity, posinf=1E20) # for training
+            activity = self.forward_activity_clamp(activity, self.leaky_slope)
         return activity
 
     def update(self):
@@ -342,8 +352,6 @@ class STDP_CA3(nn.Module):
             x0=nn.Parameter(torch.abs(torch.rand(1))),
             x1=1, floor=0, ceil=None
             ) # Floor and offset is necessary to bound activity used in update
-
-        self.decay_factor = nn.Parameter(torch.tensor([1.]))
 
         self.output_param_scale = nn.Parameter(torch.tensor([1.]))
         self.output_param_bias =  nn.Parameter(torch.tensor([0.]))
