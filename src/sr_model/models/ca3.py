@@ -112,14 +112,23 @@ class STDP_CA3(nn.Module):
             activity = torch.matmul(M_hat.t(), input)
             activity = self.forward_activity_clamp(activity, self.leaky_slope)
         else:
-            activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: test without setting to zero
+            activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: without zero
             dt = 1./num_iterations #TODO: proper dt?
             for iteration in range(num_iterations):
-                dxdt = -self.decay_factor * activity + torch.matmul(self.gamma_M0*self.J, activity)
+                transf_activity = activity*self.output_param_scale + self.output_param_bias
+                current = torch.matmul(self.gamma_M0*self.J, transf_activity)
+
                 if iteration <= input_clamp:
-                    dxdt = dxdt + input
+                    current = current + input
+
+                if nonlinearity is 'sigmoid':
+                    current = torch.nn.functional.sigmoid(current)
+                elif nonlinearity is 'tanh':
+                    current = torch.nn.functional.tanh(current)
+
+                dxdt = -self.decay_factor * activity + current
                 activity = activity + dt*dxdt
-                activity = self.forward_activity_clamp(activity, self.leaky_slope)
+        #activity = self.forward_activity_clamp(activity, self.leaky_slope)
         return activity
 
     def update(self):
@@ -336,6 +345,8 @@ class STDP_CA3(nn.Module):
 
         self.decay_factor = nn.Parameter(torch.tensor([1.]))
 
+        self.output_param_scale = nn.Parameter(torch.tensor([1.]))
+        self.output_param_bias =  nn.Parameter(torch.tensor([0.]))
 
         self.forward_activity_clamp = LeakyClamp(
             floor=0, ceil=nn.Parameter(torch.tensor([1.]))
