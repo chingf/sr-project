@@ -97,21 +97,25 @@ class STDP_CA3(nn.Module):
         """
 
         input = torch.squeeze(input) # TODO: batching
-        activity = self.get_recurrent_output(input)
+        _activity = self.get_recurrent_output(input)
+        clamp_activity = self.output_params['clamp_activity']
+        if clamp_activity:
+            activity = self.forward_activity_clamp(_activity, self.leaky_slope)
+        else:
+            activity = _activity
         if update_transition:
             self.prev_input = self.curr_input
             self.curr_input = input
             self.X = activity
         self.x_queue[:, :-1] = self.x_queue[:, 1:]
         self.x_queue[:, -1] = activity
-        return activity
+        return _activity
 
     def get_recurrent_output(self, input):
         num_iterations = self.output_params['num_iterations']
         input_clamp = self.output_params['input_clamp']
         nonlinearity = self.output_params['nonlinearity']
         transform_activity = self.output_params['transform_activity']
-        clamp_activity = self.output_params['clamp_activity']
 
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat()
@@ -143,8 +147,6 @@ class STDP_CA3(nn.Module):
                 dxdt = -activity + current
                 activity = activity + dt*dxdt
                 activity = torch.nan_to_num(activity, posinf=posinf) # for training
-        if clamp_activity:
-            activity = self.forward_activity_clamp(activity, self.leaky_slope)
         return activity
 
     def update(self):
@@ -195,6 +197,17 @@ class STDP_CA3(nn.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
+        try:
+            M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+        except:
+            import pdb; pdb.set_trace()
+        return M_hat
+
+    def get_ideal_M(self, gamma=None):
+        if gamma is None:
+            gamma = self.gamma_M0
+        T = self.get_ideal_T_estimate()
+        T = torch.from_numpy(T).float().to('cpu')
         try:
             M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
         except:
