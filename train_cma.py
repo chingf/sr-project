@@ -154,13 +154,13 @@ if __name__ == "__main__":
         },
         ]
     output_params = {
-        'num_iterations':50, 'input_clamp':30, 'nonlinearity': None,
-        'transform_activity': False, 'clamp_activity': True
+        #'num_iterations':50, 'input_clamp':30, 'nonlinearity': None,
+        #'transform_activity': False, 'clamp_activity': True
         }
     net = STDP_SR(
         num_states=2, gamma=0.4, ca3_kwargs={'output_params':output_params}
         )
     train(
         save_path, net, datasets, datasets_config_ranges, train_steps=801,
-        early_stop=True
+        early_stop=False
         )
