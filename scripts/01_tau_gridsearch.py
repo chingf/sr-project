@@ -1,6 +1,6 @@
+import sys
+sys.path.append(os.path.dirname(os.getcwd()))
 import os
-os.chdir('../')
-
 import pickle
 import numpy as np
 import torch.nn as nn
@@ -10,7 +10,7 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train_cma import train
 
-experiment_dir = './trained_models/01_tau_gridsearch_2/'
+experiment_dir = '../trained_models/01_tau_gridsearch_2/'
 tau_negs = np.arange(0.25, 4.25, 0.25)
 tau_poses = np.arange(0.25, 4.25, 0.25)
 A_signs = [1, -1]

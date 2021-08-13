@@ -1,5 +1,6 @@
 import os
-os.chdir('../')
+import sys
+sys.path.append(os.path.dirname(os.getcwd()))
 
 import pickle
 import numpy as np
@@ -10,14 +11,16 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train_cma import train
 
-experiment_dir = './trained_models/01_loss_curves/'
+experiment_dir = '../trained_models/01_loss_curves/'
 
 datasets = [inputs.Sim1DWalk]
-datasets_config_ranges = [{
-    'num_steps': [3, 10, 15],
+datasets_config_ranges = [
+    {
+    'num_steps': [3, 10, 20, 30],
     'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-    'num_states': [5, 10, 15]
-    }]
+    'num_states': [5, 10, 15, 25, 36]
+    },
+    ]
 
 for idx in range(20):
     save_path = experiment_dir + f'{idx}/'
