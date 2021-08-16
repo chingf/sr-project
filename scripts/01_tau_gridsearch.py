@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
-from train_cma import train
+from train import train
 
 experiment_dir = '../trained_models/01_tau_gridsearch_2/'
 tau_negs = np.arange(0.25, 4.25, 0.25)

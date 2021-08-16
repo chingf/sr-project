@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
-from train_cma import train
+from train import train
 
 experiment_dir = './trained_models/02_gamma_v_rsteps/'
 
