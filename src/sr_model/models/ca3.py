@@ -25,12 +25,13 @@ class CA3(module.Module):
             if self.curr_input is not None:
                 self.prev_input = torch.squeeze(self.curr_input)
             self.curr_input = torch.squeeze(input)
-        return torch.matmul(M, input.T)
+        output = torch.matmul(M, input.T)
+        return torch.squeeze(output)
 
     def update(self):
         if self.prev_input is None:
             return
-        self.T_tilde[self.prev_input>0, self.curr_input>0] += 1
+        self.T_tilde += torch.outer(self.prev_input, self.curr_input)
         self.state_counts = self.prev_input + self.gamma_T*self.state_counts
 
     def get_T(self):
@@ -285,9 +286,10 @@ class STDP_CA3(nn.Module):
         # Make the update over all N^2 synapses
         update = torch.nan_to_num(update,posinf=posinf)
         update = self.update_clamp(update)
-        self.J = self.J_weight_clamp(
-            decays*self.J + etas*update, self.leaky_slope
-            )
+        #self.J = self.J_weight_clamp(
+        #    decays*self.J + etas*update, self.leaky_slope
+        #    )
+        self.J = self.J + 1E-1*update
         if torch.any(torch.isnan(self.J)): import pdb; pdb.set_trace()
 
     def _update_B_pos(self):
