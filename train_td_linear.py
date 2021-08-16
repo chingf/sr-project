@@ -20,7 +20,8 @@ device = 'cpu'
 
 def train(
     save_path, net, dataset, dataset_config, print_file=None,
-    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4
+    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
+    lr=1E-3
     ):
 
     # Initializations
@@ -30,7 +31,6 @@ def train(
     writer = SummaryWriter(save_path)
     #criterion = nn.MSELoss()
     criterion = nn.SmoothL1Loss()
-    lr=1E-3
     weight_decay = 0
 
     # Loss reporting
@@ -57,7 +57,11 @@ def train(
 
         with torch.no_grad():
             # Update Model
-            transitions = buffer.sample(buffer_batch_size)
+            if buffer_batch_size == 1: # Don't sample-- use current observation
+                transitions = [buffer.memory[-1]]
+            else:
+                transitions = buffer.sample(buffer_batch_size)
+
             states = torch.stack([t[0] for t in transitions]).squeeze(1)
             next_states = torch.stack([t[1] for t in transitions]).squeeze(1)
     

@@ -34,7 +34,6 @@ def train(
     criterion = nn.SmoothL1Loss()
     lr=1E-3
     weight_decay = 0
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay) #Adam
 
     # Loss reporting
     running_loss = 0.0
