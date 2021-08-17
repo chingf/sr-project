@@ -28,8 +28,8 @@ def train(
         os.makedirs(save_path)
     buffer = ReplayMemory(buffer_size)
     writer = SummaryWriter(save_path)
-    #criterion = nn.MSELoss()
-    criterion = nn.SmoothL1Loss()
+    criterion = nn.MSELoss()
+    #criterion = nn.SmoothL1Loss()
     lr=1E-3
     weight_decay = 0
     optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay) #Adam

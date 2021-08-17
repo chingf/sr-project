@@ -20,7 +20,7 @@ device = 'cpu'
 
 def train(
     save_path, net, dataset, dataset_config, print_file=None,
-    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
+    print_every_steps=50, buffer_batch_size=1, buffer_size=5000, gamma=0.4,
     lr=1E-3
     ):
 
@@ -29,8 +29,8 @@ def train(
         os.makedirs(save_path)
     buffer = ReplayMemory(buffer_size)
     writer = SummaryWriter(save_path)
-    #criterion = nn.MSELoss()
-    criterion = nn.SmoothL1Loss()
+    criterion = nn.MSELoss()
+    #criterion = nn.SmoothL1Loss()
     weight_decay = 0
 
     # Loss reporting

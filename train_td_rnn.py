@@ -30,9 +30,8 @@ def train(
         os.makedirs(save_path)
     buffer = ReplayMemory(buffer_size)
     writer = SummaryWriter(save_path)
-    #criterion = nn.MSELoss()
-    criterion = nn.SmoothL1Loss()
-    lr=1E-3
+    criterion = nn.MSELoss()
+    #criterion = nn.SmoothL1Loss()
     weight_decay = 0
 
     # Loss reporting
