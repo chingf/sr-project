@@ -16,6 +16,7 @@ def downsample(vector, factor):
     return downsamp_vec   
 
 def get_sr(T, gamma):
+    return torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
     D = torch.diag(T @ torch.ones(T.shape[0]))
     P = torch.inverse(D) @ T
     M = torch.linalg.pinv(torch.eye(P.shape[0]) - gamma*P)

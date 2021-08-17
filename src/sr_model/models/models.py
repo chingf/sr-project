@@ -6,6 +6,7 @@ from sr_model.models import module, dg, ca3
 
 class AnalyticSR(module.Module):
     """
+    Output is M.T @ i
     Args:
         stay_case: 
             0: run the model with no modifications
@@ -63,7 +64,12 @@ class AnalyticSR(module.Module):
     def update(self):
         self.ca3.update()
 
+    def get_M(self, gamma=None):
+        return self.ca3.get_M_hat(gamma=None)
+
 class STDP_SR(AnalyticSR):
+    """ Output is M.T @ i """
+
     def __init__(
         self, num_states, gamma, stay_case=0, ca3_kwargs={}
         ):
@@ -81,6 +87,8 @@ class STDP_SR(AnalyticSR):
         self.estimates_T = True
 
 class Linear(module.Module):
+    """ Output is i @ M"""
+
     def __init__(self, input_size):
         super(Linear, self).__init__()
         self.M = torch.zeros(1, input_size, input_size)
@@ -94,15 +102,9 @@ class Linear(module.Module):
             self._reset_weights()
         outputs = []
         for input in inputs:
-            try:
-                input = input.unsqueeze(1)
-                output = torch.bmm(input, self.M)
-                output = output.squeeze(0)
-                #input = input.unsqueeze(2)
-                #output = torch.bmm(self.M, input)
-                #output = output.squeeze(2)
-            except:
-                import pdb; pdb.set_trace()
+            input = input.unsqueeze(1)
+            output = torch.bmm(input, self.M)
+            output = output.squeeze(0)
             outputs.append(output)
         outputs = torch.stack(outputs)
         return outputs
@@ -111,6 +113,8 @@ class Linear(module.Module):
         torch.nn.init.zeros_(self.M)
 
 class MLP(module.Module):
+    """ Output is M @ i """
+
     def __init__(self, input_size, hidden_size):
         """
         Assumes input size is == output size

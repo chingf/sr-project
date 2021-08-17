@@ -8,16 +8,17 @@ from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThre
 posinf = 1E30
 
 class CA3(module.Module):
-    def __init__(self, num_states, gamma_M0, gamma_T=1.):
+    def __init__(self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=True):
         super(CA3, self).__init__()
-        self.T_tilde = torch.clamp(torch.rand(num_states, num_states), 0, 1)
-        self.T_tilde = 0.001*self.T_tilde*(1/torch.sum(self.T_tilde, dim=0))
-        self.state_counts = 0.001*torch.ones(num_states)
+        self.T = torch.clamp(torch.rand(num_states, num_states), 0, 1)
+        self.T = 0.*self.T*(1/torch.sum(self.T, dim=0))
+        self.state_counts = 0.*torch.ones(num_states)
         self.num_states = num_states
         self.gamma_M0 = gamma_M0
         self.gamma_T = gamma_T
         self.prev_input = None
         self.curr_input = None
+        self.use_dynamic_lr = use_dynamic_lr
     
     def forward(self, input, update_transition=True):
         M = get_sr(self.get_T(), self.gamma_M0)
@@ -25,24 +26,46 @@ class CA3(module.Module):
             if self.curr_input is not None:
                 self.prev_input = torch.squeeze(self.curr_input)
             self.curr_input = torch.squeeze(input)
-        output = torch.matmul(M, input.T)
-        return torch.squeeze(output)
+        output = torch.matmul(M.t(), torch.squeeze(input))
+        return output
 
     def update(self):
         if self.prev_input is None:
             return
-        self.T_tilde += torch.outer(self.prev_input, self.curr_input)
-        self.state_counts = self.prev_input + self.gamma_T*self.state_counts
+        forget_term = torch.outer(self.prev_input, self.prev_input)@self.T
+        #forget_term = torch.outer(self.prev_input, torch.ones_like(self.prev_input))*self.T
+        update_term = torch.outer(self.prev_input, self.curr_input)
+        if self.use_dynamic_lr:
+            new_state_counts = self.prev_input + self.gamma_T*self.state_counts
+            lr_update = 1/new_state_counts
+            lr_update = torch.clamp(torch.nan_to_num(lr_update), 0, 1)
+            lr_decay = lr_update
+            self.T -= forget_term * lr_decay[:,None]
+            self.T += update_term * lr_update[:,None]
+            self.state_counts = new_state_counts
+        else:
+            lr = 1E-3
+            self.T = self.T + lr*(update_term - forget_term)
+        self.T = torch.clamp(self.T, min=0)
 
     def get_T(self):
-        return self.T_tilde/self.state_counts[:,None]
+        return self.T
 
     def reset(self):
         self.prev_input = None
         self.curr_input = None
-        self.T_tilde = torch.clamp(torch.rand(self.num_states, self.num_states), 0, 1)
-        self.T_tilde = 0.001*self.T_tilde*(1/torch.sum(self.T_tilde, dim=0))
+        self.T = torch.clamp(torch.rand(self.num_states, self.num_states), 0, 1)
+        self.T = 0.001*self.T*(1/torch.sum(self.T, dim=0))
         self.state_counts = 0.001*torch.ones(self.num_states)
+
+    def get_M_hat(self, gamma=None):
+        """ Inverts the learned T matrix to get putative M matrix """
+
+        if gamma is None:
+            gamma = self.gamma_M0
+        T = self.get_T()
+        M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+        return M_hat
 
 class STDP_CA3(nn.Module):
     """
@@ -163,7 +186,7 @@ class STDP_CA3(nn.Module):
         self._update_J()
 
         self.real_T_tilde = self.gamma_T*self.real_T_tilde
-        self.real_T_tilde[self.prev_input>0, self.curr_input>0] += 1
+        self.real_T_tilde += np.outer(self.prev_input, self.curr_input)
         self.real_T_count = self.gamma_T*self.real_T_count
         self.real_T_count[self.prev_input>0] += 1
 
@@ -198,10 +221,7 @@ class STDP_CA3(nn.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-        try:
-            M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
-        except:
-            import pdb; pdb.set_trace()
+        M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
         return M_hat
 
     def get_ideal_M(self, gamma=None):
@@ -209,10 +229,7 @@ class STDP_CA3(nn.Module):
             gamma = self.gamma_M0
         T = self.get_ideal_T_estimate()
         T = torch.from_numpy(T).float().to('cpu')
-        try:
-            M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
-        except:
-            import pdb; pdb.set_trace()
+        M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
         return M_hat
 
     def get_T(self):
@@ -286,10 +303,9 @@ class STDP_CA3(nn.Module):
         # Make the update over all N^2 synapses
         update = torch.nan_to_num(update,posinf=posinf)
         update = self.update_clamp(update)
-        #self.J = self.J_weight_clamp(
-        #    decays*self.J + etas*update, self.leaky_slope
-        #    )
-        self.J = self.J + 1E-1*update
+        self.J = self.J_weight_clamp(
+            decays*self.J + etas*update, self.leaky_slope
+            )
         if torch.any(torch.isnan(self.J)): import pdb; pdb.set_trace()
 
     def _update_B_pos(self):
