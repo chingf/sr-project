@@ -18,16 +18,16 @@ from train_td_linear import train as train_linear
 
 def main():
     save_path = '../trained_models/03_td_baselines/'
-    #rmtree(save_path, ignore_errors=True)
+    rmtree(save_path, ignore_errors=True)
     iters = 5
     lr_range = [1E-1, 1E-2, 1E-3]
     gamma=0.4
     
-    #dataset = inputs.Sim2DLevyFlight
-    #dataset_config = {'num_steps': 2000, 'walls': 7}
-    #input_size = 64
-    #dset_path = save_path + 'onehot/'
-    #run_models(dset_path, iters, lr_range, dataset, dataset_config, gamma, input_size)
+    dataset = inputs.Sim2DLevyFlight
+    dataset_config = {'num_steps': 2000, 'walls': 7}
+    input_size = 64
+    dset_path = save_path + 'onehot/'
+    run_models(dset_path, iters, lr_range, dataset, dataset_config, gamma, input_size)
     
     dataset = sf_inputs.Sim2DLevyFlight
     dataset_config = {
