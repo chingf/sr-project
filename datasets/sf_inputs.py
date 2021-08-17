@@ -78,3 +78,30 @@ class Sim2DWalk(inputs.Sim2DWalk):
             "Transition matrix is ill-defined for non one-hot features."
             )
 
+class Sim2DLevyFlight(inputs.Sim2DLevyFlight):
+    """
+    Simulates a 2D Levy flight around a 10x10 arena.
+    """
+
+    def __init__(
+            self, num_steps, walls, alpha=2, beta=1,
+            feature_dim=50, feature_vals=[0,1], feature_type='linear'
+            ):
+
+        super(Sim2DLevyFlight, self).__init__(num_steps, walls, alpha, beta)
+        self.feature_dim = feature_dim
+        self.feature_type = feature_type
+        num_states = self.num_states
+
+        if feature_type == 'nhot':
+            self.feature_dim = feature_dim//num_states * num_states
+            self.dg_inputs = np.repeat(
+                self.dg_inputs, feature_dim//num_states, axis=0
+                )
+        elif feature_type == 'linear':
+            self.expansion_mat = np.random.choice(feature_vals, (feature_dim, num_states))
+            self.dg_inputs = [self.expansion_mat@x for x in self.dg_inputs.T]
+            self.dg_inputs = np.array(self.dg_inputs).T
+        else:
+            raise ValueError(f'Feature type {feature_type} is not an option.')
+
