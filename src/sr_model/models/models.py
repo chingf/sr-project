@@ -32,7 +32,7 @@ class AnalyticSR(module.Module):
         num_steps, batch_size, num_states = dg_inputs.shape
         out = []
         if reset:
-            self.ca3.reset()
+            self.reset()
         for step in np.arange(num_steps):
             dg_input = dg_inputs[step, :, :]
             if dg_modes is not None:
@@ -67,6 +67,9 @@ class AnalyticSR(module.Module):
     def get_M(self, gamma=None):
         return self.ca3.get_M_hat(gamma=None)
 
+    def reset(self):
+        self.ca3.reset()
+
 class STDP_SR(AnalyticSR):
     """ Output is M.T @ i """
 
@@ -99,7 +102,7 @@ class Linear(module.Module):
         """
 
         if reset:
-            self._reset_weights()
+            self.reset()
         outputs = []
         for input in inputs:
             input = input.unsqueeze(1)
@@ -109,7 +112,7 @@ class Linear(module.Module):
         outputs = torch.stack(outputs)
         return outputs
 
-    def _init_weights(self):
+    def reset(self):
         torch.nn.init.zeros_(self.M)
 
 class MLP(module.Module):
@@ -122,16 +125,17 @@ class MLP(module.Module):
 
         super(MLP, self).__init__()
         self.f = nn.Sequential(
-            #nn.Linear(input_size, input_size, bias=False)
             nn.Linear(input_size, hidden_size), nn.ReLU(),
             nn.Linear(hidden_size, hidden_size), nn.ReLU(),
             nn.Linear(hidden_size, input_size)
             )
 
     def forward(self, inputs, reset=False):
+        if reset:
+            self.reset()
         return self.f(inputs)
 
-    def _init_weights(self):
+    def reset(self):
         for layer in self.children():
            if hasattr(layer, 'reset_parameters'):
                layer.reset_parameters()

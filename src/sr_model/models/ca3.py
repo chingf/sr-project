@@ -8,7 +8,10 @@ from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThre
 posinf = 1E30
 
 class CA3(module.Module):
-    def __init__(self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=True):
+    def __init__(
+        self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=True, lr=1E-3
+        ):
+
         super(CA3, self).__init__()
         self.T = torch.clamp(torch.rand(num_states, num_states), 0, 1)
         self.T = 0.*self.T*(1/torch.sum(self.T, dim=0))
@@ -19,6 +22,7 @@ class CA3(module.Module):
         self.prev_input = None
         self.curr_input = None
         self.use_dynamic_lr = use_dynamic_lr
+        self.lr = lr
     
     def forward(self, input, update_transition=True):
         M = get_sr(self.get_T(), self.gamma_M0)
@@ -44,8 +48,7 @@ class CA3(module.Module):
             self.T += update_term * lr_update[:,None]
             self.state_counts = new_state_counts
         else:
-            lr = 1E-3
-            self.T = self.T + lr*(update_term - forget_term)
+            self.T = self.T + self.lr*(update_term - forget_term)
         self.T = torch.clamp(self.T, min=0)
 
     def get_T(self):
@@ -55,8 +58,8 @@ class CA3(module.Module):
         self.prev_input = None
         self.curr_input = None
         self.T = torch.clamp(torch.rand(self.num_states, self.num_states), 0, 1)
-        self.T = 0.001*self.T*(1/torch.sum(self.T, dim=0))
-        self.state_counts = 0.001*torch.ones(self.num_states)
+        self.T = 0.*self.T*(1/torch.sum(self.T, dim=0))
+        self.state_counts = 0.*torch.ones(self.num_states)
 
     def get_M_hat(self, gamma=None):
         """ Inverts the learned T matrix to get putative M matrix """
