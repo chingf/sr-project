@@ -54,23 +54,25 @@ def train(
 
         net(dg_input, reset=False)
 
-        if step > 0:
-            buffer.push((prev_input.detach(), dg_input.detach()))
-            with torch.no_grad():
-                all_transitions = buffer.memory
-                all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
-                all_next_s = torch.stack([t[1] for t in all_transitions]).squeeze(1)
-                test_phi = all_s
-                _, test_psi_s = net(all_s, reset=False, update=False)
-                _, test_psi_s_prime = net(all_next_s, reset=False, update=False)
-                test_value_function = test_psi_s
-                test_exp_value_function = test_phi.squeeze(1) + gamma*test_psi_s_prime
-                test_loss = criterion(test_value_function, test_exp_value_function)
+        if step == 0:
+            prev_input = dg_input.detach()
+            continue
+
+        buffer.push((prev_input.detach(), dg_input.detach()))
+        with torch.no_grad():
+            all_transitions = buffer.memory
+            all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
+            all_next_s = torch.stack([t[1] for t in all_transitions]).squeeze(1)
+            test_phi = all_s.squeeze(1)
+            M = net.get_M()
+            test_psi_s = torch.stack([s.squeeze() @ M for s in all_s])
+            test_psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
+            test_value_function = test_psi_s
+            test_exp_value_function = test_phi + gamma*test_psi_s_prime
+            test_loss = criterion(test_value_function, test_exp_value_function)
 
         prev_input = dg_input.detach()
 
-        if step == 0: continue
-    
         # Print statistics
         elapsed_time = time.time() - start_time
         time_step += elapsed_time
@@ -139,6 +141,8 @@ if __name__ == "__main__":
         ca3_kwargs={'gamma_T':1}
         )
     net.ca3.set_differentiability(False)
-    state_dict_path = '../trained_models/model.pt'
+    state_dict_path = './trained_models/baseline/model.pt'
     net.load_state_dict(torch.load(state_dict_path))
+
+    net = AnalyticSR(num_states=dataset_config['num_states'], gamma=0.4)
     train(save_path, net, dataset, dataset_config)

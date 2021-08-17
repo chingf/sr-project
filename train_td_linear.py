@@ -53,14 +53,13 @@ def train(
 
         prev_input = input.detach()
 
-        if step < buffer_batch_size: continue
 
         with torch.no_grad():
             # Update Model
             if buffer_batch_size == 1: # Don't sample-- use current observation
                 transitions = [buffer.memory[-1]]
             else:
-                transitions = buffer.sample(buffer_batch_size)
+                transitions = buffer.sample(min(step, buffer_batch_size))
 
             states = torch.stack([t[0] for t in transitions]).squeeze(1)
             next_states = torch.stack([t[1] for t in transitions]).squeeze(1)
@@ -122,7 +121,6 @@ def train(
             running_loss = 0.0
             grad_avg = 0
 
-    
     writer.close()
     print('Finished Training\n', file=print_file)
     return net, prev_running_loss
