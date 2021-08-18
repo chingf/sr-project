@@ -10,7 +10,7 @@ from joblib import Parallel, delayed
 import argparse
 from shutil import rmtree
 
-from datasets import inputs, sf_inputs
+from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
 from train_td_rnn import train as train_rnn
 from train_td_mlp import train as train_mlp
@@ -30,7 +30,7 @@ def main(delete_dir=False):
     dset_path = save_path + 'onehot/'
     run_models(dset_path, iters, lr_range, dataset, dataset_config, gamma, input_size)
     
-    dataset = sf_inputs.Sim2DLevyFlight
+    dataset = sf_inputs_discrete.Sim2DLevyFlight
     dataset_config = {
         'num_steps': 2000, 'walls': 7, 'feature_dim':64*3, 'feature_type':'nhot'
         }

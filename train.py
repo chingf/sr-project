@@ -142,7 +142,7 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/baseline/'
+    save_path = './trained_models/'
     datasets = [
         inputs.Sim1DWalk,
         ]

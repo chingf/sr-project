@@ -91,7 +91,7 @@ class Sim2DLevyFlight(inputs.Sim2DLevyFlight):
         super(Sim2DLevyFlight, self).__init__(num_steps, walls, alpha, beta)
         self.feature_dim = feature_dim
         self.feature_type = feature_type
-        num_states = self.num_states
+        num_states = int(self.num_states)
 
         if feature_type == 'nhot':
             self.feature_dim = feature_dim//num_states * num_states
@@ -99,7 +99,7 @@ class Sim2DLevyFlight(inputs.Sim2DLevyFlight):
                 self.dg_inputs, feature_dim//num_states, axis=0
                 )
         elif feature_type == 'linear':
-            self.expansion_mat = np.random.choice(feature_vals, (feature_dim, num_states))
+            self.expansion_mat = np.random.choice(feature_vals, (int(feature_dim), num_states))
             self.dg_inputs = [self.expansion_mat@x for x in self.dg_inputs.T]
             self.dg_inputs = np.array(self.dg_inputs).T
         else:

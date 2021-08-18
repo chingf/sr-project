@@ -10,7 +10,7 @@ from joblib import Parallel, delayed
 import argparse
 from shutil import rmtree
 
-from datasets import inputs, sf_inputs
+from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
 from train_td_rnn import train as train_rnn
 from train_td_mlp import train as train_mlp
@@ -31,7 +31,7 @@ def main(delete_dir=False):
     feature_dim_sets = [('comp', 1/2), ('same', 1), ('exp', 2)]
     for feature_vals in feature_val_sets:
         for dim_name, dim_scale in feature_dim_sets:
-            dataset = sf_inputs.Sim2DLevyFlight
+            dataset = sf_inputs_discrete.Sim2DLevyFlight
             dataset_config = {
                 'num_steps': 2000, 'walls': 7,
                 'feature_dim':64*dim_scale, 'feature_vals': feature_vals

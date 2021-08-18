@@ -9,7 +9,7 @@ import torch.nn as nn
 from joblib import Parallel, delayed
 import argparse
 
-from datasets import inputs, sf_inputs
+from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
 from train_td_rnn import train as train_rnn
 from train_td_mlp import train as train_mlp
@@ -22,7 +22,7 @@ args = parser.parse_args()
 model_type = args.model[0]
 
 save_path = '../trained_models/03_test_td_loss/'
-dataset = sf_inputs.Sim2DWalk
+dataset = sf_inputs_discrete.Sim2DWalk
 dataset_config = {
     'num_steps': 8000, 'num_states': 64,
     'feature_dim': 64*3, 'feature_type': 'nhot'
