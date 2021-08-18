@@ -17,30 +17,37 @@ from train_td_mlp import train as train_mlp
 from train_td_linear import train as train_linear
 
 def main(delete_dir=False):
-    save_path = '../trained_models/03_td_baselines/'
+    save_path = '../trained_models/03_td_discrete_uncorr/'
     if delete_dir:
         rmtree(save_path, ignore_errors=True)
     iters = 5
     lr_range = [1E-1, 1E-2, 1E-3]
     gamma=0.4
-    
-    dataset = inputs.Sim2DLevyFlight
-    dataset_config = {'num_steps': 2000, 'walls': 7}
-    input_size = 64
-    dset_path = save_path + 'onehot/'
-    run_models(dset_path, iters, lr_range, dataset, dataset_config, gamma, input_size)
-    
-    dataset = sf_inputs.Sim2DLevyFlight
-    dataset_config = {
-        'num_steps': 2000, 'walls': 7, 'feature_dim':64*3, 'feature_type':'nhot'
-        }
-    dset_path = save_path + 'nhot/'
-    input_size = dataset_config['feature_dim']
-    run_models(dset_path, iters, lr_range, dataset, dataset_config, gamma, input_size)
+
+    feature_val_sets = [
+        [0, 1], [0, 0.5, 1],
+        [0, 0.2, 0.4, 0.6, 0.8, 1]
+        ]
+    feature_dim_sets = [('comp', 1/2), ('same', 1), ('exp', 2)]
+    for feature_vals in feature_val_sets:
+        for dim_name, dim_scale in feature_dim_sets:
+            dataset = sf_inputs.Sim2DLevyFlight
+            dataset_config = {
+                'num_steps': 2000, 'walls': 7,
+                'feature_dim':64*dim_scale, 'feature_vals': feature_vals
+                }
+            dset_path = save_path + f'/{dim_name}_{feature_vals[1]}/'
+            input_size = dataset_config['feature_dim']
+            run_models(
+                dset_path, iters, lr_range,
+                dataset, dataset_config, gamma, input_size
+                )
 
 def run_models(
     save_path, iters, lr_range, dataset, dataset_config, gamma, input_size
     ):
+
+    input_size = int(input_size)
 
     # Analytic RNN with fixed LR
     best_lr = np.inf; best_lr_val = np.inf;
@@ -59,17 +66,27 @@ def run_models(
         ca3_kwargs={'use_dynamic_lr':False, 'lr': best_lr}
         )
     for _iter in range(iters):
-        net.reset()
         rnn_save_path = save_path + f'rnn_fixedlr/{_iter}'
-        train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
+        try:
+            net.reset()
+            train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
+        except:
+            rmtree(rnn_save_path, ignore_errors=True)
+            net.reset()
+            train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
     
     # Analytic RNN with dynamic LR
     net = AnalyticSR(num_states=input_size, gamma=gamma)
     for _iter in range(iters):
-        net.reset()
         rnn_save_path = save_path + f'rnn_dynamiclr/{_iter}'
-        train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
-    
+        try:
+            net.reset()
+            train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
+        except:
+            rmtree(rnn_save_path, ignore_errors=True)
+            net.reset()
+            train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)   
+
     # Linear
     best_lr = np.inf; best_lr_val = np.inf;
     net = Linear(input_size=input_size)

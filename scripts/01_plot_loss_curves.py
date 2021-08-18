@@ -22,12 +22,12 @@ datasets_config_ranges = [
     },
     ]
 
-for idx in range(20):
+for idx in range(15):
     save_path = experiment_dir + f'{idx}/'
     net = STDP_SR(num_states=2, gamma=0.4)
     train(
         save_path, net, datasets, datasets_config_ranges,
-        train_steps=201, print_every_steps=2
+        train_steps=601, print_every_steps=50
         )
 
 

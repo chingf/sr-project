@@ -21,11 +21,11 @@ parser.add_argument('model', metavar='M', type=str, nargs='+',
 args = parser.parse_args()
 model_type = args.model[0]
 
-save_path = '../trained_models/03_nhot_td_loss/'
+save_path = '../trained_models/03_test_td_loss/'
 dataset = sf_inputs.Sim2DWalk
 dataset_config = {
-    'num_steps': 8000, 'num_states': 25,
-    'feature_dim': 30
+    'num_steps': 8000, 'num_states': 64,
+    'feature_dim': 64*3, 'feature_type': 'nhot'
     }
 gamma=0.4
 input_size = dataset_config['feature_dim']
