@@ -54,9 +54,7 @@ def train(
 
         prev_input = input.detach()
 
-        if step < buffer_batch_size: continue
-
-        transitions = buffer.sample(buffer_batch_size)
+        transitions = buffer.sample(min(step, buffer_batch_size))
         states = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
         next_states = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
 
