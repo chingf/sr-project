@@ -23,17 +23,24 @@ model_type = args.model[0]
 
 save_path = '../trained_models/03_test_td_loss/'
 dataset = sf_inputs_discrete.Sim2DWalk
+feature_maker_kwargs = {
+    'feature_dim': 64, 'feature_type': 'correlated_sparse',
+    'feature_vals': [0, 1.], 'spatial_sigma':3
+    }
 dataset_config = {
     'num_steps': 8000, 'num_states': 64,
-    'feature_dim': 64*3, 'feature_type': 'nhot'
+    'feature_maker_kwargs': feature_maker_kwargs
     }
 gamma=0.4
-input_size = dataset_config['feature_dim']
+input_size = feature_maker_kwargs['feature_dim']
 
 # Analytic RNN 
 if model_type == 'analytic':
     rnn_save_path = save_path + 'rnn/'
-    net = AnalyticSR(num_states=input_size, gamma=gamma)
+    net = AnalyticSR(
+        num_states=input_size, gamma=gamma,
+        ca3_kwargs={'use_dynamic_lr': False, 'lr': 1E-3}
+        )
     train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
 
 # RNN
@@ -54,7 +61,7 @@ if model_type == 'linear':
     net = Linear(input_size=input_size)
     train_linear(
         linear_save_path, net, dataset, dataset_config, buffer_batch_size=1,
-        lr=1E-1, gamma=gamma
+        lr=1E-2, gamma=gamma
         )
 
 # MLP

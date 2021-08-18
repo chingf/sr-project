@@ -87,7 +87,10 @@ class FeatureMaker(object):
         self.spatial_dim = spatial_dim
         self.feature_dim = feature_dim
         self.feature_type = feature_type
-        self.feature_vals = np.array(feature_vals)
+        if feature_vals is not None:
+            self.feature_vals = np.array(feature_vals)
+        else:
+            self.feature_vals = feature_vals
         self.spatial_sigma = spatial_sigma
 
     def make_features(self, dg_inputs):
@@ -103,14 +106,17 @@ class FeatureMaker(object):
                 )
         elif feature_type == 'linear':
             feature_map = np.random.choice(feature_vals, (int(feature_dim), num_states))
+            self.feature_map = feature_map
             dg_inputs = [feature_map@x for x in dg_inputs.T]
             dg_inputs = np.array(dg_inputs).T
         elif feature_type == 'correlated_sparse':
             feature_map = self._generate_sparse_corr_features()
+            self.feature_map = feature_map
             dg_inputs = [feature_map@x for x in dg_inputs.T]
             dg_inputs = np.array(dg_inputs).T
         elif feature_type == 'correlated_distributed':
             feature_map = self._generate_distrib_corr_features()
+            self.feature_map = feature_map
             dg_inputs = [feature_map@x for x in dg_inputs.T]
             dg_inputs = np.array(dg_inputs).T
         else:
@@ -179,10 +185,8 @@ class FeatureMaker(object):
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
         blurred_features = gaussian_filter(features, sigma=sigma)
         blurred_features -= np.min(blurred_features, axis=1)[:,None]
-        blurred_features = normalize(
-            blurred_features.reshape(num_states, feature_dim),
-            axis=1, norm='max'
-            )
+        blurred_features = blurred_features.reshape(num_states, feature_dim)
+        blurred_features = normalize(blurred_features, axis=1, norm='max')
 
         if feature_vals is not None:
             val_midpoints = (feature_vals[1:] + feature_vals[:-1])/2
