@@ -6,8 +6,6 @@ import os
 from itertools import chain
 from copy import deepcopy
 from collections import namedtuple, deque
-import sys
-sys.path.append(os.path.dirname(os.getcwd()))
 
 import torch
 import torch.nn as nn
@@ -16,13 +14,14 @@ from torch.utils.tensorboard import SummaryWriter
 import cma
 
 from datasets import inputs
-from sr_model.models.models import AnalyticSR, STDP_SR, MLP
+from sr_model.models.models import AnalyticSR, STDP_SR, MLP, Linear
 
 device = 'cpu'
 
-def train(
+def run(
     save_path, net, dataset, dataset_config, print_file=None,
-    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4
+    print_every_steps=50, buffer_batch_size=1, buffer_size=5000, gamma=0.4,
+    lr=1E-3
     ):
 
     # Initializations
@@ -42,36 +41,49 @@ def train(
     grad_avg = 0
     
     dset = dataset(**dataset_config)
-    dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
-    dg_modes = torch.from_numpy(dset.dg_modes.T).float().to(device).unsqueeze(1)
-    prev_input = None
+    inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
+    prev_input = inputs[0].unsqueeze(0)
 
-    for step in np.arange(dg_inputs.shape[0]):
+    for step in np.arange(1, inputs.shape[0]):
         start_time = time.time()
-        dg_input = dg_inputs[step]
-        dg_input = dg_input.unsqueeze(0)
+        input = inputs[step]
+        input = input.unsqueeze(0)
 
-        net(dg_input, reset=False)
+        buffer.push((prev_input.detach(), input.detach()))
 
-        if step == 0:
-            prev_input = dg_input.detach()
-            continue
+        prev_input = input.detach()
 
-        buffer.push((prev_input.detach(), dg_input.detach()))
+
         with torch.no_grad():
+            # Update Model
+            if buffer_batch_size == 1: # Don't sample-- use current observation
+                transitions = [buffer.memory[-1]]
+            else:
+                transitions = buffer.sample(min(step, buffer_batch_size))
+
+            states = torch.stack([t[0] for t in transitions]).squeeze(1)
+            next_states = torch.stack([t[1] for t in transitions]).squeeze(1)
+    
+            phi = states
+            psi_s = net(states)
+            psi_s_prime = net(next_states)
+            value_function = psi_s
+            expected_value_function = phi + gamma*psi_s_prime
+            errors = expected_value_function - value_function
+            for idx, error in enumerate(errors):
+                net.M[0,:,:] = net.M[0,:,:] + lr *error*states[idx].t()
+
+            # Calculate error 
             all_transitions = buffer.memory
             all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
             all_next_s = torch.stack([t[1] for t in all_transitions]).squeeze(1)
-            test_phi = all_s.squeeze(1)
-            M = net.get_M()
-            test_psi_s = torch.stack([s.squeeze() @ M for s in all_s])
-            test_psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
+            test_phi = all_s
+            test_psi_s = net(all_s)
+            test_psi_s_prime = net(all_next_s)
             test_value_function = test_psi_s
             test_exp_value_function = test_phi + gamma*test_psi_s_prime
             test_loss = criterion(test_value_function, test_exp_value_function)
-
-        prev_input = dg_input.detach()
-
+    
         # Print statistics
         elapsed_time = time.time() - start_time
         time_step += elapsed_time
@@ -109,7 +121,6 @@ def train(
             running_loss = 0.0
             grad_avg = 0
 
-    
     writer.close()
     print('Finished Training\n', file=print_file)
     return net, prev_running_loss
@@ -130,18 +141,10 @@ class ReplayMemory(object):
         return len(self.memory)
 
 if __name__ == "__main__":
-    save_path = '../trained_models/rnn_td_loss/'
+    save_path = './trained_models/linear/'
     dataset = inputs.Sim1DWalk
     dataset_config = {
         'num_steps': 8000, 'left_right_stay_prob': [1,1,1], 'num_states': 10
         }
-    net = STDP_SR(
-        num_states=dataset_config['num_states'], gamma=0.4,
-        ca3_kwargs={'gamma_T':1}
-        )
-    net.ca3.set_differentiability(False)
-    state_dict_path = './trained_models/baseline/model.pt'
-    net.load_state_dict(torch.load(state_dict_path))
-
-    net = AnalyticSR(num_states=dataset_config['num_states'], gamma=0.4)
-    train(save_path, net, dataset, dataset_config)
+    net = Linear(input_size=10)
+    run(save_path, net, dataset, dataset_config)

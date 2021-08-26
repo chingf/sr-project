@@ -14,14 +14,13 @@ from torch.utils.tensorboard import SummaryWriter
 import cma
 
 from datasets import inputs
-from sr_model.models.models import AnalyticSR, STDP_SR, MLP, Linear
+from sr_model.models.models import AnalyticSR, STDP_SR, MLP
 
 device = 'cpu'
 
-def train(
+def run(
     save_path, net, dataset, dataset_config, print_file=None,
-    print_every_steps=50, buffer_batch_size=1, buffer_size=5000, gamma=0.4,
-    lr=1E-3
+    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4
     ):
 
     # Initializations
@@ -31,7 +30,9 @@ def train(
     writer = SummaryWriter(save_path)
     criterion = nn.MSELoss()
     #criterion = nn.SmoothL1Loss()
+    lr=1E-3
     weight_decay = 0
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay) #Adam
 
     # Loss reporting
     running_loss = 0.0
@@ -53,30 +54,27 @@ def train(
 
         prev_input = input.detach()
 
+        transitions = buffer.sample(min(step, buffer_batch_size))
+        states = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
+        next_states = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
+
+        phi = states
+        psi_s = net(states)
+        psi_s_prime = net(next_states)
+        value_function = psi_s
+        expected_value_function = phi + gamma*psi_s_prime
+    
+        loss = criterion(value_function, expected_value_function)
+        optimizer.zero_grad()
+        loss.backward()
+        #for param in policy_net.parameters():
+        #    param.grad.data.clamp_(-1, 1)
+        optimizer.step()
 
         with torch.no_grad():
-            # Update Model
-            if buffer_batch_size == 1: # Don't sample-- use current observation
-                transitions = [buffer.memory[-1]]
-            else:
-                transitions = buffer.sample(min(step, buffer_batch_size))
-
-            states = torch.stack([t[0] for t in transitions]).squeeze(1)
-            next_states = torch.stack([t[1] for t in transitions]).squeeze(1)
-    
-            phi = states
-            psi_s = net(states)
-            psi_s_prime = net(next_states)
-            value_function = psi_s
-            expected_value_function = phi + gamma*psi_s_prime
-            errors = expected_value_function - value_function
-            for idx, error in enumerate(errors):
-                net.M[0,:,:] = net.M[0,:,:] + lr *error*states[idx].t()
-
-            # Calculate error 
             all_transitions = buffer.memory
-            all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
-            all_next_s = torch.stack([t[1] for t in all_transitions]).squeeze(1)
+            all_s = torch.stack([t[0] for t in all_transitions], dim=2).squeeze(0)
+            all_next_s = torch.stack([t[1] for t in all_transitions], dim=2).squeeze(0)
             test_phi = all_s
             test_psi_s = net(all_s)
             test_psi_s_prime = net(all_next_s)
@@ -121,6 +119,7 @@ def train(
             running_loss = 0.0
             grad_avg = 0
 
+    
     writer.close()
     print('Finished Training\n', file=print_file)
     return net, prev_running_loss
@@ -141,10 +140,10 @@ class ReplayMemory(object):
         return len(self.memory)
 
 if __name__ == "__main__":
-    save_path = './trained_models/linear/'
+    save_path = './trained_models/mlp/'
     dataset = inputs.Sim1DWalk
     dataset_config = {
         'num_steps': 8000, 'left_right_stay_prob': [1,1,1], 'num_states': 10
         }
-    net = Linear(input_size=10)
-    train(save_path, net, dataset, dataset_config)
+    net = MLP(input_size=10, hidden_size=32)
+    run(save_path, net, dataset, dataset_config)

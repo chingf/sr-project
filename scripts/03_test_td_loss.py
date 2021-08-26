@@ -11,9 +11,9 @@ import argparse
 
 from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
-from train_td_rnn import train as train_rnn
-from train_td_mlp import train as train_mlp
-from train_td_linear import train as train_linear
+from run_td_rnn import run as run_rnn
+from run_td_mlp import run as run_mlp
+from run_td_linear import run as run_linear
 
 parser = argparse.ArgumentParser(description='Choose model to run.')
 parser.add_argument('model', metavar='M', type=str, nargs='+',
@@ -41,7 +41,7 @@ if model_type == 'analytic':
         num_states=input_size, gamma=gamma,
         ca3_kwargs={'use_dynamic_lr': False, 'lr': 1E-3}
         )
-    train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
+    run_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
 
 # RNN
 if model_type == 'stdp':
@@ -53,13 +53,13 @@ if model_type == 'stdp':
     net.ca3.set_differentiability(False)
     state_dict_path = '../trained_models/baseline/model.pt'
     net.load_state_dict(torch.load(state_dict_path))
-    train_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
+    run_rnn(rnn_save_path, net, dataset, dataset_config, gamma=gamma)
 
 # Linear
 if model_type == 'linear':
     linear_save_path = save_path + 'linear/'
     net = Linear(input_size=input_size)
-    train_linear(
+    run_linear(
         linear_save_path, net, dataset, dataset_config, buffer_batch_size=1,
         lr=1E-2, gamma=gamma
         )
@@ -70,5 +70,5 @@ if model_type == 'mlp':
     net = MLP(
         input_size=input_size,
         hidden_size=input_size*2)
-    train_mlp(mlp_save_path, net, dataset, dataset_config, gamma=gamma)
+    run_mlp(mlp_save_path, net, dataset, dataset_config, gamma=gamma)
 
