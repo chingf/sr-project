@@ -65,7 +65,7 @@ class AnalyticSR(module.Module):
         self.ca3.update()
 
     def get_M(self, gamma=None):
-        return self.ca3.get_M_hat(gamma=None)
+        return self.ca3.get_M_hat(gamma=gamma)
 
     def reset(self):
         self.ca3.reset()

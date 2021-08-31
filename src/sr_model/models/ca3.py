@@ -9,23 +9,22 @@ posinf = 1E30
 
 class CA3(module.Module):
     def __init__(
-        self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=True, lr=1E-3
+        self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,
+        parameterize=False
         ):
 
         super(CA3, self).__init__()
-        self.T = torch.clamp(torch.rand(num_states, num_states), 0, 1)
-        self.T = 0.*self.T*(1/torch.sum(self.T, dim=0))
-        self.state_counts = 0.*torch.ones(num_states)
         self.num_states = num_states
         self.gamma_M0 = gamma_M0
         self.gamma_T = gamma_T
-        self.prev_input = None
-        self.curr_input = None
         self.use_dynamic_lr = use_dynamic_lr
         self.lr = lr
+        self.parameterize = parameterize
+        self._init_trainable()
+        self.reset()
     
     def forward(self, input, update_transition=True):
-        M = get_sr(self.get_T(), self.gamma_M0)
+        M = self.get_M_hat()
         if update_transition:
             if self.curr_input is not None:
                 self.prev_input = torch.squeeze(self.curr_input)
@@ -41,8 +40,8 @@ class CA3(module.Module):
         update_term = torch.outer(self.prev_input, self.curr_input)
         if self.use_dynamic_lr:
             new_state_counts = self.prev_input + self.gamma_T*self.state_counts
-            lr_update = 1/new_state_counts
-            lr_update = torch.clamp(torch.nan_to_num(lr_update), 0, 1)
+            lr_update = 1./new_state_counts
+            lr_update = torch.clamp(torch.nan_to_num(lr_update), 0, self.lr_ceil)
             lr_decay = lr_update
             self.T -= forget_term * lr_decay[:,None]
             self.T += update_term * lr_update[:,None]
@@ -59,7 +58,9 @@ class CA3(module.Module):
         self.curr_input = None
         self.T = torch.clamp(torch.rand(self.num_states, self.num_states), 0, 1)
         self.T = 0.*self.T*(1/torch.sum(self.T, dim=0))
-        self.state_counts = 0.*torch.ones(self.num_states)
+        self.state_count_init = 3.
+        self.lr_ceil = 1.
+        self.state_counts = 10.*self.state_count_init*torch.ones(self.num_states)
 
     def get_M_hat(self, gamma=None):
         """ Inverts the learned T matrix to get putative M matrix """
@@ -67,8 +68,23 @@ class CA3(module.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-        M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+        alpha = self.alpha
+        beta = self.beta
+        M_hat = torch.linalg.pinv(alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+        #w, v = np.linalg.eig(-alpha*torch.eye(T.shape[0]) + beta*gamma*T.t())
+        #max_eig = np.real(w).max()
         return M_hat
+
+    def set_num_states(self, num_states):
+        self.num_states = num_states
+
+    def _init_trainable(self):
+        if self.parameterize:
+            self.alpha = nn.Parameter(torch.ones(1))
+            self.beta = nn.Parameter(torch.ones(1))
+        else:
+            self.alpha = max(1., self.gamma_M0 + 0.25)
+            self.beta = 1.
 
 class STDP_CA3(nn.Module):
     """
@@ -306,9 +322,7 @@ class STDP_CA3(nn.Module):
         # Make the update over all N^2 synapses
         update = torch.nan_to_num(update,posinf=posinf)
         update = self.update_clamp(update)
-        self.J = self.J_weight_clamp(
-            decays*self.J + etas*update, self.leaky_slope
-            )
+        self.J = decays*self.J + etas*update
         if torch.any(torch.isnan(self.J)): import pdb; pdb.set_trace()
 
     def _update_B_pos(self):
@@ -327,7 +341,6 @@ class STDP_CA3(nn.Module):
             decay = 1 - self.dt/tau_pos
             activity = self.update_activity_clamp(self.X, self.leaky_slope)
             self.B_pos = decay*self.B_pos + A*activity
-            self.B_pos = self.B_integration_clamp(self.B_pos, self.leaky_slope)
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_pos)
             exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
@@ -350,7 +363,6 @@ class STDP_CA3(nn.Module):
             decay = 1 - self.dt/tau_neg
             activity = self.update_activity_clamp(self.X, self.leaky_slope)
             self.B_neg = decay*self.B_neg + A*activity
-            self.B_neg = self.B_integration_clamp(self.B_neg, self.leaky_slope)
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_neg)
             exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
@@ -384,13 +396,14 @@ class STDP_CA3(nn.Module):
         self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
         self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
 
-        self.update_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.abs(torch.rand(1)/2)),
-            x1=1, floor=0, ceil=1
-            ) # Floor and ceil is necessary to bound update
+        self.update_clamp = torch.sigmoid
+        #nn.LeakyThreshold(
+        #    x0=0,#nn.Parameter(torch.abs(torch.rand(1)/2)),
+        #    x1=1, floor=0, ceil=1
+        #    ) # Floor and ceil is necessary to bound update
 
         self.update_activity_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.abs(torch.rand(1))),
+            x0=0,#nn.Parameter(torch.abs(torch.rand(1))),
             x1=1, floor=0, ceil=None
             ) # Floor and offset is necessary to bound activity used in update
 
@@ -400,15 +413,6 @@ class STDP_CA3(nn.Module):
         self.forward_activity_clamp = LeakyClamp(
             floor=0, ceil=nn.Parameter(torch.tensor([1.]))
             ) # Necessary. Bounds activity to 0-1
-
-        self.J_weight_clamp = LeakyClamp(
-            floor=None, #nn.Parameter(torch.tensor([0.])),
-            ceil=None #nn.Parameter(torch.tensor([1.]))
-            ) # Not needed
-        self.B_integration_clamp = LeakyClamp(
-            floor=None, #nn.Parameter(torch.tensor([-6.])),
-            ceil=None #nn.Parameter(torch.tensor([6.]))
-            ) # Not needed
 
     def reset_trainable_ideal(self, requires_grad=True):
         nn.init.constant_(self.A_pos, 1) #0.5
