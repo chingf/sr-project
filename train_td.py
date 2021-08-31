@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import cma
 
-from datasets import inputs
+from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR
 
 device = 'cpu'
@@ -26,8 +26,7 @@ def train(
         os.makedirs(save_path)
     num_datasets = len(datasets)
     writer = SummaryWriter(save_path)
-    net.ca3.set_differentiability(False)
-    criterion = nn.MSELoss(reduction='none')
+    criterion = nn.MSELoss()
     lr=1E-3
     weight_decay = 0
     
@@ -57,9 +56,8 @@ def train(
         input = dataset(**dataset_config)
         dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device).unsqueeze(1)
         dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device).unsqueeze(1)
-        net.ca3.set_num_states(input.num_states)
-    
-    
+        net.ca3.set_num_states(input.feature_maker.feature_dim)
+
         # Generate candidate solutions
         candidate_params = es_optimizer.ask()
     
@@ -68,11 +66,16 @@ def train(
         for params in candidate_params:
             set_parameters(net, parameter_names, params)
             _, outputs = net(dg_inputs, dg_modes, reset=True)
-            loss = criterion(
-                net.ca3.get_T(),
-                torch.tensor(net.ca3.get_ideal_T_estimate()).float()
-                )
-            loss = torch.sum(torch.sum(loss, dim=1))
+            with torch.no_grad():
+                all_s = dg_inputs[:-1]
+                all_next_s = dg_inputs[1:]
+                phi = all_s.squeeze(1)
+                M = net.get_M(net.gamma)
+                psi_s = torch.stack([s.squeeze() @ M for s in all_s])
+                psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
+                value_function = psi_s
+                exp_value_function = phi + net.gamma*psi_s_prime
+                loss = criterion(value_function, exp_value_function)
             losses.append(loss.item())
     
         # Take optimization step based on losses
@@ -108,6 +111,8 @@ def train(
                 'Time per step {:0.3f}s, net {:0.3f}s'.format(time_step, time_net),
                  file=print_file
                 )
+            print(net.ca3.state_count_init)
+            print(net.ca3.update_term_scale)
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -121,6 +126,7 @@ def train(
     
     writer.close()
     print('Finished Training\n', file=print_file)
+    import pdb; pdb.set_trace()
     return net, prev_running_loss
 
 def flatten_parameters(net):
@@ -141,24 +147,35 @@ def set_parameters(net, names, flattened_params):
             eval('net.{}.fill_(param)'.format(name)) #TODO: do this better
     return net
 
+class ReplayMemory(object):
+
+    def __init__(self, capacity):
+        self.memory = deque([],maxlen=capacity)
+
+    def push(self, _list):
+        """Save a transition _list is (state, next_state)"""
+        self.memory.append(_list)
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
+
 if __name__ == "__main__":
-    save_path = './trained_models/'
-    datasets = [
-        inputs.Sim1DWalk,
-        ]
-    datasets_config_ranges = [
-        {
-        'num_steps': [3, 10, 20, 30],
-        'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-        'num_states': [5, 10, 15, 25, 36]
-        },
-        ]
+    save_path = './trained_models/td_trained/'
+    datasets = [sf_inputs_discrete.Sim2DLevyFlight]
+    datasets_config_ranges = [{
+        'num_steps': [500], 'walls': [7],
+        'feature_maker_kwargs': [{'feature_dim': 64, 'feature_vals':[0,0.5,1]}]
+        }]
     output_params = {
         'num_iterations':15, 'input_clamp':15, 'nonlinearity': None,
         'transform_activity': True, 'clamp_activity': False
         }
-    net = STDP_SR(
-        num_states=2, gamma=0.8, ca3_kwargs={'output_params':output_params}
+    net = AnalyticSR(
+        num_states=2, gamma=0.95,
+        ca3_kwargs={'use_dynamic_lr':True, 'lr': 1., 'parameterize': True}
         )
     train(
         save_path, net, datasets, datasets_config_ranges, train_steps=801,
