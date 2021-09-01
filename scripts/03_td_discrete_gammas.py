@@ -17,9 +17,11 @@ from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
 
 def main(delete_dir=False):
-    save_path = '../trained_models/03_td_discrete_uncorr_gammas/'
+    uncorr_save_path = '../trained_models/03_td_discrete_uncorr_gammas/'
+    corr_save_path = '../trained_models/03_td_discrete_corr_gammas/'
     if delete_dir:
-        rmtree(save_path, ignore_errors=True)
+        rmtree(uncorr_save_path, ignore_errors=True)
+        rmtree(corr_save_path, ignore_errors=True)
     iters = 5
     lr_range = [1E-1, 1E-2, 1E-3]
 
@@ -28,6 +30,7 @@ def main(delete_dir=False):
     feature_vals = [0, 0.5, 1]
     dim_scale = 1
     for gamma in gamma_sets:
+        # First run uncorrelated dataset
         dataset = sf_inputs_discrete.Sim2DLevyFlight
         feature_maker_kwargs = {
             'feature_dim': 64*dim_scale, 'feature_vals': feature_vals
@@ -36,7 +39,24 @@ def main(delete_dir=False):
             'num_steps': 2000, 'walls': 7,
             'feature_maker_kwargs': feature_maker_kwargs
             }
-        dset_path = save_path + f'/{gamma}/'
+        dset_path = uncorr_save_path + f'/{gamma}/'
+        input_size = feature_maker_kwargs['feature_dim']
+        run_models(
+            dset_path, iters, lr_range,
+            dataset, dataset_config, gamma, input_size
+            )
+
+        # Then, run correlated dataset
+        dataset = sf_inputs_discrete.Sim2DLevyFlight
+        feature_maker_kwargs = {
+            'feature_dim': 64*dim_scale, 'feature_vals': feature_vals,
+            'feature_type': 'correlated_sparse', 'spatial_sigma': 1.25
+            }
+        dataset_config = {
+            'num_steps': 2000, 'walls': 7,
+            'feature_maker_kwargs': feature_maker_kwargs
+            }
+        dset_path = corr_save_path + f'/{gamma}/'
         input_size = feature_maker_kwargs['feature_dim']
         run_models(
             dset_path, iters, lr_range,
