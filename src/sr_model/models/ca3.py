@@ -10,7 +10,7 @@ posinf = 1E30
 class CA3(module.Module):
     def __init__(
         self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,
-        parameterize=False
+        parameterize=False, eigenval_offset=0.25
         ):
 
         super(CA3, self).__init__()
@@ -20,6 +20,7 @@ class CA3(module.Module):
         self.use_dynamic_lr = use_dynamic_lr
         self.lr = lr
         self.parameterize = parameterize
+        self.eigenval_offset = eigenval_offset
         self._init_trainable()
         self.reset()
     
@@ -83,7 +84,7 @@ class CA3(module.Module):
             self.alpha = nn.Parameter(torch.ones(1))
             self.beta = nn.Parameter(torch.ones(1))
         else:
-            self.alpha = max(1., self.gamma_M0 + 0.25)
+            self.alpha = max(1., self.gamma_M0 + self.eigenval_offset)
             self.beta = 1.
 
 class STDP_CA3(nn.Module):
