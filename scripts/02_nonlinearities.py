@@ -1,5 +1,6 @@
 import os
-os.chdir('../')
+import sys
+sys.path.append(os.path.dirname(os.getcwd()))
 
 import pickle
 import numpy as np
@@ -10,7 +11,7 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
 
-experiment_dir = './trained_models/02_gamma_v_ss/'
+experiment_dir = '../trained_models/02_nonlinearities/'
 
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
@@ -20,24 +21,45 @@ datasets_config_ranges = [{
     }]
 
 
-gammas = [0.1, 0.2, 0.4, 0.6, 0.8, 0.9]
+gammas = [0.4, 0.8, 0.95]
+nonlinearities = ['None', 'sigmoid', 'tanh']
 
-def grid_train(gamma):
-    gamma_exp_dir = experiment_dir + f'{gamma}/'
-    last_idx = os.listdir(gamma_exp_dir)
-    if len(last_idx) > 0:
-        last_idx = max([int(idx) for idx in last_idx])
+args = []
+for gamma in gammas:
+    for nonlinearity in nonlinearities:
+        args.append((gamma, nonlinearity))
+
+def grid_train(arg):
+    gamma, nonlinearity = arg
+    gamma_dir = experiment_dir + f'{gamma}/'
+    nonlinearity_dir = gamma_dir + f'{nonlinearity}/'
+    losses = []
+
+    if gamma == 0.4:
+        num_iters = 30
+    elif gamma == 0.8:
+        num_iters = 50
     else:
-        last_idx = 0
-    for idx in range(last_idx+1, 20):
-        save_path = gamma_exp_dir + f'{idx}/'
-        net = STDP_SR(num_states=2, gamma=gamma)
-        train(
-            save_path, net, datasets, datasets_config_ranges,
-            train_steps=301, print_every_steps=10
-            )
-        net_configs = {'gamma':gamma}
-        with open(save_path + 'net_configs.p', 'wb') as f:
-            pickle.dump(net_configs, f)
+        num_iters = 100
 
-Parallel(n_jobs=6)(delayed(grid_train)(gamma) for gamma in gammas)
+    output_params = {
+        'num_iterations':num_iters, 'input_clamp':num_iters,
+        'nonlinearity': nonlinearity, 'transform_input': True
+        }
+    net_configs = {
+        'num_states': 2, 'gamma':gamma,
+        'ca3_kwargs':{'output_params':output_params}
+        }
+    for idx in range(15):
+        iteration_dir = nonlinearity_dir + f'{idx}/'
+        if os.path.isdir(iteration_dir): continue
+        net = STDP_SR(**net_configs)
+        net, loss = train(
+            iteration_dir, net, datasets, datasets_config_ranges,
+            train_steps=801, early_stop=False
+            )
+    with open(nonlinearity_dir + 'net_configs.p', 'wb') as f:
+        pickle.dump(net_configs, f)
+
+Parallel(n_jobs=7)(delayed(grid_train)(arg) for arg in args)
+
