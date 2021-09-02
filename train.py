@@ -108,6 +108,8 @@ def train(
                 'Time per step {:0.3f}s, net {:0.3f}s'.format(time_step, time_net),
                  file=print_file
                 )
+            print(net.ca3.output_param_scale)
+            print(net.ca3.output_param_bias)
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -154,8 +156,8 @@ if __name__ == "__main__":
         },
         ]
     output_params = {
-        'num_iterations':15, 'input_clamp':15, 'nonlinearity': None,
-        'transform_activity': True, 'clamp_activity': False
+        'num_iterations':30, 'input_clamp':30, 'nonlinearity': 'sigmoid',
+        'transform_input': True
         }
     net = STDP_SR(
         num_states=2, gamma=0.8, ca3_kwargs={'output_params':output_params}

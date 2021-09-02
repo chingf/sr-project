@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.nn.functional import relu, sigmoid, tanh
 from sr_model.models import module
 from sr_model.utils import get_sr
 from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThreshold
@@ -115,8 +116,7 @@ class STDP_CA3(nn.Module):
         self.approx_B = approx_B
         self.output_params = {
             'num_iterations': np.inf, 'input_clamp': np.inf,
-            'nonlinearity': None, 'transform_activity': False,
-            'clamp_activity': True
+            'nonlinearity': None, 'transform_input': False,
             }
         self.output_params.update(output_params)
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
@@ -141,56 +141,52 @@ class STDP_CA3(nn.Module):
         """
 
         input = torch.squeeze(input) # TODO: batching
-        _activity = self.get_recurrent_output(input)
-        clamp_activity = self.output_params['clamp_activity']
-        if clamp_activity:
-            activity = self.forward_activity_clamp(_activity, self.leaky_slope)
-        else:
-            activity = _activity
+        activity = self.get_recurrent_output(input)
         if update_transition:
             self.prev_input = self.curr_input
             self.curr_input = input
             self.X = activity
         self.x_queue[:, :-1] = self.x_queue[:, 1:]
         self.x_queue[:, -1] = activity
-        return _activity
+        return activity
 
     def get_recurrent_output(self, input):
         num_iterations = self.output_params['num_iterations']
         input_clamp = self.output_params['input_clamp']
         nonlinearity = self.output_params['nonlinearity']
-        transform_activity = self.output_params['transform_activity']
+        transform_input = self.output_params['transform_input']
+
+        # Option: transform input linearly
+        if transform_input:
+            input = self.output_param_scale*input + self.output_param_bias
 
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat()
-            if transform_activity:
-                input = input*self.output_param_scale + self.output_param_bias
             activity = torch.matmul(M_hat.t(), input)
         else:
             activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: without zero?
             dt = 1.
             for iteration in range(num_iterations):
-                # Option: linearly transform activity to calculate rec. current
-                if transform_activity:
-                    _activity = activity*self.output_param_scale + self.output_param_bias
-                else:
-                    _activity = activity
-                current = torch.matmul(self.gamma_M0*self.J, _activity)
-
-                # Option: provide input
-                if iteration <= input_clamp:
-                    current = current + input
+                current = torch.matmul(self.gamma_M0*self.J, activity)
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity is 'sigmoid':
-                    current = torch.nn.functional.sigmoid(current)
+                    current = sigmoid(current)
                 elif nonlinearity is 'tanh':
-                    current = torch.nn.functional.tanh(current)
+                    current = tanh(current)
+
+                # Option: provide input only briefly
+                if iteration <= input_clamp:
+                    current = current + input
 
                 # Iterate activity
                 dxdt = -activity + current
                 activity = activity + dt*dxdt
+                activity = relu(activity)
                 activity = torch.nan_to_num(activity, posinf=posinf) # for training
+
+        activity = relu(activity)
+
         return activity
 
     def update(self):
@@ -304,7 +300,7 @@ class STDP_CA3(nn.Module):
         # Get activity and plasticity integration
         B_pos = torch.unsqueeze(self.B_pos, dim=0) # (1, N)
         B_neg = torch.unsqueeze(self.B_neg, dim=0) # (1, N)
-        activity = self.update_activity_clamp(self.X, self.leaky_slope) # (N,)
+        activity = self.X # (N,)
         activity = torch.unsqueeze(activity, dim=0) # (1, N)
 
         # Calculate potentiation and depression over all i,j for i != j
@@ -322,9 +318,9 @@ class STDP_CA3(nn.Module):
 
         # Make the update over all N^2 synapses
         update = torch.nan_to_num(update,posinf=posinf)
+        update = self.update_clamp_a*update + self.update_clamp_b
         update = self.update_clamp(update)
         self.J = decays*self.J + etas*update
-        if torch.any(torch.isnan(self.J)): import pdb; pdb.set_trace()
 
     def _update_B_pos(self):
         # Calculate scaling factor
@@ -333,19 +329,17 @@ class STDP_CA3(nn.Module):
         else:
             A_pos = self.A_pos
         A = A_pos * self.A_scaling * self.dt
-        tau_pos = nn.functional.leaky_relu(
-            self.tau_pos, negative_slope=self.leaky_slope
-            )
+        tau_pos = relu(self.tau_pos)
 
         # Either use Euler integration or calculate convolution
         if self.approx_B:
             decay = 1 - self.dt/tau_pos
-            activity = self.update_activity_clamp(self.X, self.leaky_slope)
+            activity = self.X
             self.B_pos = decay*self.B_pos + A*activity
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_pos)
             exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
-            convolution = self.update_activity_clamp(self.x_queue, self.leaky_slope) @ exp_function
+            convolution = self.x_queue @ exp_function
             self.B_pos = A*convolution
 
     def _update_B_neg(self):
@@ -355,19 +349,17 @@ class STDP_CA3(nn.Module):
         else:
             A_neg = self.A_neg
         A = A_neg * self.A_scaling * self.dt
-        tau_neg = nn.functional.leaky_relu(
-            self.tau_neg, negative_slope=self.leaky_slope
-            )
+        tau_neg = relu(self.tau_neg)
 
         # Either use Euler integration or calculate convolution
         if self.approx_B:
             decay = 1 - self.dt/tau_neg
-            activity = self.update_activity_clamp(self.X, self.leaky_slope)
+            activity = self.X
             self.B_neg = decay*self.B_neg + A*activity
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_neg)
             exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
-            convolution = self.update_activity_clamp(self.x_queue,self.leaky_slope) @ exp_function
+            convolution = self.x_queue @ exp_function
             self.B_neg = A*convolution
 
     def _update_eta_invs(self):
@@ -397,43 +389,15 @@ class STDP_CA3(nn.Module):
         self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
         self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
 
-        self.update_clamp = torch.sigmoid
-        #nn.LeakyThreshold(
-        #    x0=0,#nn.Parameter(torch.abs(torch.rand(1)/2)),
-        #    x1=1, floor=0, ceil=1
-        #    ) # Floor and ceil is necessary to bound update
+        self.update_clamp_a = nn.Parameter(torch.tensor([1.]))
+        self.update_clamp_b = nn.Parameter(torch.tensor([0.]))
+        self.update_clamp = LeakyClamp(
+            floor=0, ceil=nn.Parameter(torch.tensor([1.]))
+            )
 
-        self.update_activity_clamp = LeakyThreshold(
-            x0=0,#nn.Parameter(torch.abs(torch.rand(1))),
-            x1=1, floor=0, ceil=None
-            ) # Floor and offset is necessary to bound activity used in update
-
+        # Scales recurrent output
         self.output_param_scale = nn.Parameter(torch.tensor([1.]))
         self.output_param_bias =  nn.Parameter(torch.tensor([0.]))
-
-        self.forward_activity_clamp = LeakyClamp(
-            floor=0, ceil=nn.Parameter(torch.tensor([1.]))
-            ) # Necessary. Bounds activity to 0-1
-
-    def reset_trainable_ideal(self, requires_grad=True):
-        nn.init.constant_(self.A_pos, 1) #0.5
-        nn.init.constant_(self.tau_pos, 1.4) #1.15
-        nn.init.constant_(self.A_neg, 0.15) #0
-        nn.init.constant_(self.tau_neg, 1.) #1
-        nn.init.constant_(self.alpha_other, .18)
-        nn.init.constant_(self.alpha_self, 0.2)
-        self.update_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.ones(1)*.1), #0.2
-            x1=1, floor=0, ceil=1.
-            )
-        self.update_activity_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.ones(1)*0.5), #0.7
-            x1=1, floor=0, ceil=None
-            )
-
-        if not requires_grad:
-            for param in self.parameters():
-                param.requires_grad = False
 
     def set_differentiability(self, differentiable):
         self.differentiable = differentiable
