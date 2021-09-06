@@ -33,6 +33,7 @@ class Sim1DWalk(inputs.Sim1DWalk):
         self.feature_maker = FeatureMaker(
             self.num_states, **feature_maker_kwargs
             )
+        self.state_inputs = self.dg_inputs.copy()
         self.dg_inputs = self.feature_maker.make_features(self.dg_inputs)
 
     def get_true_T(self):
@@ -54,6 +55,7 @@ class Sim2DWalk(inputs.Sim2DWalk):
         self.feature_maker = FeatureMaker(
             self.num_states, **feature_maker_kwargs
             )
+        self.state_inputs = self.dg_inputs.copy()
         self.dg_inputs = self.feature_maker.make_features(self.dg_inputs)
 
     def get_true_T(self):
@@ -75,12 +77,14 @@ class Sim2DLevyFlight(inputs.Sim2DLevyFlight):
         self.feature_maker = FeatureMaker(
             self.num_states, **feature_maker_kwargs
             )
+        self.state_inputs = self.dg_inputs.copy()
         self.dg_inputs = self.feature_maker.make_features(self.dg_inputs)
 
 class FeatureMaker(object):
     def __init__(
             self, num_states, feature_dim=32, feature_type='linear',
-            feature_vals=[0,1], spatial_dim=2, spatial_sigma=2
+            feature_vals=[0,1], spatial_dim=2, spatial_sigma=2,
+            feature_vals_p=None
             ):
 
         self.num_states = num_states
@@ -89,6 +93,7 @@ class FeatureMaker(object):
         self.feature_type = feature_type
         if feature_vals is not None:
             self.feature_vals = np.array(feature_vals)
+            self.feature_vals_p = np.array(feature_vals_p)
         else:
             self.feature_vals = feature_vals
         self.spatial_sigma = spatial_sigma
@@ -105,7 +110,10 @@ class FeatureMaker(object):
                 dg_inputs, feature_dim//num_states, axis=0
                 )
         elif feature_type == 'linear':
-            feature_map = np.random.choice(feature_vals, (int(feature_dim), num_states))
+            feature_map = np.random.choice(
+                feature_vals, (int(feature_dim), num_states),
+                p=self.feature_vals_p
+                )
             self.feature_map = feature_map
             dg_inputs = [feature_map@x for x in dg_inputs.T]
             dg_inputs = np.array(dg_inputs).T
