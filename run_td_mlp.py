@@ -43,17 +43,26 @@ def run(
     
     dset = dataset(**dataset_config)
     inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
-    prev_input = inputs[0].unsqueeze(0)
+    prev_input = None
+    outputs = []
 
-    for step in np.arange(1, inputs.shape[0]):
+    for step in np.arange(inputs.shape[0]):
         start_time = time.time()
         input = inputs[step]
         input = input.unsqueeze(0)
 
+        # Get net response
+        with torch.no_grad():
+            out = net(input)
+            outputs.append(out.detach().numpy().squeeze())
+
+        if step == 0:
+            prev_input = input.detach()
+            continue
+
         buffer.push((prev_input.detach(), input.detach()))
 
-        prev_input = input.detach()
-
+        # Update Model
         transitions = buffer.sample(min(step, buffer_batch_size))
         states = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
         next_states = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
@@ -67,10 +76,9 @@ def run(
         loss = criterion(value_function, expected_value_function)
         optimizer.zero_grad()
         loss.backward()
-        #for param in policy_net.parameters():
-        #    param.grad.data.clamp_(-1, 1)
         optimizer.step()
 
+        # Calculate error
         with torch.no_grad():
             all_transitions = buffer.memory
             all_s = torch.stack([t[0] for t in all_transitions], dim=2).squeeze(0)
@@ -82,6 +90,8 @@ def run(
             test_exp_value_function = test_phi + gamma*test_psi_s_prime
             test_loss = criterion(test_value_function, test_exp_value_function)
     
+        prev_input = input.detach()
+
         # Print statistics
         elapsed_time = time.time() - start_time
         time_step += elapsed_time
@@ -122,7 +132,7 @@ def run(
     
     writer.close()
     print('Finished Training\n', file=print_file)
-    return net, prev_running_loss
+    return np.array(outputs), prev_running_loss
 
 class ReplayMemory(object):
 

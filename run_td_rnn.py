@@ -45,19 +45,24 @@ def run(
     dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
     dg_modes = torch.from_numpy(dset.dg_modes.T).float().to(device).unsqueeze(1)
     prev_input = None
+    outputs = []
 
     for step in np.arange(dg_inputs.shape[0]):
         start_time = time.time()
         dg_input = dg_inputs[step]
         dg_input = dg_input.unsqueeze(0)
 
-        net(dg_input, reset=False)
+        # Get net response and update model
+        _, out = net(dg_input, reset=False)
+        outputs.append(out.detach().numpy().squeeze())
 
         if step == 0:
             prev_input = dg_input.detach()
             continue
 
         buffer.push((prev_input.detach(), dg_input.detach()))
+
+        # Calculate error
         with torch.no_grad():
             all_transitions = buffer.memory
             all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
@@ -112,7 +117,7 @@ def run(
     
     writer.close()
     print('Finished Training\n', file=print_file)
-    return net, prev_running_loss
+    return np.array(outputs), prev_running_loss
 
 class ReplayMemory(object):
 

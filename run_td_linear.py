@@ -42,17 +42,24 @@ def run(
     
     dset = dataset(**dataset_config)
     inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
-    prev_input = inputs[0].unsqueeze(0)
+    prev_input = None
+    outputs = []
 
-    for step in np.arange(1, inputs.shape[0]):
+    for step in np.arange(inputs.shape[0]):
         start_time = time.time()
         input = inputs[step]
         input = input.unsqueeze(0)
 
+        # Get net response
+        with torch.no_grad():
+            out = net(input)
+            outputs.append(out.detach().numpy().squeeze())
+
+        if step == 0:
+            prev_input = input.detach()
+            continue
+
         buffer.push((prev_input.detach(), input.detach()))
-
-        prev_input = input.detach()
-
 
         with torch.no_grad():
             # Update Model
@@ -83,7 +90,9 @@ def run(
             test_value_function = test_psi_s
             test_exp_value_function = test_phi + gamma*test_psi_s_prime
             test_loss = criterion(test_value_function, test_exp_value_function)
-    
+   
+        prev_input = input.detach()
+
         # Print statistics
         elapsed_time = time.time() - start_time
         time_step += elapsed_time
@@ -123,7 +132,7 @@ def run(
 
     writer.close()
     print('Finished Training\n', file=print_file)
-    return net, prev_running_loss
+    return np.array(outputs), prev_running_loss
 
 class ReplayMemory(object):
 
