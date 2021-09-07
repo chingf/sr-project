@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 import time
 import os
+import pickle
 from itertools import chain
 import matplotlib.pyplot as plt
 
@@ -26,10 +27,13 @@ def eval(save_path, datasets):
     model_path = save_path + 'model.pt'
     net_configs_path = save_path + 'net_configs.p'
     if os.path.isfile(net_configs_path):
+        with open(net_configs_path, 'rb') as f:
+            net_configs = pickle.load(f)
         net = STDP_SR(num_states=64, gamma=net_configs['gamma'],
             ca3_kwargs=net_configs['ca3_kwargs']
             )
     else:
+        print("Loading default configs")
         net = STDP_SR(num_states=64, gamma=0.4)
     net.load_state_dict(torch.load(model_path))
     net.ca3.set_differentiability(False)
@@ -72,13 +76,13 @@ def eval(save_path, datasets):
     return results_true_v_rnn, results_est_v_rnn, results_true_v_est
 
 if __name__ == "__main__":
-    save_path = './trained_models/'
+    save_path = './trained_models/0.95_2/'
 
     datasets = [ 
-        inputs.Sim1DWalk(num_steps=8000, left_right_stay_prob=[1,1,1], num_states=64),
-        inputs.Sim1DWalk(num_steps=8000, left_right_stay_prob=[5,1,1], num_states=64),
-        inputs.Sim2DWalk(num_steps=8000, num_states=64),
-        inputs.Sim2DLevyFlight(num_steps=8000, walls=7)
+        inputs.Sim1DWalk(num_steps=1000, left_right_stay_prob=[1,1,1], num_states=64),
+        inputs.Sim1DWalk(num_steps=1000, left_right_stay_prob=[5,1,1], num_states=64),
+        inputs.Sim2DWalk(num_steps=1000, num_states=64),
+        inputs.Sim2DLevyFlight(num_steps=1000, walls=7)
         ]
 
     results_true_v_rnn, results_est_v_rnn, results_true_v_est = eval(
@@ -95,7 +99,7 @@ if __name__ == "__main__":
     plt.xlabel("Timestep of Simulation")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('eval_true_v_rnn.png', dpi=300)
+#    plt.savefig('eval_true_v_rnn.png', dpi=300)
     plt.show()
 
     plt.figure();
@@ -108,6 +112,6 @@ if __name__ == "__main__":
     plt.legend()
     plt.tight_layout()
     plt.ylim(0, 0.01)
-    plt.savefig('eval_est_v_rnn.png', dpi=300)
+#    plt.savefig('eval_est_v_rnn.png', dpi=300)
     plt.show()
 
