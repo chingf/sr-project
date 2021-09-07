@@ -116,7 +116,7 @@ class STDP_CA3(nn.Module):
         self.approx_B = approx_B
         self.output_params = {
             'num_iterations': np.inf, 'input_clamp': np.inf,
-            'nonlinearity': None, 'transform_input': False,
+            'nonlinearity': None
             }
         self.output_params.update(output_params)
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
@@ -142,23 +142,19 @@ class STDP_CA3(nn.Module):
 
         input = torch.squeeze(input) # TODO: batching
         activity = self.get_recurrent_output(input)
+        _activity = self.update_activity_clamp(activity)
         if update_transition:
             self.prev_input = self.curr_input
             self.curr_input = input
-            self.X = activity
+            self.X = _activity
         self.x_queue[:, :-1] = self.x_queue[:, 1:]
-        self.x_queue[:, -1] = activity
+        self.x_queue[:, -1] = _activity
         return activity
 
     def get_recurrent_output(self, input):
         num_iterations = self.output_params['num_iterations']
         input_clamp = self.output_params['input_clamp']
         nonlinearity = self.output_params['nonlinearity']
-        transform_input = self.output_params['transform_input']
-
-        # Option: transform input linearly
-        if transform_input:
-            input = self.output_param_scale*input + self.output_param_bias
 
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat()
@@ -174,6 +170,8 @@ class STDP_CA3(nn.Module):
                     current = sigmoid(current)
                 elif nonlinearity is 'tanh':
                     current = tanh(current)
+                elif nonlinearity is 'clamp':
+                    current = self.nonlin_clamp(current)
 
                 # Option: provide input only briefly
                 if iteration <= input_clamp:
@@ -185,6 +183,7 @@ class STDP_CA3(nn.Module):
                 activity = relu(activity)
                 activity = torch.nan_to_num(activity, posinf=posinf) # for training
 
+        activity = self.output_param_scale*activity + self.output_param_bias
         activity = relu(activity)
 
         return activity
@@ -264,9 +263,10 @@ class STDP_CA3(nn.Module):
         self.J = torch.tensor(self.get_ideal_T_estimate().T).float()
 
     def reset(self):
+        init_scale = 0.0001
         self.J = np.clip(np.random.rand(self.num_states, self.num_states), 0, 1)
-        self.J = self.J*(1/np.sum(self.J, axis=0))
-        self.eta_invs = np.ones(self.J.shape[0])*0.001
+        self.J = 0*self.J*(1/np.sum(self.J, axis=0))
+        self.eta_invs = np.ones(self.J.shape[0])*init_scale
         self.B_pos = np.zeros(self.num_states)
         self.B_neg = np.zeros(self.num_states)
 
@@ -282,8 +282,8 @@ class STDP_CA3(nn.Module):
         self.prev_input = None
         self.curr_input = None
 
-        self.real_T_tilde = 0.001*self.J.t().clone().numpy()
-        self.real_T_count = 0.001*np.ones(self.num_states)
+        self.real_T_tilde = init_scale*self.J.t().clone().numpy()
+        self.real_T_count = init_scale*np.ones(self.num_states)
 
         nn.init.constant_(self.x_queue, 0)
 
@@ -339,7 +339,8 @@ class STDP_CA3(nn.Module):
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_pos)
             exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
-            convolution = self.x_queue @ exp_function
+            activity = self.x_queue
+            convolution = activity @ exp_function
             self.B_pos = A*convolution
 
     def _update_B_neg(self):
@@ -359,7 +360,8 @@ class STDP_CA3(nn.Module):
         else:
             exp_function = torch.exp(torch.arange(-self.x_queue_length, 0)/tau_neg)
             exp_function = torch.nan_to_num(exp_function, posinf=posinf) # for training
-            convolution = self.x_queue @ exp_function
+            activity = self.x_queue
+            convolution = activity @ exp_function
             self.B_neg = A*convolution
 
     def _update_eta_invs(self):
@@ -389,15 +391,29 @@ class STDP_CA3(nn.Module):
         self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
         self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
 
+        # Scales and clamps the update to the J matrix
         self.update_clamp_a = nn.Parameter(torch.tensor([1.]))
         self.update_clamp_b = nn.Parameter(torch.tensor([0.]))
         self.update_clamp = LeakyClamp(
             floor=0, ceil=nn.Parameter(torch.tensor([1.]))
             )
 
+        # Scales and clamps the neural activity used in the plasticity rules
+        self.update_activity_clamp = LeakyThreshold(
+            x0=nn.Parameter(torch.abs(torch.rand(1))),
+            x1=1, floor=0, ceil=None
+            ) # Floor and offset is necessary to bound activity used in update
+
         # Scales recurrent output
         self.output_param_scale = nn.Parameter(torch.tensor([1.]))
         self.output_param_bias =  nn.Parameter(torch.tensor([0.]))
+
+        # Nonlinearity may be a clamp
+        if self.output_params['nonlinearity'] == 'clamp':
+            self.nonlin_clamp = LeakyClamp(
+                floor=nn.Parameter(torch.tensor([0.])),
+                ceil=nn.Parameter(torch.tensor([1.]))
+                )
 
     def set_differentiability(self, differentiable):
         self.differentiable = differentiable
