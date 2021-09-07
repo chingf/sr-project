@@ -27,7 +27,6 @@ def train(
     num_datasets = len(datasets)
     writer = SummaryWriter(save_path)
     net.ca3.set_differentiability(False)
-    criterion = nn.MSELoss(reduction='none')
     lr=1E-3
     weight_decay = 0
     
@@ -45,38 +44,45 @@ def train(
     
     for step in range(train_steps):
         start_time = time.time()
-    
-        # Select dataset parameters and load dataset
-        dataset = datasets[step % num_datasets]
-        dataset_config_rang = datasets_config_ranges[step % num_datasets]
-        dataset_config = {}
-        for key in dataset_config_rang:
-            num_samples = len(dataset_config_rang[key])
-            sample_idx = np.random.choice(num_samples)
-            dataset_config[key] = dataset_config_rang[key][sample_idx]
-        input = dataset(**dataset_config)
-        dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device).unsqueeze(1)
-        dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device).unsqueeze(1)
-        net.ca3.set_num_states(input.num_states)
-    
-    
+
         # Generate candidate solutions
         candidate_params = es_optimizer.ask()
     
         # Evaluate loss on each candidate
-        losses = []
-        for params in candidate_params:
-            set_parameters(net, parameter_names, params)
-            _, outputs = net(dg_inputs, dg_modes, reset=True)
-            loss = criterion(
-                net.ca3.get_T(),
-                torch.tensor(net.ca3.get_ideal_T_estimate()).float()
-                )
-            loss = torch.sum(torch.sum(loss, dim=1))
-            losses.append(loss.item())
+        losses = [[] for _ in candidate_params]
+
+        for _ in range(5):
+            # Select dataset parameters and load dataset
+            dataset = datasets[step % num_datasets]
+            dataset_config_rang = datasets_config_ranges[step % num_datasets]
+            dataset_config = {}
+            for key in dataset_config_rang:
+                num_samples = len(dataset_config_rang[key])
+                sample_idx = np.random.choice(num_samples)
+                dataset_config[key] = dataset_config_rang[key][sample_idx]
+            input = dataset(**dataset_config)
+            dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device)
+            dg_inputs = dg_inputs.unsqueeze(1)
+            dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
+            dg_modes = dg_modes.unsqueeze(1)
+            net.ca3.set_num_states(input.num_states)
+
+            for idx, params in enumerate(candidate_params):
+                set_parameters(net, parameter_names, params)
+
+                # Feed inputs into network
+                with torch.no_grad():
+                    _, outputs = net(dg_inputs, dg_modes, reset=True)
+                rnn_T = net.ca3.get_T().detach().numpy()
+                est_T = net.ca3.get_ideal_T_estimate()
+                error = np.mean(np.square(est_T - rnn_T))
+                losses[idx].append(error)
+        test = [l for l in losses]
+        losses = [np.mean(loss) for loss in losses]
     
         # Take optimization step based on losses
         es_optimizer.tell(candidate_params, losses)
+        set_parameters(net, parameter_names, candidate_params[np.argmin(losses)])
     
         # Print statistics
         elapsed_time = time.time() - start_time
@@ -101,7 +107,7 @@ def train(
    
             print('', flush=True, file=print_file)
             print(
-                '[{:5d}] loss: {:0.3f}'.format(step + 1, running_loss),
+                '[{:5d}] loss: {:0.4f}'.format(step + 1, running_loss),
                 file=print_file
                 )
             print(
@@ -110,6 +116,8 @@ def train(
                 )
             print(net.ca3.output_param_scale)
             print(net.ca3.output_param_bias)
+            print(net.ca3.update_clamp_a)
+            print(net.ca3.update_clamp_b)
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -144,25 +152,30 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/'
+    save_path = './trained_models/0.9_short/'
     datasets = [
         inputs.Sim1DWalk,
         ]
     datasets_config_ranges = [
         {
-        'num_steps': [3, 10, 20, 30],
+        'num_steps': [3, 10, 20, 30, 40],
         'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-        'num_states': [5, 10, 15, 25, 36]
+        'num_states': [5, 10, 15, 25]
         },
         ]
     output_params = {
-        'num_iterations':30, 'input_clamp':30, 'nonlinearity': 'sigmoid',
-        'transform_input': True
+        'num_iterations':10, 'input_clamp':100, 'nonlinearity': 'clamp',
+        'transform_input': False
         }
-    net = STDP_SR(
-        num_states=2, gamma=0.8, ca3_kwargs={'output_params':output_params}
-        )
+    net_params = {
+        'num_states':2, 'gamma':0.9,
+        'ca3_kwargs':{'output_params':output_params}
+        }
+    net = STDP_SR(**net_params)
     train(
         save_path, net, datasets, datasets_config_ranges, train_steps=801,
-        early_stop=False
+        early_stop=False, print_every_steps=25
         )
+    with open(save_path + "net_configs.p", 'wb') as f:
+        import pickle
+        pickle.dump(net_params, f)
