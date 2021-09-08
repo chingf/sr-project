@@ -93,9 +93,12 @@ class FeatureMaker(object):
         self.feature_type = feature_type
         if feature_vals is not None:
             self.feature_vals = np.array(feature_vals)
-            self.feature_vals_p = np.array(feature_vals_p)
         else:
             self.feature_vals = feature_vals
+        if feature_vals_p is not None:
+            self.feature_vals_p = np.array(feature_vals_p)
+        else:
+            self.feature_vals_p = feature_vals_p
         self.spatial_sigma = spatial_sigma
 
     def make_features(self, dg_inputs):
@@ -175,13 +178,15 @@ class FeatureMaker(object):
 
         if self.spatial_dim == 1:
             features = np.random.choice(
-                [0,1.], size=(num_states, feature_dim)
+                [0,1.], size=(num_states, feature_dim),
+                p=self.feature_vals_p
                 )
             sigma = [self.spatial_sigma, 0]
         else:
             arena_length = int(np.sqrt(num_states))
             features = np.random.choice(
-                [0,1.], size=(arena_length, arena_length, feature_dim)
+                [0,1.], size=(arena_length, arena_length, feature_dim),
+                p=self.feature_vals_p
                 )
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
         blurred_features = gaussian_filter(features, sigma=sigma)
