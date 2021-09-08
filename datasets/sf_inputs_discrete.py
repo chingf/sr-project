@@ -106,29 +106,22 @@ class FeatureMaker(object):
 
         if feature_type == 'nhot':
             feature_dim = feature_dim//num_states * num_states
-            dg_inputs = np.repeat(
-                dg_inputs, feature_dim//num_states, axis=0
+            self.feature_map = np.repeat(
+                np.eye(num_states), feature_dim//num_states, axis=0
                 )
         elif feature_type == 'linear':
-            feature_map = np.random.choice(
+            self.feature_map = np.random.choice(
                 feature_vals, (int(feature_dim), num_states),
                 p=self.feature_vals_p
                 )
-            self.feature_map = feature_map
-            dg_inputs = [feature_map@x for x in dg_inputs.T]
-            dg_inputs = np.array(dg_inputs).T
         elif feature_type == 'correlated_sparse':
-            feature_map = self._generate_sparse_corr_features()
-            self.feature_map = feature_map
-            dg_inputs = [feature_map@x for x in dg_inputs.T]
-            dg_inputs = np.array(dg_inputs).T
+            self.feature_map = self._generate_sparse_corr_features()
         elif feature_type == 'correlated_distributed':
-            feature_map = self._generate_distrib_corr_features()
-            self.feature_map = feature_map
-            dg_inputs = [feature_map@x for x in dg_inputs.T]
-            dg_inputs = np.array(dg_inputs).T
+            self.feature_map = self._generate_distrib_corr_features()
         else:
             raise ValueError(f'Feature type {feature_type} is not an option.')
+        dg_inputs = [self.feature_map@x for x in dg_inputs.T]
+        dg_inputs = np.array(dg_inputs).T
         return dg_inputs
 
     def _generate_sparse_corr_features(self):
