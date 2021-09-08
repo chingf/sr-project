@@ -44,29 +44,35 @@ def train(
     
     for step in range(train_steps):
         start_time = time.time()
-    
-        # Select dataset parameters and load dataset
-        dataset = datasets[step % num_datasets]
-        dataset_config_rang = datasets_config_ranges[step % num_datasets]
-        dataset_config = {}
-        for key in dataset_config_rang:
-            num_samples = len(dataset_config_rang[key])
-            sample_idx = np.random.choice(num_samples)
-            dataset_config[key] = dataset_config_rang[key][sample_idx]
-        input = dataset(**dataset_config)
-        dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device).unsqueeze(1)
-        dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device).unsqueeze(1)
-        net.ca3.set_num_states(input.feature_maker.feature_dim)
 
         # Generate candidate solutions
         candidate_params = es_optimizer.ask()
     
         # Evaluate loss on each candidate
-        losses = []
-        for params in candidate_params:
-            set_parameters(net, parameter_names, params)
-            _, outputs = net(dg_inputs, dg_modes, reset=True)
-            with torch.no_grad():
+        losses = [[] for _ in candidate_params]
+
+        for _ in range(1):
+            # Select dataset parameters and load dataset
+            dataset = datasets[step % num_datasets]
+            dataset_config_rang = datasets_config_ranges[step % num_datasets]
+            dataset_config = {}
+            for key in dataset_config_rang:
+                num_samples = len(dataset_config_rang[key])
+                sample_idx = np.random.choice(num_samples)
+                dataset_config[key] = dataset_config_rang[key][sample_idx]
+            input = dataset(**dataset_config)
+            dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device)
+            dg_inputs = dg_inputs.unsqueeze(1)
+            dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
+            dg_modes = dg_modes.unsqueeze(1)
+            net.ca3.set_num_states(input.feature_maker.feature_dim)
+
+            for idx, params in enumerate(candidate_params):
+                set_parameters(net, parameter_names, params)
+
+                # Feed inputs into network
+                with torch.no_grad():
+                    _, outputs = net(dg_inputs, dg_modes, reset=True)
                 all_s = dg_inputs[:-1]
                 all_next_s = dg_inputs[1:]
                 phi = all_s.squeeze(1)
@@ -76,10 +82,12 @@ def train(
                 value_function = psi_s
                 exp_value_function = phi + net.gamma*psi_s_prime
                 loss = criterion(value_function, exp_value_function)
-            losses.append(loss.item())
+                losses[idx].append(loss.item())
+        losses = [np.mean(loss) for loss in losses]
     
         # Take optimization step based on losses
         es_optimizer.tell(candidate_params, losses)
+        set_parameters(net, parameter_names, candidate_params[np.argmin(losses)])
     
         # Print statistics
         elapsed_time = time.time() - start_time
@@ -111,8 +119,8 @@ def train(
                 'Time per step {:0.3f}s, net {:0.3f}s'.format(time_step, time_net),
                  file=print_file
                 )
-            print(net.ca3.state_count_init)
-            print(net.ca3.update_term_scale)
+            print(net.ca3.alpha)
+            print(net.ca3.beta)
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -126,7 +134,6 @@ def train(
     
     writer.close()
     print('Finished Training\n', file=print_file)
-    import pdb; pdb.set_trace()
     return net, prev_running_loss
 
 def flatten_parameters(net):
@@ -164,20 +171,25 @@ class ReplayMemory(object):
 
 if __name__ == "__main__":
     save_path = './trained_models/td_trained/'
-    datasets = [sf_inputs_discrete.Sim2DLevyFlight]
-    datasets_config_ranges = [{
-        'num_steps': [500], 'walls': [7],
-        'feature_maker_kwargs': [{'feature_dim': 64, 'feature_vals':[0,0.5,1]}]
-        }]
-    output_params = {
-        'num_iterations':15, 'input_clamp':15, 'nonlinearity': None,
-        'transform_activity': True, 'clamp_activity': False
+    datasets = [sf_inputs_discrete.Sim2DWalk]
+    feature_maker_kwargs = {
+        'feature_dim': 100, 'feature_vals': None,
+        'feature_vals_p': [0.95, 0.05],
+        'feature_type': 'correlated_distributed', 'spatial_sigma': 1.25
         }
-    net = AnalyticSR(
-        num_states=2, gamma=0.95,
-        ca3_kwargs={'use_dynamic_lr':True, 'lr': 1., 'parameterize': True}
-        )
+    datasets_config_ranges = [{
+        'num_steps': [1000], 'num_states': [100],
+        'feature_maker_kwargs': [feature_maker_kwargs]
+        }]
+    net_params = {
+        'num_states':2, 'gamma':0.95,
+        'ca3_kwargs':{'use_dynamic_lr':False, 'lr': 1E-3, 'parameterize': True}
+        }
+    net = AnalyticSR(**net_params)
     train(
-        save_path, net, datasets, datasets_config_ranges, train_steps=801,
-        early_stop=False
+        save_path, net, datasets, datasets_config_ranges, train_steps=201,
+        early_stop=False, print_every_steps=10
         )
+    with open(save_path + "net_configs.p", 'wb') as f:
+        import pickle
+        pickle.dump(net_params, f)
