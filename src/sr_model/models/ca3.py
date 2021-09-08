@@ -71,7 +71,11 @@ class CA3(module.Module):
         T = self.get_T()
         alpha = self.alpha
         beta = self.beta
-        M_hat = torch.linalg.pinv(alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+        try:
+            M_hat = torch.linalg.pinv(alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+        except:
+            new_alpha = alpha + 1E-7
+            M_hat = torch.linalg.pinv(new_alpha*torch.eye(T.shape[0]) - beta*gamma*T)
         #w, v = np.linalg.eig(-alpha*torch.eye(T.shape[0]) + beta*gamma*T.t())
         #max_eig = np.real(w).max()
         return M_hat
