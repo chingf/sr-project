@@ -6,6 +6,8 @@ from sr_model.models import module
 from sr_model.utils import get_sr
 from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThreshold
 
+posinf = 1E30
+
 class CA3(module.Module):
     def __init__(
         self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,

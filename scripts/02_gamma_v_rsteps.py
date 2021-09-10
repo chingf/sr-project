@@ -14,14 +14,14 @@ experiment_dir = './trained_models/02_gamma_v_rsteps/'
 
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
-    'num_steps': [3, 10, 20, 30],
+    'num_steps': [3, 10, 20, 30, 40],
     'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-    'num_states': [5, 10, 15, 25, 36]
+    'num_states': [5, 10, 15, 25]
     }]
 
 
-gammas = [0.1, 0.2, 0.4, 0.6, 0.8, 0.9]
-rsteps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+gammas = [0.2, 0.4, 0.6, 0.8, 0.9, 0.95]
+rsteps = [1, 5, 10, 15, 20, 25, 30, 35, 40]
 
 args = []
 for gamma in gammas:

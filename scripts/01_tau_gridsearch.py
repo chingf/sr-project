@@ -10,16 +10,16 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
 
-experiment_dir = '../trained_models/01_tau_gridsearch_2/'
+experiment_dir = '../trained_models/01_tau_gridsearch/'
 tau_negs = np.arange(0.25, 4.25, 0.25)
 tau_poses = np.arange(0.25, 4.25, 0.25)
 A_signs = [1, -1]
 
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
-    'num_steps': [3, 10, 15],
+    'num_steps': [3, 10, 20, 30],
     'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-    'num_states': [5, 10, 15]
+    'num_states': [5, 10, 20]
     }]
 
 args = []

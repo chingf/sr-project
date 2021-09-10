@@ -29,9 +29,8 @@ def eval(save_path, datasets):
     if os.path.isfile(net_configs_path):
         with open(net_configs_path, 'rb') as f:
             net_configs = pickle.load(f)
-        net = STDP_SR(num_states=64, gamma=net_configs['gamma'],
-            ca3_kwargs=net_configs['ca3_kwargs']
-            )
+        net_configs.pop('num_states')
+        net = STDP_SR(num_states=64, **net_configs)
     else:
         print("Loading default configs")
         net = STDP_SR(num_states=64, gamma=0.4)

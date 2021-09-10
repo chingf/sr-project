@@ -16,18 +16,21 @@ experiment_dir = '../trained_models/01_loss_curves/'
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [
     {
-    'num_steps': [3, 10, 20, 30],
+    'num_steps': [3, 10, 20, 30, 40],
     'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-    'num_states': [5, 10, 15, 25, 36]
+    'num_states': [5, 10, 15, 25]
     },
     ]
 
-for idx in range(15):
+args = np.arange(15)
+
+def grid_train(idx):
     save_path = experiment_dir + f'{idx}/'
     net = STDP_SR(num_states=2, gamma=0.4)
     train(
         save_path, net, datasets, datasets_config_ranges,
-        train_steps=601, print_every_steps=50
+        train_steps=601, print_every_steps=50,
+        early_stop=True, return_test_error=True
         )
 
-
+Parallel(n_jobs=6)(delayed(grid_train)(arg) for arg in args)
