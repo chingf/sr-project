@@ -18,7 +18,8 @@ device = 'cpu'
 
 def train(
     save_path, net, datasets, datasets_config_ranges, print_file=None,
-    train_steps=201, print_every_steps=50, early_stop=False
+    train_steps=201, print_every_steps=50, early_stop=False,
+    return_test_error=False
     ):
 
     # Initializations
@@ -36,7 +37,9 @@ def train(
     
     # Loss reporting
     running_loss = 0.0
+    running_mae_loss = 0.0
     prev_running_loss = np.inf
+    prev_running_mae_loss = np.inf
     time_step = 0
     time_net = 0
     grad_avg = 0
@@ -49,7 +52,8 @@ def train(
         candidate_params = es_optimizer.ask()
     
         # Evaluate loss on each candidate
-        losses = [[] for _ in candidate_params]
+        losses = [[] for _ in candidate_params] # Actually used for optimization
+        mae_losses = [[] for _ in candidate_params] # For plotting only
 
         for _ in range(5):
             # Select dataset parameters and load dataset
@@ -75,10 +79,13 @@ def train(
                     _, outputs = net(dg_inputs, dg_modes, reset=True)
                 rnn_T = net.ca3.get_T().detach().numpy()
                 est_T = net.ca3.get_ideal_T_estimate()
-                error = np.mean(np.square(est_T - rnn_T))
-                losses[idx].append(error)
-        test = [l for l in losses]
+                diff = est_T - rnn_T
+                mse_error = np.mean(np.square(diff))
+                mae_error = np.mean(np.abs(diff))
+                losses[idx].append(mse_error)
+                mae_losses[idx].append(mae_error)
         losses = [np.mean(loss) for loss in losses]
+        mae_losses = [np.mean(loss) for loss in mae_losses]
     
         # Take optimization step based on losses
         es_optimizer.tell(candidate_params, losses)
@@ -89,11 +96,13 @@ def train(
         time_step += elapsed_time
         time_net += elapsed_time
         running_loss += min(losses)
+        running_mae_loss += min(mae_losses)
     
         if step % print_every_steps == 0:
             time_step /= print_every_steps
             if step > 0:
                 running_loss /= print_every_steps
+                running_mae_loss /= print_every_steps
     
             for name, param in chain(net.named_parameters(), net.named_buffers()):
                 if torch.numel(param) > 1:
@@ -104,6 +113,7 @@ def train(
                 writer.add_scalar(name, mean, step)
     
             writer.add_scalar('loss_train', running_loss, step)
+            writer.add_scalar('mae_loss_train', running_mae_loss, step)
    
             print('', flush=True, file=print_file)
             print(
@@ -121,17 +131,35 @@ def train(
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
-            if (prev_running_loss < 1E-4) and (running_loss < 1E-4) and early_stop:
+            if (prev_running_loss < 1E-5) and (running_loss < 1E-5) and early_stop:
                 end_training = True
             prev_running_loss = running_loss
+            prev_running_mae_loss = running_mae_loss
             running_loss = 0.0
+            running_mae_loss = 0.0
             grad_avg = 0
         if end_training:
             break
     
+    if return_test_error:
+        input = inputs.Sim2DWalk(num_steps=1000, num_states=8*8)
+        dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device)
+        dg_inputs = dg_inputs.unsqueeze(1)
+        dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
+        dg_modes = dg_modes.unsqueeze(1)
+        net.ca3.set_num_states(input.num_states)
+        with torch.no_grad():
+            _, outputs = net(dg_inputs, dg_modes, reset=True)
+        rnn_T = net.ca3.get_T().detach().numpy()
+        est_T = net.ca3.get_ideal_T_estimate()
+        return_error = np.mean(np.abs(est_T - rnn_T))
+    else:
+        return_error = prev_running_mae_loss
+    
+    writer.add_scalar('return_error', return_error, step)
     writer.close()
     print('Finished Training\n', file=print_file)
-    return net, prev_running_loss
+    return net, return_error
 
 def flatten_parameters(net):
     parameters = []
@@ -152,7 +180,7 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/0.9_short/'
+    save_path = './trained_models/baseline/'
     datasets = [
         inputs.Sim1DWalk,
         ]
@@ -163,19 +191,19 @@ if __name__ == "__main__":
         'num_states': [5, 10, 15, 25]
         },
         ]
-    output_params = {
-        'num_iterations':10, 'input_clamp':100, 'nonlinearity': 'clamp',
-        'transform_input': False
-        }
+    #output_params = {
+    #    'num_iterations':30, 'input_clamp':100, 'nonlinearity': 'None'
+    #    }
     net_params = {
-        'num_states':2, 'gamma':0.9,
-        'ca3_kwargs':{'output_params':output_params}
+        'num_states':2, 'gamma':0.4,
+        #'ca3_kwargs':{'output_params':output_params}
         }
     net = STDP_SR(**net_params)
-    train(
-        save_path, net, datasets, datasets_config_ranges, train_steps=801,
-        early_stop=False, print_every_steps=25
+    net, return_error = train(
+        save_path, net, datasets, datasets_config_ranges, train_steps=501,
+        early_stop=True, print_every_steps=25, return_test_error=True
         )
+    print(f'Final Error: {return_error}')
     with open(save_path + "net_configs.p", 'wb') as f:
         import pickle
         pickle.dump(net_params, f)
