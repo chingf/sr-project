@@ -15,14 +15,16 @@ from torch.utils.tensorboard import SummaryWriter
 
 import cma
 
-from datasets import inputs
+from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR, MLP
+from train_td import train
 
 device = 'cpu'
 
 def run(
     save_path, net, dataset, dataset_config, print_file=None,
-    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4
+    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
+    train_net=False, return_dset=False
     ):
 
     # Initializations
@@ -40,6 +42,17 @@ def run(
     time_step = 0
     time_net = 0
     grad_avg = 0
+
+    if train_net:
+        datasets = [dataset]
+        dc = deepcopy(dataset_config)
+        for key in dc.keys():
+            dc[key] = [dc[key]]
+        datasets_config_ranges = [dc]
+        net, return_error = train(
+            save_path + 'training/', net, datasets, datasets_config_ranges,
+            train_steps=51, early_stop=False, print_every_steps=10
+            )
     
     dset = dataset(**dataset_config)
     dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
@@ -53,7 +66,10 @@ def run(
         dg_input = dg_input.unsqueeze(0)
 
         # Get net response and update model
-        _, out = net(dg_input, reset=False)
+        if step ==  0:
+            _, out = net(dg_input, reset=True)
+        else:
+            _, out = net(dg_input, reset=False)
         outputs.append(out.detach().numpy().squeeze())
 
         if step == 0:
@@ -117,7 +133,11 @@ def run(
     
     writer.close()
     print('Finished Training\n', file=print_file)
-    return np.array(outputs), prev_running_loss
+
+    if return_dset:
+        return np.array(outputs), prev_running_loss, dset
+    else:
+        return np.array(outputs), prev_running_loss
 
 class ReplayMemory(object):
 
@@ -136,17 +156,22 @@ class ReplayMemory(object):
 
 if __name__ == "__main__":
     save_path = '../trained_models/rnn_td_loss/'
-    dataset = inputs.Sim1DWalk
-    dataset_config = {
-        'num_steps': 8000, 'left_right_stay_prob': [1,1,1], 'num_states': 10
+    feature_maker_kwargs = {
+        'feature_dim': 64, 'feature_vals': None,
+        #'feature_vals_p': [0.95, 0.05],
+        'feature_type': 'correlated_distributed', 'spatial_sigma': 1.25
         }
-    net = STDP_SR(
-        num_states=dataset_config['num_states'], gamma=0.4,
-        ca3_kwargs={'gamma_T':1}
+    dataset = sf_inputs_discrete.Sim2DWalk
+    dataset_config = {
+        'num_steps': 4000, 'num_states': 64,
+        'feature_maker_kwargs': feature_maker_kwargs
+        }
+    net = AnalyticSR(
+        num_states=dataset_config['num_states'], gamma=0.95,
+        ca3_kwargs={'use_dynamic_lr': False, 'lr': 1E-3, 'parameterize': True}
         )
-    net.ca3.set_differentiability(False)
-    state_dict_path = './trained_models/baseline/model.pt'
-    net.load_state_dict(torch.load(state_dict_path))
-
-    net = AnalyticSR(num_states=dataset_config['num_states'], gamma=0.4)
-    run(save_path, net, dataset, dataset_config)
+    outputs, loss = run(
+        save_path, net, dataset, dataset_config, gamma=net.gamma,
+        train_net=True
+        )
+    print(f'Final loss {loss}')
