@@ -76,7 +76,8 @@ class CA3(module.Module):
         try:
             M_hat = torch.linalg.pinv(alpha*torch.eye(T.shape[0]) - beta*gamma*T)
         except:
-            new_alpha = alpha + 1E-7
+            print('SVD did not converge. Small values added on diagonal.')
+            new_alpha = alpha + 1E-6
             M_hat = torch.linalg.pinv(new_alpha*torch.eye(T.shape[0]) - beta*gamma*T)
         #w, v = np.linalg.eig(-alpha*torch.eye(T.shape[0]) + beta*gamma*T.t())
         #max_eig = np.real(w).max()
@@ -87,8 +88,8 @@ class CA3(module.Module):
 
     def _init_trainable(self):
         if self.parameterize:
-            self.alpha = nn.Parameter(torch.ones(1))
-            self.beta = nn.Parameter(torch.ones(1))
+            self.alpha = self.beta = nn.Parameter(torch.ones(1))
+            self.dummy = nn.Parameter(torch.ones(1))
 
 class STDP_CA3(nn.Module):
     """
