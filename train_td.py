@@ -18,7 +18,8 @@ device = 'cpu'
 
 def train(
     save_path, net, datasets, datasets_config_ranges, print_file=None,
-    train_steps=201, print_every_steps=50, early_stop=False
+    train_steps=201, print_every_steps=50, early_stop=False,
+    regularize=True
     ):
 
     # Initializations
@@ -82,6 +83,8 @@ def train(
                 value_function = psi_s
                 exp_value_function = phi + net.gamma*psi_s_prime
                 loss = criterion(value_function, exp_value_function)
+                if regularize:
+                    loss + 1E-3*np.sum(np.square(params))
                 losses[idx].append(loss.item())
         losses = [np.mean(loss) for loss in losses]
     
