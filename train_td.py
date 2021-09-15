@@ -66,7 +66,10 @@ def train(
             dg_inputs = dg_inputs.unsqueeze(1)
             dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
             dg_modes = dg_modes.unsqueeze(1)
-            net.ca3.set_num_states(input.feature_maker.feature_dim)
+            try:
+                net.ca3.set_num_states(input.feature_maker.feature_dim)
+            except:
+                net.ca3.set_num_states(input.num_states)
 
             for idx, params in enumerate(candidate_params):
                 set_parameters(net, parameter_names, params)
