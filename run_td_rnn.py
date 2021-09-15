@@ -46,12 +46,13 @@ def run(
     if train_net:
         datasets = [dataset]
         dc = deepcopy(dataset_config)
+        dc['num_steps'] = min(1201, dc['num_steps'])
         for key in dc.keys():
             dc[key] = [dc[key]]
         datasets_config_ranges = [dc]
         net, return_error = train(
             save_path + 'training/', net, datasets, datasets_config_ranges,
-            train_steps=51, early_stop=False, print_every_steps=10
+            train_steps=31, early_stop=False, print_every_steps=10
             )
     
     dset = dataset(**dataset_config)
