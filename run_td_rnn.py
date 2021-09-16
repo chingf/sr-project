@@ -24,14 +24,15 @@ device = 'cpu'
 def run(
     save_path, net, dataset, dataset_config, print_file=None,
     print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
-    train_net=False, return_dset=False
+    train_net=False, return_dset=False, summ_write=True
     ):
 
     # Initializations
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     buffer = ReplayMemory(buffer_size)
-    writer = SummaryWriter(save_path)
+    if summ_write:
+        writer = SummaryWriter(save_path)
     criterion = nn.MSELoss()
     #criterion = nn.SmoothL1Loss()
     weight_decay = 0
@@ -108,12 +109,12 @@ def run(
             for name, param in chain(net.named_parameters(), net.named_buffers()):
                 if torch.numel(param) > 1:
                     std, mean = torch.std_mean(param)
-                    writer.add_scalar(name+'_std', std, step)
+                    if summ_write: writer.add_scalar(name+'_std', std, step)
                 else:
                     mean = torch.mean(param)
-                writer.add_scalar(name, mean, step)
+                if summ_write: writer.add_scalar(name, mean, step)
     
-            writer.add_scalar('loss_train', running_loss, step)
+            if summ_write: writer.add_scalar('loss_train', running_loss, step)
    
             print('', flush=True, file=print_file)
             print(
@@ -125,14 +126,14 @@ def run(
                  file=print_file
                 )
             model_path = os.path.join(save_path, 'model.pt')
-            torch.save(net.state_dict(), model_path)
+            if summ_write: torch.save(net.state_dict(), model_path)
             time_step = 0
             prev_running_loss = running_loss
             running_loss = 0.0
             grad_avg = 0
 
     
-    writer.close()
+    if summ_write: writer.close()
     print('Finished Training\n', file=print_file)
 
     if return_dset:
