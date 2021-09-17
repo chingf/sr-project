@@ -11,7 +11,7 @@ import argparse
 from shutil import rmtree
 
 from datasets import inputs, sf_inputs_discrete
-from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
+from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP, Hopfield
 from run_td_rnn import run as run_rnn
 from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
@@ -21,6 +21,20 @@ def run_models(
     save_outputs=False
     ):
 
+    # Hopfield
+    net = Hopfield(input_size, lr=1E-3, clamp=np.inf)
+    for _iter in range(iters):
+        hopfield_save_path = save_path + f'hopfield/{_iter}'
+        net.reset()
+        dset = dataset(**dataset_config)
+        dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to('cpu').unsqueeze(1)
+        outputs = net(dg_inputs)
+        if save_outputs:
+            results = {'outputs': outputs, 'dset': dset}
+            if not os.path.isdir(hopfield_save_path):
+                os.makedirs(hopfield_save_path)
+            with open(f'{hopfield_save_path}/results.p', 'wb') as f:
+                pickle.dump(results, f)
 
     # Analytic RNN with fixed LR and no alpha/beta
     best_net = None; best_lr_val = np.inf;
