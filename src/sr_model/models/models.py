@@ -140,3 +140,35 @@ class MLP(module.Module):
            if hasattr(layer, 'reset_parameters'):
                layer.reset_parameters()
 
+class Hopfield(module.Module):
+
+    def __init__(self, input_size, lr=1E-3, clamp=np.inf):
+        super(Hopfield, self).__init__()
+        self.M = torch.zeros(1, input_size, input_size)
+        self.lr = lr
+        self.clamp = clamp
+
+    def forward(self, inputs, reset=False):
+        """
+        inputs is (steps, batch, states)
+        """
+
+        if reset:
+            self.reset()
+        outputs = []
+        for input in inputs:
+            input = input.unsqueeze(1)
+            output = torch.bmm(input, self.M)
+            output = output.squeeze(0)
+            outputs.append(output)
+            # Sloppy outer product calculation
+            learn_term = torch.outer(input.squeeze(), input.squeeze())
+            learn_term = learn_term.unsqueeze(0)
+            self.M = self.M + self.lr*learn_term
+            self.M = torch.clamp(self.M, min=-self.clamp, max=self.clamp)
+        outputs = torch.stack(outputs)
+        return outputs
+
+    def reset(self):
+        torch.nn.init.zeros_(self.M)
+
