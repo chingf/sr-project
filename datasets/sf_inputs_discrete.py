@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.dirname(os.getcwd()))
+
 import numpy as np
 import h5py
 from scipy.stats import binned_statistic_2d
@@ -6,6 +10,7 @@ from itertools import permutations
 import warnings
 from scipy.ndimage import gaussian_filter
 from sklearn.preprocessing import normalize
+from scipy.io import loadmat
 
 try:
     from analysis.config import h5_path_dict
@@ -47,10 +52,10 @@ class Sim2DWalk(inputs.Sim2DWalk):
     """
 
     def __init__(
-            self, num_steps, num_states, feature_maker_kwargs=None
+            self, num_steps, num_states, barriers=None, feature_maker_kwargs=None
             ):
 
-        super(Sim2DWalk, self).__init__(num_steps, num_states)
+        super(Sim2DWalk, self).__init__(num_steps, num_states, barriers)
         feature_maker_kwargs['spatial_dim'] = 2
         self.feature_maker = FeatureMaker(
             self.num_states, **feature_maker_kwargs
@@ -79,6 +84,98 @@ class Sim2DLevyFlight(inputs.Sim2DLevyFlight):
             )
         self.state_inputs = self.dg_inputs.copy()
         self.dg_inputs = self.feature_maker.make_features(self.dg_inputs)
+
+class TitmouseWalk(object):
+
+    def __init__(
+            self, cm_to_bin=5, fps=3, num_steps=np.inf,
+            feature_maker_kwargs=None, num_states=14*14
+            ):
+        self.cm_to_bin = cm_to_bin
+        self.fps = fps
+        self.num_steps = num_steps
+        self.num_states = num_states
+
+        # Load data
+        data_dir = '/home/chingf/Code/Payne2021/payne_et_al_2021_data/'
+        titmouse_data = [f for f in os.listdir(data_dir) if f.startswith('HT')]
+        sampled_session = np.random.choice(titmouse_data)
+        path = data_dir + sampled_session
+        data = loadmat(path)['B'][0,0]
+        self.exp_fps = data[0][0,0]
+        self.exp_xs = data[1].squeeze()
+        self.exp_ys = data[2].squeeze()
+
+        # Interpolate and downsample original x/y coordinates
+        import pandas as pd
+        self.exp_xs = pd.Series(self.exp_xs).interpolate().to_numpy()
+        self.exp_ys = pd.Series(self.exp_ys).interpolate().to_numpy()
+
+        # Transform to discrete coordinates
+        self.contin_xs = self.exp_xs[::int(self.exp_fps/fps)]
+        self.contin_ys = self.exp_ys[::int(self.exp_fps/fps)]
+        self.contin_xs -= self.contin_xs.min()
+        self.contin_ys -= self.contin_ys.min()
+        max_pixel = max(self.contin_xs.max(), self.contin_ys.max())
+        self.contin_xs = (self.contin_xs/max_pixel)*69 # Assume 70x70 cm box
+        self.contin_ys = (self.contin_ys/max_pixel)*69
+        self.num_states = int((70/self.cm_to_bin) ** 2)
+        self.dg_inputs = self.get_onehot_states(self.contin_xs, self.contin_ys)
+        self.dg_modes = np.zeros(self.xs.shape)
+        
+        # Get features
+        self.state_inputs = self.dg_inputs.copy()
+        if feature_maker_kwargs is not None:
+            feature_maker_kwargs['spatial_dim'] = 2
+            self.feature_maker = FeatureMaker(
+                self.num_states, **feature_maker_kwargs
+                )
+            self.dg_inputs = self.feature_maker.make_features(self.state_inputs)
+
+    def get_onehot_states(self, contin_xs, contin_ys):
+        """
+        Given (T,) size xyz vectors, returns (num_states, T) one-hot encoding
+        of the associated state at each time point.
+        """
+
+        self.xs = np.digitize(contin_xs, np.arange(0, 70, self.cm_to_bin)) - 1
+        self.ys = np.digitize(contin_ys, np.arange(0, 70, self.cm_to_bin)) - 1
+        self.arena_length = 70/self.cm_to_bin
+        self.states = (self.xs*self.arena_length + self.ys).astype(int)
+
+        # Find runs
+        run_starts = []
+        run_ends = []
+        prev_state = None
+        run_length = 0 # 5 seconds is 5*3 = 15 frames
+        for frame, state in enumerate(self.states):
+            if prev_state == state:
+                run_length += 1
+            else:
+                if run_length >= 15:
+                    run_starts.append(frame - run_length) # Inclusive
+                    run_ends.append(frame) # Exclusive
+                run_length = 1
+                prev_state = state
+
+        # Exclude stationary points
+        exclude_points = []
+        for r_start, r_end in zip(run_starts, run_ends):
+            exclude_points += range(r_start+1, r_end)
+        self.xs = np.delete(self.xs, exclude_points)
+        self.ys = np.delete(self.ys, exclude_points)
+        self.states = np.delete(self.states, exclude_points)
+       
+        # Truncate if needed
+        if self.num_steps != np.inf:
+            self.xs = self.xs[:self.num_steps]
+            self.ys = self.ys[:self.num_steps]
+            self.states = self.states[:self.num_steps]
+
+        # Format into encoding
+        encoding = np.zeros((self.num_states, self.xs.size))
+        encoding[self.states, np.arange(self.states.size)] = 1
+        return encoding
 
 class FeatureMaker(object):
     def __init__(
