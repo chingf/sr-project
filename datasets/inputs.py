@@ -58,7 +58,7 @@ class Sim2DWalk(object):
     """
 
     def __init__(
-            self, num_steps, num_states
+            self, num_steps, num_states, barriers=None
             ):
 
         self.num_steps = num_steps
@@ -66,6 +66,7 @@ class Sim2DWalk(object):
         self.num_xybins = int(sqrt(self.num_states))
         self.xmin = 0; self.xmax = self.num_xybins
         self.ymin = 0; self.ymax = self.num_xybins
+        self.barriers = barriers
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
         self.num_steps = self.dg_inputs.shape[1]
         self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
@@ -107,7 +108,7 @@ class Sim2DWalk(object):
                 curr_idx = _get_flat_idx(x, y)
                 for action in [(0,0), (1,0), (-1,0), (0,1), (0,-1)]:
                     new_idx = _get_flat_idx(x+action[0], y+action[1])
-                    if self._in_range(x+action[0], y+action[1]):
+                    if self._in_range(x, y, action[0], action[1]):
                         true_T[curr_idx, new_idx] = 1
         true_T = true_T/(np.sum(true_T,axis=1)[:,None])
         return true_T
@@ -125,7 +126,7 @@ class Sim2DWalk(object):
         for step in np.arange(1, self.num_steps):
             move_set = [
                 move for move in actions if\
-                    self._in_range(curr_x + move[0], curr_y + move[1])
+                    self._in_range(curr_x, curr_y, move[0], move[1])
                 ]
             move = move_set[np.random.choice(len(move_set))]
             xs[step] = curr_x + move[0]
@@ -136,8 +137,20 @@ class Sim2DWalk(object):
         dg_modes = np.zeros(xs.size)
         return dg_inputs, dg_modes, xs, ys, zs
     
-    def _in_range(self, x, y):
-        return (0 <= x < self.num_xybins) and (0 <= y < self.num_xybins)
+    def _in_range(self, x, y, delta_x, delta_y):
+        new_x = x + delta_x; new_y = y + delta_y;
+        in_range = (0 <= new_x < self.num_xybins) and (0 <= new_y < self.num_xybins)
+        if self.barriers == 'states':
+            midpoint = self.num_xybins//2
+            if (new_x == midpoint) and (new_y < midpoint):
+                in_range = False
+        elif self.barriers == 'transitions':
+            midpoint = self.num_xybins//2
+            if (x == midpoint - 1) and (new_y < midpoint) and (delta_x == 1):
+                in_range = False
+            elif (x == midpoint) and (new_y < midpoint) and (delta_x == -1):
+                in_range = False
+        return in_range
 
 class Sim2DLevyFlight(object):
     """
