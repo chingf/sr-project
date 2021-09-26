@@ -142,13 +142,15 @@ class Sim2DWalk(object):
         in_range = (0 <= new_x < self.num_xybins) and (0 <= new_y < self.num_xybins)
         if self.barriers == 'states':
             midpoint = self.num_xybins//2
-            if (new_x == midpoint) and (new_y < midpoint):
+            y_tip = min(6, midpoint)
+            if (new_x == midpoint) and (new_y < y_tip):
                 in_range = False
         elif self.barriers == 'transitions':
             midpoint = self.num_xybins//2
-            if (x == midpoint - 1) and (new_y < midpoint) and (delta_x == 1):
+            y_tip = min(6, midpoint)
+            if (x == midpoint-1) and (new_y < y_tip) and (delta_x == 1):
                 in_range = False
-            elif (x == midpoint) and (new_y < midpoint) and (delta_x == -1):
+            elif (x == midpoint) and (new_y < y_tip) and (delta_x == -1):
                 in_range = False
         return in_range
 
