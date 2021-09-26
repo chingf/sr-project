@@ -11,7 +11,7 @@ posinf = 1E30
 class CA3(module.Module):
     def __init__(
         self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,
-        parameterize=False, alpha=1., beta=1.
+        parameterize=False, alpha=1., beta=1., rollout=None
         ):
 
         super(CA3, self).__init__()
@@ -23,6 +23,7 @@ class CA3(module.Module):
         self.parameterize = parameterize
         self.alpha = alpha
         self.beta = beta
+        self.rollout = rollout
         self._init_trainable()
         self.reset()
     
@@ -73,12 +74,22 @@ class CA3(module.Module):
         T = self.get_T()
         alpha = self.alpha
         beta = self.beta
-        try:
-            M_hat = torch.linalg.pinv(alpha*torch.eye(T.shape[0]) - beta*gamma*T)
-        except:
-            print('SVD did not converge. Small values added on diagonal.')
-            new_alpha = alpha + 1E-6
-            M_hat = torch.linalg.pinv(new_alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+
+        if self.rollout == None:
+            try:
+                M_hat = torch.linalg.pinv(alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+            except:
+                print('SVD did not converge. Small values added on diagonal.')
+                new_alpha = alpha + 1E-6
+                M_hat = torch.linalg.pinv(new_alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+        else:
+            M_hat = torch.zeros_like(T)
+            scale_term = (beta/alpha)*gamma
+            for t in range(self.rollout):
+                M_hat = M_hat + scale_term**t * torch.matrix_power(T, t)
+            M_hat = M_hat/alpha
+
+        # For debugging: the eigenvalues
         #w, v = np.linalg.eig(-alpha*torch.eye(T.shape[0]) + beta*gamma*T.t())
         #max_eig = np.real(w).max()
         return M_hat
