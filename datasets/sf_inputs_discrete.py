@@ -181,7 +181,7 @@ class FeatureMaker(object):
     def __init__(
             self, num_states, feature_dim=32, feature_type='linear',
             feature_vals=[0,1], spatial_dim=2, spatial_sigma=2,
-            feature_vals_p=None
+            feature_vals_p=None, seed_generation=None
             ):
 
         self.num_states = num_states
@@ -197,12 +197,15 @@ class FeatureMaker(object):
         else:
             self.feature_vals_p = feature_vals_p
         self.spatial_sigma = spatial_sigma
+        self.seed_generation = seed_generation
 
     def make_features(self, dg_inputs):
         num_states = self.num_states
         feature_dim = self.feature_dim
         feature_type = self.feature_type
         feature_vals = self.feature_vals
+        if self.seed_generation is not None:
+            np.random.seed(self.seed_generation)
 
         if feature_type == 'nhot':
             feature_dim = feature_dim//num_states * num_states
@@ -220,6 +223,8 @@ class FeatureMaker(object):
             self.feature_map = self._generate_distrib_corr_features()
         else:
             raise ValueError(f'Feature type {feature_type} is not an option.')
+        if self.seed_generation is not None:
+            np.random.seed()
         dg_inputs = [self.feature_map@x for x in dg_inputs.T]
         dg_inputs = np.array(dg_inputs).T
         return dg_inputs
