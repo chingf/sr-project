@@ -221,10 +221,6 @@ class FeatureMaker(object):
             self.feature_map = self._generate_sparse_corr_features()
         elif feature_type == 'correlated_distributed':
             self.feature_map = self._generate_distrib_corr_features()
-            #self.feature_map[self.feature_map < 0.2] = 0
-            #self.feature_map, self.beta = self._distrib_binary_search(
-            #    self.feature_map, self.feature_vals_p[1]
-            #    )
         else:
             raise ValueError(f'Feature type {feature_type} is not an option.')
         if self.seed_generation is not None:
@@ -313,43 +309,3 @@ class FeatureMaker(object):
 
         return blurred_features.T # (feature_dim, num_states)
 
-    def _distrib_binary_search(self, feature_map, target):
-        '''
-        Finds beta value for sigmoid transform. Lower beta means higher target
-        values.
-        '''
-
-        # Search parameters
-        tolerance = 0.003
-        iterations = 20
-        step = 0.5 #5
-        step_decay = 0.8
-
-        # Feature transformation parameters
-        alpha = 2.5
-        min_val = 0.5 # 0.2
-        beta = 10
-        beta_found = False
-        for i in range(1, iterations):
-            #new_map = sigmoid(np.copy(feature_map), alpha, beta)
-            #new_map /= new_map.max()
-            new_map = np.copy(feature_map)
-            new_map[new_map < min_val] = 0
-            sparsities = []
-            for feat in new_map.T:
-                sparsities.append(np.sum(feat)/feat.size)
-            val = np.median(sparsities)
-            diff = target - val
-            if abs(diff) < tolerance:
-                beta_found = True
-                break
-            else:
-                min_val = min_val - np.sign(diff)*step*(step_decay**i)
-                #beta = beta - np.sign(diff)*step*(step_decay**i)
-        if not beta_found:
-            warnings.warn('Feature map not found for desired sparsity')
-        return new_map, beta
-
-def sigmoid(x, alpha=1, beta=0):
-    return 1/(1+np.exp(-x*alpha + beta))
-    
