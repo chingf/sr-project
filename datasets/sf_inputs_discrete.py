@@ -195,7 +195,7 @@ class FeatureMaker(object):
         if feature_vals_p is not None:
             self.feature_vals_p = np.array(feature_vals_p)
         else:
-            self.feature_vals_p = feature_vals_p
+            self.feature_vals_p = np.array([0.5, 0.5]) # 0, 1
         self.spatial_sigma = spatial_sigma
         self.seed_generation = seed_generation
 
@@ -221,6 +221,10 @@ class FeatureMaker(object):
             self.feature_map = self._generate_sparse_corr_features()
         elif feature_type == 'correlated_distributed':
             self.feature_map = self._generate_distrib_corr_features()
+            #self.feature_map[self.feature_map < 0.2] = 0
+            #self.feature_map, self.beta = self._distrib_binary_search(
+            #    self.feature_map, self.feature_vals_p[1]
+            #    )
         else:
             raise ValueError(f'Feature type {feature_type} is not an option.')
         if self.seed_generation is not None:
@@ -259,7 +263,7 @@ class FeatureMaker(object):
             # (arena_length, arena_length, feature_dim)
             features = np.array(features).reshape((arena_length, arena_length, -1))
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
-        blurred_features = gaussian_filter(features, sigma=sigma)
+        blurred_features = gaussian_filter(features, sigma=sigma, truncate=1.)
         blurred_features -= np.min(blurred_features, axis=1)[:,None]
         blurred_features = normalize(
             blurred_features.reshape(num_states, feature_dim),
@@ -291,9 +295,9 @@ class FeatureMaker(object):
                 p=self.feature_vals_p
                 )
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
-        blurred_features = gaussian_filter(features, sigma=sigma)
-        blurred_features -= np.min(blurred_features, axis=1)[:,None]
+        blurred_features = gaussian_filter(features, sigma=sigma, truncate=1.)
         blurred_features = blurred_features.reshape(num_states, feature_dim)
+        blurred_features -= np.min(blurred_features, axis=1)[:,None]
         blurred_features = normalize(blurred_features, axis=1, norm='max')
 
         if feature_vals is not None:
@@ -301,5 +305,51 @@ class FeatureMaker(object):
             val_bins = np.digitize(blurred_features, val_midpoints)
             blurred_features = feature_vals[val_bins]
 
+        # Store sparsity calculation
+        sparsities = []
+        for feat in blurred_features:
+            sparsities.append(np.sum(feat)/feat.size)
+        self.post_smooth_sparsity = np.median(sparsities)
+
         return blurred_features.T # (feature_dim, num_states)
 
+    def _distrib_binary_search(self, feature_map, target):
+        '''
+        Finds beta value for sigmoid transform. Lower beta means higher target
+        values.
+        '''
+
+        # Search parameters
+        tolerance = 0.003
+        iterations = 20
+        step = 0.5 #5
+        step_decay = 0.8
+
+        # Feature transformation parameters
+        alpha = 2.5
+        min_val = 0.5 # 0.2
+        beta = 10
+        beta_found = False
+        for i in range(1, iterations):
+            #new_map = sigmoid(np.copy(feature_map), alpha, beta)
+            #new_map /= new_map.max()
+            new_map = np.copy(feature_map)
+            new_map[new_map < min_val] = 0
+            sparsities = []
+            for feat in new_map.T:
+                sparsities.append(np.sum(feat)/feat.size)
+            val = np.median(sparsities)
+            diff = target - val
+            if abs(diff) < tolerance:
+                beta_found = True
+                break
+            else:
+                min_val = min_val - np.sign(diff)*step*(step_decay**i)
+                #beta = beta - np.sign(diff)*step*(step_decay**i)
+        if not beta_found:
+            warnings.warn('Feature map not found for desired sparsity')
+        return new_map, beta
+
+def sigmoid(x, alpha=1, beta=0):
+    return 1/(1+np.exp(-x*alpha + beta))
+    
