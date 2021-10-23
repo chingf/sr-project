@@ -1,6 +1,6 @@
 import sys
-sys.path.append(os.path.dirname(os.getcwd()))
 import os
+sys.path.append(os.path.dirname(os.getcwd()))
 import pickle
 import numpy as np
 import torch.nn as nn
@@ -19,7 +19,7 @@ datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
     'num_steps': [3, 10, 20, 30],
     'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
-    'num_states': [5, 10, 20]
+    'num_states': [5, 10, 15, 25]
     }]
 
 args = []
@@ -73,10 +73,11 @@ def grid_train(arg):
     for _ in range(3):
         try:
             net, loss = train(
-                save_path, net, datasets, datasets_config_ranges
+                save_path, net, datasets, datasets_config_ranges,
+                train_steps=301, early_stop=True
                 )
             losses.append(loss)
-            if loss == 0.0: break # No need to run more iterations
+            if loss < 1E-5: break # No need to run more iterations
         except RuntimeError:
             losses.append(np.nan)
     running_loss = np.nanmin(losses)
