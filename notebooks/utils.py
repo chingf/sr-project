@@ -18,10 +18,14 @@ from datasets import inputs, sf_inputs_discrete
 from run_td_rnn import run as run_rnn
 from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
+from findpeaks import findpeaks
+from scipy.ndimage.measurements import label
 
 device = 'cpu'
 
-def get_firing_field(xs, ys, activity, arena_length):
+def get_firing_field(
+    xs, ys, activity, arena_length, window_ratio=0.12, normalize=False
+    ):
     """
     The window size (area*0.12) is a ratio taken from Payne & Aronov 2021.
 
@@ -29,9 +33,11 @@ def get_firing_field(xs, ys, activity, arena_length):
         xs: (frames,) array of x locations
         ys: (frames,) array of y locations
         activity: (frames,) array of activity of one neuron
+        window_ratio: Hamming window size; default ratio from Payne 2021
         arena_length: length of square arena
     """
 
+    # Collect mean firing rates
     firing_field = np.zeros((arena_length, arena_length))*np.nan
     for x in range(arena_length):
         for y in range(arena_length):
@@ -39,62 +45,64 @@ def get_firing_field(xs, ys, activity, arena_length):
             fr = np.nanmean(activity[frame_idxs])
             firing_field[x,y] = fr
     nan_idxs = np.isnan(firing_field)
-    window = int(np.sqrt(arena_length*arena_length*0.12))
-    window = window + 1 if window%2 == 0 else window
+    
+    # Smooth field
+    window = int(np.sqrt(arena_length*arena_length*window_ratio))
+    window = window + 1 if window%2 == 0 else window # Must be odd number
     kernel = np.outer(hamming(window), hamming(window))
     firing_field = convolve(firing_field, kernel)
-    max_rate = firing_field.max()
-    #if max_rate != 0:
-    #    firing_field = firing_field/firing_field.max()
+
+    # Normalize, if desired
+    if normalize:
+        max_rate = firing_field.max()
+        if max_rate != 0:
+            firing_field = firing_field/firing_field.max()
+            
     return firing_field, nan_idxs
 
-def get_field_metrics(activity, arena_length, get_spatial_info=False):
+def get_field_metrics(activity, dset, arena_length, nshuffles=50):
     """
     Args:
         activity: (frames, neurs) array of activity of all neurons
         arena_length: length of square arena
     """
-    walk_xs = dset.xs.astype(int)
-    walk_ys = dset.ys.astype(int)
-    arena_length = 10
+
+    xs = dset.xs.astype(int)
+    ys = dset.ys.astype(int)
     
-    if get_spatial_info:
-        spatial_info, significance = get_mutual_info_all(
-            walk_xs, walk_ys, outputs.T, 100
-            )
-    else:
-        spatial_info = None
+    fieldsizes = []
+    nfields = []
 
-    areas = []
-    ncomps = []
-
-    for neur in np.arange(outputs.shape[1]):
-        firing_field = np.zeros((arena_length, arena_length))*np.nan
-        for x in range(arena_length):
-            for y in range(arena_length):
-                frame_idxs = np.logical_and(walk_xs == x, walk_ys == y)
-                fr = np.nanmean(outputs[frame_idxs, neur])
-                firing_field[x,y] = fr
-        num_nonnans = firing_field.size - np.sum(np.isnan(firing_field))
-        firing_field[np.isnan(firing_field)] = 0
+    for neur in np.arange(activity.shape[1]):
+        field, nan_idxs = get_firing_field(xs, ys, activity[:, neur], arena_length)
+        field_mask = np.zeros(field.shape)
+        for _ in range(nshuffles):
+            shuffled_field, _ = get_firing_field(
+                xs, ys, circular(activity[:, neur]), arena_length
+                )
+            field_mask += (field > shuffled_field)
+        zz = np.copy(field_mask)
+        field_mask = field_mask > 0.99*nshuffles
 
         # Area?
-        area, ncomp = get_area_and_peaks(firing_field)
-        areas.append(np.sum(area)/num_nonnans)
-        ncomps.append(ncomp)
-    return np.array(areas), np.array(ncomps), spatial_info
+        sizes, nfield = get_area_and_peaks(field, field_mask, nan_idxs)
+        fieldsizes.extend(sizes)
+        nfields.append(nfield)
 
-def get_area_and_peaks(firing_field):
+    fieldsizes = np.array(fieldsizes)/(arena_length**2)
+    nfields = np.array(nfields)
+    onefield = np.sum(nfields==1)/nfields.size
+    return np.mean(fieldsizes), np.mean(nfields), onefield
+
+def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
     """
     Gets connected components of max-normalized firing field to calculate area
     and number of fields. Area threshold (0.00716) is a ratio calculated from
     the Henrikson & Mosers 2010 area threshold.
     """
 
-    firing_field = firing_field/firing_field.max()
-    area_thresh = ceil(0.00716*firing_field.size)
-    masked_field = firing_field > 0.8
-    labeled_array, ncomponents = label(masked_field, np.ones((3,3)))
+    labeled_array, ncomponents = label(field_mask, np.ones((3,3)))
+    area_thresh = 0.00716*field.size
     areas = []
     for label_id in np.unique(labeled_array):
         if label_id == 0: continue
@@ -102,13 +110,6 @@ def get_area_and_peaks(firing_field):
         if area < area_thresh: continue
         areas.append(area)
     return areas, len(areas)
-
-# Spatial Info
-
-def flatten_xy(walk_xs, walk_ys):
-    max_col = walk_ys.max()
-    new_bins = walk_xs * max_col + walk_ys
-    return new_bins
 
 def circular(fr):
     """
@@ -125,29 +126,6 @@ def circular(fr):
         return fr
     else:
         return np.roll(fr, shift)
-
-def get_mutual_info(conditions, fr):
-    """
-    Calculates mutual information between firing rate and a set of conditions
-
-    Args:
-        conditions: (frames,) array of conditions
-        fr: (neurs, frames) array of firing rates
-    Returns:
-        (neurs,) array of scaler value mutual information per neuron
-    """
-
-    num_neurs, _ = fr.shape
-    mean_fr = np.mean(fr, axis=1)
-    mutual_info = np.zeros(num_neurs)
-    for condn in np.unique(conditions):
-        prob = np.sum(conditions==condn)/conditions.size
-        condn_mean_fr = np.mean(fr[:,conditions==condn], axis=1)
-        log_term = np.log2(condn_mean_fr/mean_fr)
-        log_term[np.isnan(log_term)] = 0
-        log_term[np.isinf(log_term)] = 0
-        mutual_info += prob*condn_mean_fr*log_term
-    return mutual_info
 
 def get_mutual_info_all(xs, ys, fr, num_shuffles):
     """ Gets the spatial mutual information of each cell."""
