@@ -19,10 +19,10 @@ def main(delete_dir=False):
     if delete_dir:
         rmtree(save_path, ignore_errors=True)
 
-    iters = 5
-    gammas = [0.7, 0.75, 0.8, 0.85]
-    spatial_sigmas = [0., 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25]
-    sparsity_ps = [0.2, 0.15, 0.1, 0.075, 0.05, 0.03, 0.02, 0.01]
+    iters = 3
+    gammas = [0.75, 0.8]
+    spatial_sigmas = [0., 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]
+    sparsity_ps = [0.2, 0.1, 0.05, 0.03, 0.02, 0.01, 0.0075, 0.005, 0.002]
     lr_range = [5E-3, 1E-3, 5E-4, 1E-4]
     num_states = 20*20
     num_steps = 6500
@@ -41,8 +41,6 @@ def main(delete_dir=False):
             }
         input_size = num_states
         dset_path = save_path + f'sparsity{sparsity_p}/sigma{spatial_sigma}/{gamma}/'
-        if os.path.isdir(dset_path + 'rnn_fixedlr_alpha'):
-            return
         run_models(
             dset_path, iters, lr_range, dataset, dataset_config, gamma,
             input_size, save_outputs=True
