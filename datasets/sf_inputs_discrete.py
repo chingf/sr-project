@@ -181,7 +181,7 @@ class FeatureMaker(object):
     def __init__(
             self, num_states, feature_dim=32, feature_type='linear',
             feature_vals=[0,1], spatial_dim=2, spatial_sigma=2,
-            feature_vals_p=None, seed_generation=None
+            feature_vals_p=None, seed_generation=None, gaussian_truncate=4.
             ):
 
         self.num_states = num_states
@@ -198,6 +198,7 @@ class FeatureMaker(object):
             self.feature_vals_p = np.array([0.5, 0.5]) # 0, 1
         self.spatial_sigma = spatial_sigma
         self.seed_generation = seed_generation
+        self.gaussian_truncate = gaussian_truncate
 
     def make_features(self, dg_inputs):
         num_states = self.num_states
@@ -259,16 +260,16 @@ class FeatureMaker(object):
             # (arena_length, arena_length, feature_dim)
             features = np.array(features).reshape((arena_length, arena_length, -1))
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
-        blurred_features = gaussian_filter(features, sigma=sigma, truncate=1.)
-        blurred_features -= np.min(blurred_features, axis=1)[:,None]
-        blurred_features = normalize(
-            blurred_features.reshape(num_states, feature_dim),
-            axis=1, norm='max'
+        blurred_features = gaussian_filter(
+            features, sigma=sigma, truncate=self.gaussian_truncate
             )
+        blurred_features = blurred_features.reshape(num_states, feature_dim)
+        blurred_features -= np.min(blurred_features, axis=1)[:,None]
+        blurred_features = normalize(blurred_features, axis=1, norm='max')
 
         if feature_vals is not None:
             val_midpoints = (feature_vals[1:] + feature_vals[:-1])/2
-            val_bins = np.digitize(blurred_features, val_midpoints)
+            val_bins = np.digitize(blurred_features, val_midpoint)
             blurred_features = feature_vals[val_bins]
 
         return blurred_features.T # (feature_dim, num_states)
@@ -291,7 +292,9 @@ class FeatureMaker(object):
                 p=self.feature_vals_p
                 )
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
-        blurred_features = gaussian_filter(features, sigma=sigma, truncate=1.)
+        blurred_features = gaussian_filter(
+            features, sigma=sigma, truncate=self.gaussian_truncate
+            )
         blurred_features = blurred_features.reshape(num_states, feature_dim)
         blurred_features -= np.min(blurred_features, axis=1)[:,None]
         blurred_features = normalize(blurred_features, axis=1, norm='max')
