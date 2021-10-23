@@ -18,13 +18,16 @@ from run_td_linear import run as run_linear
 
 def run_models(
     save_path, iters, lr_range, dataset, dataset_config, gamma, input_size,
-    save_outputs=False
+    save_outputs=False, test_over_all=True
     ):
 
     # Hopfield
     net = Hopfield(input_size, lr=1E-3, clamp=np.inf)
     for _iter in range(iters):
         hopfield_save_path = save_path + f'hopfield/{_iter}'
+        if os.path.isfile(f'{hopfield_save_path}/results.p'):
+            print(f'{hopfield_save_path} already calculated. Skipping...')
+            continue
         net.reset()
         dset = dataset(**dataset_config)
         dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to('cpu').unsqueeze(1)
@@ -62,24 +65,43 @@ def run_models(
 
     # Analytic RNN with fixed LR and alpha/beta scaling
     best_net = None; best_lr_val = np.inf;
+    if os.path.isfile(save_path + f'rnn_fixedlr_alpha/{iters-1}/results.p'):
+        print(f'{save_path}/rnn_fixed_lr_alpha already calculated. Skipping...')
+        return
     for lr in lr_range:
         net = AnalyticSR(
             num_states=input_size, gamma=gamma,
-            ca3_kwargs={'use_dynamic_lr':False, 'lr': lr, 'parameterize':True}
+            ca3_kwargs={'use_dynamic_lr':False, 'lr': lr}
             )
-        _, loss = run_rnn(
-            save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
-            train_net=True
-            )
+        train_net = False
+        try:
+            _, loss = run_rnn(
+                save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
+                train_net=False, test_over_all=False
+                )
+        except RuntimeError as e:
+            if 'svd' in str(e):
+                continue
+            else:
+                raise
         if loss < best_lr_val:
             best_net = net; best_lr_val = loss;
     for _iter in range(iters):
         best_net.reset()
         rnn_save_path = save_path + f'rnn_fixedlr_alpha/{_iter}'
-        outputs, _, dset = run_rnn(
-            rnn_save_path, best_net, dataset, dataset_config, gamma=gamma,
-            return_dset=True
-            )
+        if os.path.isfile(f'{rnn_save_path}/results.p'):
+            print(f'{rnn_save_path} already calculated. Skipping...')
+            continue
+        try:
+            outputs, _, dset = run_rnn(
+                rnn_save_path, best_net, dataset, dataset_config, gamma=gamma,
+                return_dset=True, test_over_all=False
+                )
+        except RuntimeError as e:
+            if 'svd' in str(e):
+                continue
+            else:
+                raise
         if save_outputs:
             results = {'outputs': outputs, 'dset': dset}
             with open(f'{rnn_save_path}/results.p', 'wb') as f:
