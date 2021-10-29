@@ -21,7 +21,7 @@ datasets_config_ranges = [{
     }]
 
 
-gammas = [0.4, 0.9, 0.95]
+gammas = [0.4, 0.6, 0.8, 0.9, 0.95]
 nonlinearities = ['None', 'sigmoid', 'tanh', 'clamp']
 
 args = []
@@ -36,13 +36,15 @@ def grid_train(arg):
     losses = []
 
     if gamma == 0.4:
-        num_iters = 30 # 1E-12
+        num_iters = 12 # 1.6E-5
+    elif gamma == 0.6:
+        num_iters = 20 # 3.6E-5
     elif gamma == 0.8:
         num_iters = 50 # 1E-5
     elif gamma == 0.9:
         num_iters = 100 # 2E-5
     elif gamma == 0.95:
-        num_iters = 200 # 2E-5
+        num_iters = 200 # 3.5E-5
     else:
         raise ValueError('Unspecified gamma.')
 
@@ -60,8 +62,8 @@ def grid_train(arg):
         net = STDP_SR(**net_configs)
         net, loss = train(
             iteration_dir, net, datasets, datasets_config_ranges,
-            train_steps=801, print_every_steps=25,
-            early_stop=True, return_test_error=True
+            train_steps=401, print_every_steps=25,
+            early_stop=False, return_test_error=True
             )
     with open(nonlinearity_dir + 'net_configs.p', 'wb') as f:
         pickle.dump(net_configs, f)
