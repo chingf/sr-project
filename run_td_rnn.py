@@ -24,7 +24,8 @@ device = 'cpu'
 def run(
     save_path, net, dataset, dataset_config, print_file=None,
     print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
-    train_net=False, return_dset=False, summ_write=True, test_over_all=True
+    train_net=False, return_dset=False, summ_write=True, test_over_all=True,
+    test_batch_size=32
     ):
 
     # Initializations
@@ -87,7 +88,7 @@ def run(
                 all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
                 all_next_s = torch.stack([t[1] for t in all_transitions]).squeeze(1)
             else:
-                transitions = buffer.sample(min(step, buffer_batch_size))
+                transitions = buffer.sample(min(step, test_batch_size))
                 all_s = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
                 all_next_s = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
             test_phi = all_s.squeeze(1)
