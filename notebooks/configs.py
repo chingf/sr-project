@@ -1,22 +1,41 @@
+from dataclasses import dataclass
+import numpy as np
+
 dt_to_sec = 3
 bin_to_cm = 5
+fig_width = 6.4
+fig_height = 4.8
 
-payne2021_stats = {
-    'fieldsize': [0.0752, 0.00697], # [mean, CI]
-    'nfields': [1.5986, 0.0993], # [mean, CI]
-    'onefield': [0.5917] # [values,...]
-    }
+@dataclass
+class Stats:
+    mean: float
+    ci: float
+    std: float
+    num_samples: int
 
-henrikson2010_stats = {
-    'fieldsize': [0.0725, 0.005], # [mean, CI]
-    'nfields': [1.6, 0.167], # [mean, CI]
-    'onefield': [0.57, 0.532] # [values,...]
-    }
+@dataclass
+class DatasetStats:
+    fieldsize: Stats
+    nfield: Stats
+    onefield: Stats
+
+
+payne2021 = DatasetStats(
+    Stats(0.0752, 0.00697, 0.0764, 462),
+    Stats(1.5986, 0.0993, 0.8609, 289),
+    Stats(0.5917, None, 0.0302, None)
+    )
+
+henrikson2010 = DatasetStats(
+    Stats(0.0725, 0.005, None, None),
+    Stats(1.6, 0.167, None, None),
+    Stats(np.mean([0.57, 0.532]), None, None, None)
+    )
 
 import seaborn as sns
 sns.set(font='Arial',
         font_scale=16/12., #default size is 12pt, scale to 16pt
-        palette='Set1',
+        palette='colorblind', #'Set1',
         rc={'axes.axisbelow': True,
             'axes.edgecolor': 'lightgrey',
             'axes.facecolor': 'None',
