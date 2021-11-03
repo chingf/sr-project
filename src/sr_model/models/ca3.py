@@ -180,11 +180,11 @@ class STDP_CA3(nn.Module):
                 current = torch.matmul(self.gamma_M0*self.J, activity)
 
                 # Option: apply nonlinearity onto current
-                if nonlinearity is 'sigmoid':
+                if nonlinearity == 'sigmoid':
                     current = sigmoid(current)
-                elif nonlinearity is 'tanh':
+                elif nonlinearity == 'tanh':
                     current = tanh(current)
-                elif nonlinearity is 'clamp':
+                elif nonlinearity == 'clamp':
                     current = self.nonlin_clamp(current)
 
                 # Option: provide input only briefly
