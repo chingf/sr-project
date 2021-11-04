@@ -332,7 +332,7 @@ class STDP_CA3(nn.Module):
 
         # Make the update over all N^2 synapses
         update = torch.nan_to_num(update,posinf=posinf)
-        update = self.update_clamp_a*update + self.update_clamp_b
+        update = torch.abs(self.update_clamp_a)*update + self.update_clamp_b
         update = self.update_clamp(update)
         self.J = decays*self.J + etas*update
 

@@ -187,7 +187,7 @@ if __name__ == "__main__":
     datasets_config_ranges = [
         {
         'num_steps': [3, 10, 20, 30, 40],
-        'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
+        'left_right_stay_prob': [[1, 1, 1], [1, 1, 5], [7, 1, 0], [1, 7, 0]],
         'num_states': [5, 10, 15, 25]
         },
         ]
@@ -196,9 +196,16 @@ if __name__ == "__main__":
     #    }
     net_params = {
         'num_states':2, 'gamma':0.4,
+        #'ca3_kwargs':{'A_pos_sign':-1, 'A_neg_sign':1}
         #'ca3_kwargs':{'output_params':output_params}
         }
     net = STDP_SR(**net_params)
+
+    #nn.init.constant_(net.ca3.tau_pos, 0.75)
+    #nn.init.constant_(net.ca3.tau_neg, 3.75)
+    #net.ca3.tau_pos.requires_grad = False
+    #net.ca3.tau_neg.requires_grad = False
+
     net, return_error = train(
         save_path, net, datasets, datasets_config_ranges, train_steps=501,
         early_stop=True, print_every_steps=25, return_test_error=True

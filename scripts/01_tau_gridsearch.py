@@ -18,7 +18,7 @@ A_signs = [1, -1]
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
     'num_steps': [3, 10, 20, 30],
-    'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 4, 1]],
+    'left_right_stay_prob': [[1, 1, 1], [7, 1, 1], [1, 1, 5], [1, 7, 0]],
     'num_states': [5, 10, 15, 25]
     }]
 
@@ -70,11 +70,11 @@ def grid_train(arg):
 
     # Train
     losses = []
-    for _ in range(3):
+    for _ in range(15):
         try:
             net, loss = train(
                 save_path, net, datasets, datasets_config_ranges,
-                train_steps=301, early_stop=True
+                train_steps=401, early_stop=True
                 )
             losses.append(loss)
             if loss < 1E-5: break # No need to run more iterations
