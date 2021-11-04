@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import torch.nn as nn
 from joblib import Parallel, delayed
+import argparse
 
 from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
@@ -22,29 +23,20 @@ datasets_config_ranges = [{
     'num_states': [5, 10, 15, 25]
     }]
 
-args = []
+grid_params = [] # 640 total
 for tau_neg in tau_negs:
     for tau_pos in tau_poses:
         for A_pos_sign in A_signs:
             for A_neg_sign in A_signs:
                 if A_pos_sign*tau_pos < -1.: continue
-                args.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
+                grid_params.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
 
 def main():
-    tau_neg_axes = []
-    tau_pos_axes = []
-    vals = []
-    results = {
-        'tau_neg_axes': tau_neg_axes, 'tau_pos_axes': tau_pos_axes,
-        'vals': vals
-        }
-    job_results = Parallel(n_jobs=5)(delayed(grid_train)(arg) for arg in args)
-    for res in job_results:
-        tau_neg_axes.append(res[0])
-        tau_pos_axes.append(res[1])
-        vals.append(res[2])
-    with open(experiment_dir + 'results.p', 'wb') as f:
-        pickle.dump(results, f)
+    Parallel(n_jobs=5)(delayed(grid_train)(param) for param in grid_params)
+
+def slurm_main(idx):
+    param = grid_params[idx]
+    grid_train(param)
 
 def grid_train(arg):
     tau_neg, tau_pos, A_pos_sign, A_neg_sign = arg
@@ -88,5 +80,12 @@ def grid_train(arg):
     return tau_neg_ax, tau_pos_ax, running_loss
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Run gridsearch indices.')
+    parser.add_argument('--index', type=int, nargs='?',
+                        help='Index of arg', default=-1)
+    args = parser.parse_args()
+    if args.index == -1:
+        main()
+    else:
+        slurm_main(args.index)
 
