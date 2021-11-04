@@ -46,7 +46,7 @@ class Sim1DWalk(object):
         ys = np.zeros(self.num_steps)
         zs = np.zeros(self.num_steps)
         for step in np.arange(self.num_steps):
-            action = np.random.choice([-1,0,1], p=self.left_right_stay_prob)
+            action = np.random.choice([-1,1,0], p=self.left_right_stay_prob)
             curr_state = (curr_state + action)%self.num_states
             ys[step] = curr_state
             dg_inputs[curr_state, step] = 1
