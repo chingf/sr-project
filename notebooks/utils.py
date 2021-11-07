@@ -20,6 +20,7 @@ from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
 from findpeaks import findpeaks
 from scipy.ndimage.measurements import label
+import configs
 
 device = 'cpu'
 
@@ -60,7 +61,10 @@ def get_firing_field(
             
     return firing_field, nan_idxs
 
-def get_field_metrics(activity, dset, arena_length, nshuffles=50):
+def get_field_metrics(
+        activity, dset, arena_length,
+        nshuffles=50, save_field_info=False, save_path=None
+        ):
     """
     Args:
         activity: (frames, neurs) array of activity of all neurons
@@ -73,6 +77,9 @@ def get_field_metrics(activity, dset, arena_length, nshuffles=50):
     fieldsizes = []
     nfields = []
 
+
+    field_infos = [] # Neuron-size list of (field, field_mask, nan_idxs)
+
     for neur in np.arange(activity.shape[1]):
         field, nan_idxs = get_firing_field(xs, ys, activity[:, neur], arena_length)
         field_mask = np.zeros(field.shape)
@@ -83,16 +90,23 @@ def get_field_metrics(activity, dset, arena_length, nshuffles=50):
             field_mask += (field > shuffled_field)
         zz = np.copy(field_mask)
         field_mask = field_mask > 0.99*nshuffles
+        if save_field_info:
+            field_infos.append((field, field_mask, nan_idxs))
 
         # Area?
         sizes, nfield = get_area_and_peaks(field, field_mask, nan_idxs)
         fieldsizes.extend(sizes)
         nfields.append(nfield)
 
+    if save_field_info:
+        with open(save_path + 'field_infos.p', 'wb') as f:
+            pickle.dump(field_infos, f)
+
     fieldsizes = np.array(fieldsizes)/(arena_length**2)
     nfields = np.array(nfields)
-    onefield = np.sum(nfields==1)/nfields.size
-    return np.mean(fieldsizes), np.mean(nfields), onefield
+    onefield = np.sum(nfields==1)/nfields.size,
+    nfield_kl = get_kl_payne(nfields)
+    return np.mean(fieldsizes), np.mean(nfields), onefield, nfield_kl
 
 def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
     """
@@ -102,7 +116,7 @@ def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
     """
 
     labeled_array, ncomponents = label(field_mask, np.ones((3,3)))
-    area_thresh = 0.00716*field.size
+    area_thresh = 0.00716*field_mask.size
     areas = []
     for label_id in np.unique(labeled_array):
         if label_id == 0: continue
@@ -110,6 +124,21 @@ def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
         if area < area_thresh: continue
         areas.append(area)
     return areas, len(areas)
+
+def get_kl_payne(nfields):
+    """ Get KL divergence of nfields distribution from Payne 2021 distribution. """
+
+    P = np.array([
+        np.sum(nfields==num)/nfields.size for num in np.arange(nfields.max() + 1)
+        ])
+    Q = configs.payne2021.nfield_distribution
+
+    kl = 0
+    for idx in np.arange(max(P.size, Q.size)):
+        p_x = P[idx] if idx < P.size else 0
+        q_x = Q[idx] if idx < Q.size else 0
+        kl += p_x * np.log(p_x/q_x)
+    return kl
 
 def circular(fr):
     """

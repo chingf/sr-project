@@ -24,6 +24,10 @@ from utils import get_field_metrics
 
 device = 'cpu'
 
+# PARAMETERS FOR SCRIPT
+save_field_info = True
+nshuffles = 30
+
 def get_sparsity(key):
     p = re.compile('.*sparsity(.+?)\/.*')
     if 'sigma' in key:
@@ -48,6 +52,7 @@ def collect_metrics(args):
     fieldsizes = []
     nfields = []
     onefields = []
+    nfieldkls = []
 
     gamma_dir = f'{root_dir}{sparsity}/{sigma}/{gamma}/'
     if 'hopfield' in model:
@@ -67,8 +72,10 @@ def collect_metrics(args):
         else:
             outputs = results['outputs']
         dset = results['dset']
-        _fieldsize, _nfield, _onefield = get_field_metrics(
-            outputs, dset, arena_length, nshuffles=30
+        _fieldsize, _nfield, _onefield, _nfieldkl = get_field_metrics(
+            outputs, dset, arena_length,
+            nshuffles=nshuffles, save_field_info=save_field_info,
+            save_path=iter_dir
             )
 
         init_sparsities.append(float(get_sparsity(model_dir)))
@@ -77,7 +84,9 @@ def collect_metrics(args):
         fieldsizes.append(_fieldsize)
         nfields.append(_nfield)
         onefields.append(_onefield)
-    return init_sparsities, sigmas, final_sparsities, fieldsizes, nfields, onefields
+        nfieldkls.append(_nfieldkl)
+    return init_sparsities, sigmas, final_sparsities, fieldsizes,\
+        nfields, onefields, nfieldkls
 
 from joblib import Parallel, delayed
 
@@ -93,6 +102,7 @@ for model in ['rnn', 'hopfield']:
         fieldsizes = []
         nfields = []
         onefields = []
+        nfieldkls = []
         
         args = []
         for sparsity in os.listdir(root_dir):
@@ -106,13 +116,15 @@ for model in ['rnn', 'hopfield']:
             fieldsizes.extend(res[3])
             nfields.extend(res[4])
             onefields.extend(res[5])
+            nfieldkls.extend(res[6])
         
         results = {
             'gamma': gamma, 'arena_length': arena_length,
             'init_sparsities': init_sparsities,
             'sigmas': sigmas, 'final_sparsities': final_sparsities,
-            'fieldsizes': fieldsizes, 'nfields': nfields, 'onefields': onefields
+            'fieldsizes': fieldsizes,
+            'nfields': nfields, 'onefields': onefields, 'nfieldkls': nfieldkls
             }
-        with open(f'pickles/5a_{model}_results_gamma{gamma}.p', 'wb') as f:
+        with open(root_dir + '5a_{model}_results_gamma{gamma}.p', 'wb') as f:
             pickle.dump(results, f)
 
