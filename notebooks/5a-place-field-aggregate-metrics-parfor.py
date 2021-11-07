@@ -26,7 +26,8 @@ device = 'cpu'
 
 # PARAMETERS FOR SCRIPT
 save_field_info = True
-nshuffles = 30
+nshuffles = 40
+n_jobs = 30
 
 def get_sparsity(key):
     p = re.compile('.*sparsity(.+?)\/.*')
@@ -52,6 +53,7 @@ def collect_metrics(args):
     fieldsizes = []
     nfields = []
     onefields = []
+    zerofields = []
     nfieldkls = []
 
     gamma_dir = f'{root_dir}{sparsity}/{sigma}/{gamma}/'
@@ -72,7 +74,7 @@ def collect_metrics(args):
         else:
             outputs = results['outputs']
         dset = results['dset']
-        _fieldsize, _nfield, _onefield, _nfieldkl = get_field_metrics(
+        _fieldsize, _nfield, _onefield, _zerofield, _nfieldkl = get_field_metrics(
             outputs, dset, arena_length,
             nshuffles=nshuffles, save_field_info=save_field_info,
             save_path=iter_dir
@@ -84,31 +86,34 @@ def collect_metrics(args):
         fieldsizes.append(_fieldsize)
         nfields.append(_nfield)
         onefields.append(_onefield)
+        zerofields.append(_zerofield)
         nfieldkls.append(_nfieldkl)
     return init_sparsities, sigmas, final_sparsities, fieldsizes,\
-        nfields, onefields, nfieldkls
+        nfields, onefields, zerofields, nfieldkls
 
 from joblib import Parallel, delayed
 
 root_dir = "../trained_models/03_td_discrete_corr/"
+root_dir = "../../engram/Ching/03_td_discrete_corr/"
 
 arena_length = 20
 
-for model in ['rnn', 'hopfield']:
-    for gamma in [0.75, 0.8]:
+for model in ['rnn']:
+    for gamma in [0.75, 0.8, 0.6, 0.85]:
         init_sparsities = []
         sigmas = []
         final_sparsities = []
         fieldsizes = []
         nfields = []
         onefields = []
+        zerofields = []
         nfieldkls = []
         
         args = []
         for sparsity in os.listdir(root_dir):
             for sigma in os.listdir(f'{root_dir}{sparsity}/'):
                 args.append([sparsity, sigma, model])
-        job_results = Parallel(n_jobs=7)(delayed(collect_metrics)(arg) for arg in args)
+        job_results = Parallel(n_jobs=n_jobs)(delayed(collect_metrics)(arg) for arg in args)
         for res in job_results:
             init_sparsities.extend(res[0])
             sigmas.extend(res[1])
@@ -116,14 +121,16 @@ for model in ['rnn', 'hopfield']:
             fieldsizes.extend(res[3])
             nfields.extend(res[4])
             onefields.extend(res[5])
-            nfieldkls.extend(res[6])
+            zerofields.extend(res[6])
+            nfieldkls.extend(res[7])
         
         results = {
             'gamma': gamma, 'arena_length': arena_length,
             'init_sparsities': init_sparsities,
             'sigmas': sigmas, 'final_sparsities': final_sparsities,
             'fieldsizes': fieldsizes,
-            'nfields': nfields, 'onefields': onefields, 'nfieldkls': nfieldkls
+            'nfields': nfields, 'onefields': onefields,
+            'zerofields': zerofields, 'nfieldkls': nfieldkls
             }
         with open(root_dir + '5a_{model}_results_gamma{gamma}.p', 'wb') as f:
             pickle.dump(results, f)

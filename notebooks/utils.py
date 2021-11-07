@@ -104,9 +104,10 @@ def get_field_metrics(
 
     fieldsizes = np.array(fieldsizes)/(arena_length**2)
     nfields = np.array(nfields)
-    onefield = np.sum(nfields==1)/nfields.size,
+    onefield = np.sum(nfields==1)/nfields.size
+    zerofield = np.sum(nfields==0)/nfields.size # For quality checks
     nfield_kl = get_kl_payne(nfields)
-    return np.mean(fieldsizes), np.mean(nfields), onefield, nfield_kl
+    return np.mean(fieldsizes), np.mean(nfields), onefield, zerofield, nfield_kl
 
 def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
     """
@@ -128,15 +129,17 @@ def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
 def get_kl_payne(nfields):
     """ Get KL divergence of nfields distribution from Payne 2021 distribution. """
 
+    nfields = nfields[nfields != 0].copy()
+    nfields[nfields > 5] = 5 # Bins are [1, 2, 3, 4, 5+]
     P = np.array([
-        np.sum(nfields==num)/nfields.size for num in np.arange(nfields.max() + 1)
+        np.sum(nfields==num)/nfields.size for num in np.arange(1, 6)
         ])
     Q = configs.payne2021.nfield_distribution
 
     kl = 0
-    for idx in np.arange(max(P.size, Q.size)):
-        p_x = P[idx] if idx < P.size else 0
-        q_x = Q[idx] if idx < Q.size else 0
+    for idx in np.arange(Q.size):
+        p_x = P[idx]; q_x = Q[idx]
+        if p_x == 0: continue
         kl += p_x * np.log(p_x/q_x)
     return kl
 
