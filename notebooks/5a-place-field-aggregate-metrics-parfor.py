@@ -26,6 +26,7 @@ device = 'cpu'
 
 # PARAMETERS FOR SCRIPT
 save_field_info = True
+reload_field_info = True
 nshuffles = 40
 n_jobs = 30
 
@@ -54,6 +55,7 @@ def collect_metrics(args):
     nfields = []
     onefields = []
     zerofields = []
+    fieldsizekls = []
     nfieldkls = []
 
     gamma_dir = f'{root_dir}{sparsity}/{sigma}/{gamma}/'
@@ -62,7 +64,6 @@ def collect_metrics(args):
     else:
         model_dir = f'{gamma_dir}rnn_fixedlr_alpha/'
     if not os.path.isdir(model_dir): return
-    print(f"Processing: {model_dir}\n")
     for _iter in os.listdir(model_dir):
         iter_dir = model_dir + _iter + '/'
         results_path = iter_dir + 'results.p'
@@ -74,11 +75,13 @@ def collect_metrics(args):
         else:
             outputs = results['outputs']
         dset = results['dset']
-        _fieldsize, _nfield, _onefield, _zerofield, _nfieldkl = get_field_metrics(
-            outputs, dset, arena_length,
-            nshuffles=nshuffles, save_field_info=save_field_info,
-            save_path=iter_dir
-            )
+        _fieldsize, _nfield, _onefield, _zerofield, _fieldsizekl, _nfieldkl =\
+            get_field_metrics(
+                outputs, dset, arena_length,
+                nshuffles=nshuffles,
+                save_field_info=save_field_info, reload_field_info=reload_field_info
+                save_path=iter_dir
+                )
 
         init_sparsities.append(float(get_sparsity(model_dir)))
         sigmas.append(float(get_sigma(model_dir)))
@@ -87,9 +90,10 @@ def collect_metrics(args):
         nfields.append(_nfield)
         onefields.append(_onefield)
         zerofields.append(_zerofield)
+        fieldsizekls.append(_fieldsizekl)
         nfieldkls.append(_nfieldkl)
-    return init_sparsities, sigmas, final_sparsities, fieldsizes,\
-        nfields, onefields, zerofields, nfieldkls
+    return init_sparsities, sigmas, final_sparsities,\
+        fieldsizes, nfields, onefields, zerofields, fieldsizekls, nfieldkls
 
 from joblib import Parallel, delayed
 
@@ -107,6 +111,7 @@ for model in ['rnn']:
         nfields = []
         onefields = []
         zerofields = []
+        fieldsizekls = []
         nfieldkls = []
         
         args = []
@@ -122,7 +127,8 @@ for model in ['rnn']:
             nfields.extend(res[4])
             onefields.extend(res[5])
             zerofields.extend(res[6])
-            nfieldkls.extend(res[7])
+            fieldsizekls.extend(res[7])
+            nfieldkls.extend(res[8])
         
         results = {
             'gamma': gamma, 'arena_length': arena_length,
@@ -130,7 +136,8 @@ for model in ['rnn']:
             'sigmas': sigmas, 'final_sparsities': final_sparsities,
             'fieldsizes': fieldsizes,
             'nfields': nfields, 'onefields': onefields,
-            'zerofields': zerofields, 'nfieldkls': nfieldkls
+            'zerofields': zerofields, 'fieldsizekls': fieldsizekls,
+            'nfieldkls': nfieldkls
             }
         with open(root_dir + '5a_{model}_results_gamma{gamma}.p', 'wb') as f:
             pickle.dump(results, f)

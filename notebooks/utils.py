@@ -9,6 +9,8 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 import matplotlib.pyplot as plt
 from astropy.convolution import convolve
 from scipy.signal.windows import hamming
+from scipy.stats import gamma
+from scipy.special import digamma, loggamma
 
 root = os.path.dirname(os.path.abspath(os.curdir))
 sys.path.append(root)
@@ -63,7 +65,8 @@ def get_firing_field(
 
 def get_field_metrics(
         activity, dset, arena_length,
-        nshuffles=50, save_field_info=False, save_path=None
+        nshuffles=50, save_field_info=False, reload_field_info=False,
+        save_path=None
         ):
     """
     Args:
@@ -77,37 +80,52 @@ def get_field_metrics(
     fieldsizes = []
     nfields = []
 
+    # If you want to reload fields and there is a field info file available
+    field_info_path = save_path + 'field_infos.p'
+    if reload_field_info and os.path.exists(field_info_path):
+        fields_reloaded = True
+        with open(field_info_path, 'rb') as f:
+            field_infos = pickle.load(f)
+        print(f"Reloading: {save_path}\n")
+    else:
+        fields_reloaded = False
+        field_infos = [] # Neuron-size list of (field, field_mask, nan_idxs)
+        print(f"Recalculating: {save_path}\n")
 
-    field_infos = [] # Neuron-size list of (field, field_mask, nan_idxs)
-
+    # Go over each neuron
     for neur in np.arange(activity.shape[1]):
-        field, nan_idxs = get_firing_field(xs, ys, activity[:, neur], arena_length)
-        field_mask = np.zeros(field.shape)
-        for _ in range(nshuffles):
-            shuffled_field, _ = get_firing_field(
-                xs, ys, circular(activity[:, neur]), arena_length
-                )
-            field_mask += (field > shuffled_field)
-        zz = np.copy(field_mask)
-        field_mask = field_mask > 0.99*nshuffles
-        if save_field_info:
-            field_infos.append((field, field_mask, nan_idxs))
+        if fields_reloaded:
+            field, field_mask, nan_idxs = field_infos[neur]
+        else:
+            field, nan_idxs = get_firing_field(xs, ys, activity[:, neur], arena_length)
+            field_mask = np.zeros(field.shape)
+            for _ in range(nshuffles):
+                shuffled_field, _ = get_firing_field(
+                    xs, ys, circular(activity[:, neur]), arena_length
+                    )
+                field_mask += (field > shuffled_field)
+            zz = np.copy(field_mask)
+            field_mask = field_mask > 0.99*nshuffles
+            if save_field_info:
+                field_infos.append((field, field_mask, nan_idxs))
 
-        # Area?
         sizes, nfield = get_area_and_peaks(field, field_mask, nan_idxs)
         fieldsizes.extend(sizes)
         nfields.append(nfield)
 
-    if save_field_info:
-        with open(save_path + 'field_infos.p', 'wb') as f:
+    # If you want to save field info and it was not already loaded from file 
+    if save_field_info and not fields_reloaded:
+        with open(field_info_path, 'wb') as f:
             pickle.dump(field_infos, f)
 
     fieldsizes = np.array(fieldsizes)/(arena_length**2)
     nfields = np.array(nfields)
     onefield = np.sum(nfields==1)/nfields.size
     zerofield = np.sum(nfields==0)/nfields.size # For quality checks
-    nfield_kl = get_kl_payne(nfields)
-    return np.mean(fieldsizes), np.mean(nfields), onefield, zerofield, nfield_kl
+    fieldsize_kl = get_kl_fieldsizes(fieldsizes)
+    nfield_kl = get_kl_nfields(nfields)
+    return np.mean(fieldsizes), np.mean(nfields), onefield,\
+        zerofield, fieldsize_kl, nfield_kl
 
 def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
     """
@@ -126,7 +144,7 @@ def get_area_and_peaks(field, field_mask, nan_idxs, ignore_nans=False):
         areas.append(area)
     return areas, len(areas)
 
-def get_kl_payne(nfields):
+def get_kl_nfields(nfields):
     """ Get KL divergence of nfields distribution from Payne 2021 distribution. """
 
     nfields = nfields[nfields != 0].copy()
@@ -141,6 +159,22 @@ def get_kl_payne(nfields):
         p_x = P[idx]; q_x = Q[idx]
         if p_x == 0: continue
         kl += p_x * np.log(p_x/q_x)
+    return kl
+
+def get_kl_fieldsizes(fieldsizes):
+    """
+    Get KL divergence of field size distribution from Payne 2021 distribution.
+    """
+
+    k_P, _, beta_P = stats.gamma.fit(fieldsizes) # shape, rate
+    theta_P = 1/beta_P # scale
+    k_Q, theta_Q = configs.payne2021.fieldsize_distribution # shape, scale
+    term1 = (k_P - k_Q) * digamma(k_P)
+    term2 = -loggamma(k_P)
+    term3 = loggamma(k_Q)
+    term4 = k_Q * (np.log(theta_Q) - np.log(theta_P))
+    term5 = k_P * (theta_P - theta_Q)/theta_Q
+    kl = term1 + term2 + term3 + term4 + term5
     return kl
 
 def circular(fr):
