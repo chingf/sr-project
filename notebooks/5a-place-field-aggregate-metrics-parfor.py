@@ -116,6 +116,7 @@ for model in ['rnn']:
         
         args = []
         for sparsity in os.listdir(root_dir):
+            if 'sparsity' not in sparsity: continue
             for sigma in os.listdir(f'{root_dir}{sparsity}/'):
                 args.append([sparsity, sigma, model])
         job_results = Parallel(n_jobs=n_jobs)(delayed(collect_metrics)(arg) for arg in args)
@@ -139,6 +140,6 @@ for model in ['rnn']:
             'zerofields': zerofields, 'fieldsizekls': fieldsizekls,
             'nfieldkls': nfieldkls
             }
-        with open(root_dir + '5a_{model}_results_gamma{gamma}.p', 'wb') as f:
+        with open(root_dir + f'5a_{model}_results_gamma{gamma}.p', 'wb') as f:
             pickle.dump(results, f)
 
