@@ -79,7 +79,7 @@ def collect_metrics(args):
             get_field_metrics(
                 outputs, dset, arena_length,
                 nshuffles=nshuffles,
-                save_field_info=save_field_info, reload_field_info=reload_field_info
+                save_field_info=save_field_info, reload_field_info=reload_field_info,
                 save_path=iter_dir
                 )
 

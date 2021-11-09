@@ -166,8 +166,7 @@ def get_kl_fieldsizes(fieldsizes):
     Get KL divergence of field size distribution from Payne 2021 distribution.
     """
 
-    k_P, _, beta_P = stats.gamma.fit(fieldsizes) # shape, rate
-    theta_P = 1/beta_P # scale
+    k_P, _, theta_P = gamma.fit(fieldsizes) # shape, scale
     k_Q, theta_Q = configs.payne2021.fieldsize_distribution # shape, scale
     term1 = (k_P - k_Q) * digamma(k_P)
     term2 = -loggamma(k_P)
