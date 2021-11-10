@@ -11,7 +11,7 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
 
-experiment_dir = '../trained_models/01_tau_gridsearch/'
+experiment_dir = '../../engram/Ching/01_tau_gridsearch/'
 tau_negs = np.arange(0.25, 4.25, 0.25)
 tau_poses = np.arange(0.25, 4.25, 0.25)
 A_signs = [1, -1]
@@ -32,7 +32,7 @@ for tau_neg in tau_negs:
                 grid_params.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
 
 def main():
-    Parallel(n_jobs=5)(delayed(grid_train)(param) for param in grid_params)
+    Parallel(n_jobs=30)(delayed(grid_train)(param) for param in grid_params)
 
 def slurm_main(idx):
     param = grid_params[idx]
@@ -62,7 +62,7 @@ def grid_train(arg):
 
     # Train
     losses = []
-    for _ in range(15):
+    for _ in range(10):
         try:
             net, loss = train(
                 save_path, net, datasets, datasets_config_ranges,

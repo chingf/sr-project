@@ -1,0 +1,3873 @@
+
+[   51] loss: 0.031
+Time per step 0.002s, net 0.076s
+
+[  101] loss: 0.023
+Time per step 0.002s, net 0.174s
+
+[  151] loss: 0.026
+Time per step 0.002s, net 0.276s
+
+[  201] loss: 0.030
+Time per step 0.002s, net 0.383s
+
+[  251] loss: 0.031
+Time per step 0.002s, net 0.494s
+
+[  301] loss: 0.029
+Time per step 0.002s, net 0.606s
+
+[  351] loss: 0.030
+Time per step 0.002s, net 0.715s
+
+[  401] loss: 0.030
+Time per step 0.003s, net 0.849s
+
+[  451] loss: 0.029
+Time per step 0.003s, net 1.010s
+
+[  501] loss: 0.027
+Time per step 0.003s, net 1.158s
+
+[  551] loss: 0.027
+Time per step 0.003s, net 1.305s
+
+[  601] loss: 0.027
+Time per step 0.003s, net 1.445s
+
+[  651] loss: 0.028
+Time per step 0.003s, net 1.585s
+
+[  701] loss: 0.029
+Time per step 0.003s, net 1.728s
+
+[  751] loss: 0.031
+Time per step 0.002s, net 1.852s
+
+[  801] loss: 0.032
+Time per step 0.003s, net 2.001s
+
+[  851] loss: 0.032
+Time per step 0.003s, net 2.145s
+
+[  901] loss: 0.033
+Time per step 0.003s, net 2.291s
+
+[  951] loss: 0.033
+Time per step 0.003s, net 2.453s
+
+[ 1001] loss: 0.036
+Time per step 0.003s, net 2.603s
+
+[ 1051] loss: 0.036
+Time per step 0.003s, net 2.753s
+
+[ 1101] loss: 0.036
+Time per step 0.003s, net 2.907s
+
+[ 1151] loss: 0.034
+Time per step 0.002s, net 3.025s
+
+[ 1201] loss: 0.035
+Time per step 0.003s, net 3.151s
+
+[ 1251] loss: 0.037
+Time per step 0.003s, net 3.293s
+
+[ 1301] loss: 0.039
+Time per step 0.002s, net 3.405s
+
+[ 1351] loss: 0.038
+Time per step 0.002s, net 3.524s
+
+[ 1401] loss: 0.039
+Time per step 0.003s, net 3.649s
+
+[ 1451] loss: 0.038
+Time per step 0.003s, net 3.776s
+
+[ 1501] loss: 0.037
+Time per step 0.003s, net 3.950s
+
+[ 1551] loss: 0.039
+Time per step 0.003s, net 4.107s
+
+[ 1601] loss: 0.039
+Time per step 0.003s, net 4.270s
+
+[ 1651] loss: 0.039
+Time per step 0.003s, net 4.426s
+
+[ 1701] loss: 0.040
+Time per step 0.003s, net 4.582s
+
+[ 1751] loss: 0.040
+Time per step 0.004s, net 4.758s
+
+[ 1801] loss: 0.043
+Time per step 0.003s, net 4.908s
+
+[ 1851] loss: 0.041
+Time per step 0.002s, net 4.995s
+
+[ 1901] loss: 0.042
+Time per step 0.002s, net 5.082s
+
+[ 1951] loss: 0.043
+Time per step 0.002s, net 5.172s
+
+[ 2001] loss: 0.043
+Time per step 0.002s, net 5.262s
+
+[ 2051] loss: 0.044
+Time per step 0.002s, net 5.345s
+
+[ 2101] loss: 0.044
+Time per step 0.002s, net 5.447s
+
+[ 2151] loss: 0.045
+Time per step 0.002s, net 5.533s
+
+[ 2201] loss: 0.044
+Time per step 0.002s, net 5.635s
+
+[ 2251] loss: 0.045
+Time per step 0.003s, net 5.797s
+
+[ 2301] loss: 0.044
+Time per step 0.003s, net 5.952s
+
+[ 2351] loss: 0.047
+Time per step 0.003s, net 6.092s
+
+[ 2401] loss: 0.047
+Time per step 0.003s, net 6.230s
+
+[ 2451] loss: 0.046
+Time per step 0.002s, net 6.335s
+
+[ 2501] loss: 0.046
+Time per step 0.002s, net 6.443s
+
+[ 2551] loss: 0.048
+Time per step 0.002s, net 6.555s
+
+[ 2601] loss: 0.046
+Time per step 0.003s, net 6.685s
+
+[ 2651] loss: 0.048
+Time per step 0.003s, net 6.822s
+
+[ 2701] loss: 0.048
+Time per step 0.003s, net 6.965s
+
+[ 2751] loss: 0.049
+Time per step 0.003s, net 7.115s
+
+[ 2801] loss: 0.052
+Time per step 0.003s, net 7.269s
+
+[ 2851] loss: 0.050
+Time per step 0.002s, net 7.370s
+
+[ 2901] loss: 0.050
+Time per step 0.003s, net 7.501s
+
+[ 2951] loss: 0.050
+Time per step 0.002s, net 7.605s
+
+[ 3001] loss: 0.052
+Time per step 0.003s, net 7.734s
+
+[ 3051] loss: 0.049
+Time per step 0.003s, net 7.873s
+
+[ 3101] loss: 0.050
+Time per step 0.003s, net 8.008s
+
+[ 3151] loss: 0.050
+Time per step 0.002s, net 8.106s
+
+[ 3201] loss: 0.052
+Time per step 0.002s, net 8.211s
+
+[ 3251] loss: 0.051
+Time per step 0.002s, net 8.323s
+
+[ 3301] loss: 0.051
+Time per step 0.002s, net 8.439s
+
+[ 3351] loss: 0.051
+Time per step 0.002s, net 8.523s
+
+[ 3401] loss: 0.050
+Time per step 0.002s, net 8.623s
+
+[ 3451] loss: 0.052
+Time per step 0.002s, net 8.741s
+
+[ 3501] loss: 0.053
+Time per step 0.002s, net 8.835s
+
+[ 3551] loss: 0.053
+Time per step 0.002s, net 8.936s
+
+[ 3601] loss: 0.053
+Time per step 0.002s, net 9.045s
+
+[ 3651] loss: 0.053
+Time per step 0.002s, net 9.154s
+
+[ 3701] loss: 0.051
+Time per step 0.002s, net 9.248s
+
+[ 3751] loss: 0.052
+Time per step 0.002s, net 9.346s
+
+[ 3801] loss: 0.052
+Time per step 0.002s, net 9.462s
+
+[ 3851] loss: 0.052
+Time per step 0.003s, net 9.595s
+
+[ 3901] loss: 0.050
+Time per step 0.003s, net 9.735s
+
+[ 3951] loss: 0.052
+Time per step 0.002s, net 9.848s
+
+[ 4001] loss: 0.051
+Time per step 0.002s, net 9.954s
+
+[ 4051] loss: 0.053
+Time per step 0.003s, net 10.086s
+
+[ 4101] loss: 0.053
+Time per step 0.002s, net 10.200s
+
+[ 4151] loss: 0.054
+Time per step 0.002s, net 10.318s
+
+[ 4201] loss: 0.056
+Time per step 0.002s, net 10.436s
+
+[ 4251] loss: 0.053
+Time per step 0.003s, net 10.563s
+
+[ 4301] loss: 0.055
+Time per step 0.002s, net 10.670s
+
+[ 4351] loss: 0.053
+Time per step 0.002s, net 10.781s
+
+[ 4401] loss: 0.055
+Time per step 0.002s, net 10.897s
+
+[ 4451] loss: 0.054
+Time per step 0.002s, net 11.015s
+
+[ 4501] loss: 0.056
+Time per step 0.003s, net 11.160s
+
+[ 4551] loss: 0.058
+Time per step 0.004s, net 11.335s
+
+[ 4601] loss: 0.057
+Time per step 0.002s, net 11.441s
+
+[ 4651] loss: 0.055
+Time per step 0.002s, net 11.552s
+
+[ 4701] loss: 0.054
+Time per step 0.002s, net 11.669s
+
+[ 4751] loss: 0.053
+Time per step 0.003s, net 11.796s
+
+[ 4801] loss: 0.056
+Time per step 0.003s, net 11.929s
+
+[ 4851] loss: 0.054
+Time per step 0.003s, net 12.076s
+
+[ 4901] loss: 0.055
+Time per step 0.004s, net 12.257s
+
+[ 4951] loss: 0.056
+Time per step 0.004s, net 12.456s
+
+[ 5001] loss: 0.052
+Time per step 0.004s, net 12.663s
+
+[ 5051] loss: 0.055
+Time per step 0.003s, net 12.804s
+
+[ 5101] loss: 0.053
+Time per step 0.004s, net 12.984s
+
+[ 5151] loss: 0.054
+Time per step 0.003s, net 13.124s
+
+[ 5201] loss: 0.055
+Time per step 0.002s, net 13.229s
+
+[ 5251] loss: 0.056
+Time per step 0.002s, net 13.318s
+
+[ 5301] loss: 0.054
+Time per step 0.002s, net 13.406s
+
+[ 5351] loss: 0.058
+Time per step 0.002s, net 13.525s
+
+[ 5401] loss: 0.056
+Time per step 0.003s, net 13.688s
+
+[ 5451] loss: 0.058
+Time per step 0.002s, net 13.784s
+
+[ 5501] loss: 0.054
+Time per step 0.002s, net 13.884s
+
+[ 5551] loss: 0.057
+Time per step 0.002s, net 13.988s
+
+[ 5601] loss: 0.055
+Time per step 0.002s, net 14.092s
+
+[ 5651] loss: 0.056
+Time per step 0.002s, net 14.215s
+
+[ 5701] loss: 0.058
+Time per step 0.003s, net 14.366s
+
+[ 5751] loss: 0.056
+Time per step 0.003s, net 14.515s
+
+[ 5801] loss: 0.059
+Time per step 0.002s, net 14.611s
+
+[ 5851] loss: 0.054
+Time per step 0.002s, net 14.713s
+
+[ 5901] loss: 0.055
+Time per step 0.002s, net 14.818s
+
+[ 5951] loss: 0.057
+Time per step 0.002s, net 14.933s
+
+[ 6001] loss: 0.057
+Time per step 0.002s, net 15.050s
+
+[ 6051] loss: 0.057
+Time per step 0.002s, net 15.168s
+
+[ 6101] loss: 0.058
+Time per step 0.003s, net 15.301s
+
+[ 6151] loss: 0.058
+Time per step 0.003s, net 15.439s
+
+[ 6201] loss: 0.057
+Time per step 0.003s, net 15.585s
+
+[ 6251] loss: 0.055
+Time per step 0.003s, net 15.718s
+
+[ 6301] loss: 0.058
+Time per step 0.003s, net 15.868s
+
+[ 6351] loss: 0.057
+Time per step 0.003s, net 16.020s
+
+[ 6401] loss: 0.058
+Time per step 0.002s, net 16.120s
+
+[ 6451] loss: 0.059
+Time per step 0.002s, net 16.232s
+Finished Training
+
+
+[   51] loss: 0.040
+Time per step 0.001s, net 0.069s
+
+[  101] loss: 0.035
+Time per step 0.003s, net 0.214s
+
+[  151] loss: 0.038
+Time per step 0.003s, net 0.361s
+
+[  201] loss: 0.041
+Time per step 0.003s, net 0.505s
+
+[  251] loss: 0.039
+Time per step 0.002s, net 0.593s
+
+[  301] loss: 0.037
+Time per step 0.002s, net 0.694s
+
+[  351] loss: 0.034
+Time per step 0.003s, net 0.837s
+
+[  401] loss: 0.030
+Time per step 0.002s, net 0.920s
+
+[  451] loss: 0.029
+Time per step 0.003s, net 1.060s
+
+[  501] loss: 0.030
+Time per step 0.002s, net 1.144s
+
+[  551] loss: 0.032
+Time per step 0.002s, net 1.239s
+
+[  601] loss: 0.032
+Time per step 0.002s, net 1.341s
+
+[  651] loss: 0.031
+Time per step 0.002s, net 1.464s
+
+[  701] loss: 0.033
+Time per step 0.002s, net 1.557s
+
+[  751] loss: 0.032
+Time per step 0.002s, net 1.663s
+
+[  801] loss: 0.032
+Time per step 0.002s, net 1.762s
+
+[  851] loss: 0.033
+Time per step 0.002s, net 1.858s
+
+[  901] loss: 0.035
+Time per step 0.002s, net 1.958s
+
+[  951] loss: 0.037
+Time per step 0.002s, net 2.065s
+
+[ 1001] loss: 0.037
+Time per step 0.002s, net 2.177s
+
+[ 1051] loss: 0.038
+Time per step 0.002s, net 2.294s
+
+[ 1101] loss: 0.038
+Time per step 0.002s, net 2.417s
+
+[ 1151] loss: 0.037
+Time per step 0.002s, net 2.534s
+
+[ 1201] loss: 0.037
+Time per step 0.003s, net 2.679s
+
+[ 1251] loss: 0.037
+Time per step 0.003s, net 2.825s
+
+[ 1301] loss: 0.038
+Time per step 0.002s, net 2.949s
+
+[ 1351] loss: 0.038
+Time per step 0.003s, net 3.110s
+
+[ 1401] loss: 0.040
+Time per step 0.002s, net 3.195s
+
+[ 1451] loss: 0.039
+Time per step 0.002s, net 3.281s
+
+[ 1501] loss: 0.038
+Time per step 0.002s, net 3.390s
+
+[ 1551] loss: 0.038
+Time per step 0.003s, net 3.517s
+
+[ 1601] loss: 0.038
+Time per step 0.003s, net 3.649s
+
+[ 1651] loss: 0.038
+Time per step 0.003s, net 3.798s
+
+[ 1701] loss: 0.039
+Time per step 0.003s, net 3.931s
+
+[ 1751] loss: 0.039
+Time per step 0.002s, net 4.014s
+
+[ 1801] loss: 0.039
+Time per step 0.002s, net 4.104s
+
+[ 1851] loss: 0.040
+Time per step 0.002s, net 4.206s
+
+[ 1901] loss: 0.039
+Time per step 0.002s, net 4.312s
+
+[ 1951] loss: 0.040
+Time per step 0.002s, net 4.419s
+
+[ 2001] loss: 0.038
+Time per step 0.002s, net 4.533s
+
+[ 2051] loss: 0.040
+Time per step 0.002s, net 4.650s
+
+[ 2101] loss: 0.040
+Time per step 0.003s, net 4.776s
+
+[ 2151] loss: 0.041
+Time per step 0.003s, net 4.906s
+
+[ 2201] loss: 0.040
+Time per step 0.003s, net 5.050s
+
+[ 2251] loss: 0.040
+Time per step 0.003s, net 5.197s
+
+[ 2301] loss: 0.040
+Time per step 0.003s, net 5.330s
+
+[ 2351] loss: 0.039
+Time per step 0.002s, net 5.444s
+
+[ 2401] loss: 0.039
+Time per step 0.002s, net 5.562s
+
+[ 2451] loss: 0.039
+Time per step 0.002s, net 5.682s
+
+[ 2501] loss: 0.039
+Time per step 0.002s, net 5.805s
+
+[ 2551] loss: 0.040
+Time per step 0.002s, net 5.887s
+
+[ 2601] loss: 0.038
+Time per step 0.002s, net 5.980s
+
+[ 2651] loss: 0.040
+Time per step 0.002s, net 6.077s
+
+[ 2701] loss: 0.040
+Time per step 0.002s, net 6.190s
+
+[ 2751] loss: 0.042
+Time per step 0.002s, net 6.307s
+
+[ 2801] loss: 0.040
+Time per step 0.002s, net 6.421s
+
+[ 2851] loss: 0.041
+Time per step 0.002s, net 6.541s
+
+[ 2901] loss: 0.040
+Time per step 0.002s, net 6.663s
+
+[ 2951] loss: 0.040
+Time per step 0.003s, net 6.797s
+
+[ 3001] loss: 0.040
+Time per step 0.003s, net 6.943s
+
+[ 3051] loss: 0.039
+Time per step 0.002s, net 7.057s
+
+[ 3101] loss: 0.042
+Time per step 0.002s, net 7.169s
+
+[ 3151] loss: 0.041
+Time per step 0.003s, net 7.301s
+
+[ 3201] loss: 0.039
+Time per step 0.002s, net 7.422s
+
+[ 3251] loss: 0.040
+Time per step 0.002s, net 7.544s
+
+[ 3301] loss: 0.040
+Time per step 0.002s, net 7.668s
+
+[ 3351] loss: 0.039
+Time per step 0.003s, net 7.797s
+
+[ 3401] loss: 0.040
+Time per step 0.002s, net 7.921s
+
+[ 3451] loss: 0.041
+Time per step 0.002s, net 8.045s
+
+[ 3501] loss: 0.042
+Time per step 0.002s, net 8.140s
+
+[ 3551] loss: 0.040
+Time per step 0.002s, net 8.249s
+
+[ 3601] loss: 0.040
+Time per step 0.002s, net 8.348s
+
+[ 3651] loss: 0.042
+Time per step 0.002s, net 8.445s
+
+[ 3701] loss: 0.042
+Time per step 0.002s, net 8.551s
+
+[ 3751] loss: 0.041
+Time per step 0.002s, net 8.669s
+
+[ 3801] loss: 0.043
+Time per step 0.003s, net 8.802s
+
+[ 3851] loss: 0.042
+Time per step 0.002s, net 8.893s
+
+[ 3901] loss: 0.042
+Time per step 0.002s, net 8.980s
+
+[ 3951] loss: 0.042
+Time per step 0.002s, net 9.065s
+
+[ 4001] loss: 0.042
+Time per step 0.002s, net 9.160s
+
+[ 4051] loss: 0.042
+Time per step 0.002s, net 9.260s
+
+[ 4101] loss: 0.042
+Time per step 0.002s, net 9.361s
+
+[ 4151] loss: 0.043
+Time per step 0.003s, net 9.519s
+
+[ 4201] loss: 0.042
+Time per step 0.003s, net 9.661s
+
+[ 4251] loss: 0.043
+Time per step 0.002s, net 9.744s
+
+[ 4301] loss: 0.044
+Time per step 0.002s, net 9.839s
+
+[ 4351] loss: 0.045
+Time per step 0.003s, net 9.983s
+
+[ 4401] loss: 0.044
+Time per step 0.003s, net 10.122s
+
+[ 4451] loss: 0.044
+Time per step 0.002s, net 10.236s
+
+[ 4501] loss: 0.043
+Time per step 0.001s, net 10.311s
+
+[ 4551] loss: 0.044
+Time per step 0.001s, net 10.382s
+
+[ 4601] loss: 0.043
+Time per step 0.003s, net 10.531s
+
+[ 4651] loss: 0.046
+Time per step 0.002s, net 10.619s
+
+[ 4701] loss: 0.043
+Time per step 0.002s, net 10.716s
+
+[ 4751] loss: 0.045
+Time per step 0.002s, net 10.826s
+
+[ 4801] loss: 0.045
+Time per step 0.004s, net 11.013s
+
+[ 4851] loss: 0.047
+Time per step 0.003s, net 11.154s
+
+[ 4901] loss: 0.046
+Time per step 0.003s, net 11.294s
+
+[ 4951] loss: 0.045
+Time per step 0.003s, net 11.434s
+
+[ 5001] loss: 0.045
+Time per step 0.003s, net 11.575s
+
+[ 5051] loss: 0.047
+Time per step 0.003s, net 11.714s
+
+[ 5101] loss: 0.047
+Time per step 0.002s, net 11.798s
+
+[ 5151] loss: 0.046
+Time per step 0.002s, net 11.892s
+
+[ 5201] loss: 0.048
+Time per step 0.003s, net 12.017s
+
+[ 5251] loss: 0.047
+Time per step 0.002s, net 12.128s
+
+[ 5301] loss: 0.047
+Time per step 0.002s, net 12.240s
+
+[ 5351] loss: 0.050
+Time per step 0.002s, net 12.358s
+
+[ 5401] loss: 0.048
+Time per step 0.003s, net 12.497s
+
+[ 5451] loss: 0.049
+Time per step 0.003s, net 12.638s
+
+[ 5501] loss: 0.051
+Time per step 0.003s, net 12.781s
+
+[ 5551] loss: 0.050
+Time per step 0.002s, net 12.861s
+
+[ 5601] loss: 0.050
+Time per step 0.003s, net 12.991s
+
+[ 5651] loss: 0.052
+Time per step 0.003s, net 13.135s
+
+[ 5701] loss: 0.053
+Time per step 0.003s, net 13.292s
+
+[ 5751] loss: 0.050
+Time per step 0.003s, net 13.433s
+
+[ 5801] loss: 0.052
+Time per step 0.002s, net 13.523s
+
+[ 5851] loss: 0.049
+Time per step 0.002s, net 13.611s
+
+[ 5901] loss: 0.048
+Time per step 0.002s, net 13.704s
+
+[ 5951] loss: 0.052
+Time per step 0.002s, net 13.810s
+
+[ 6001] loss: 0.048
+Time per step 0.002s, net 13.918s
+
+[ 6051] loss: 0.050
+Time per step 0.002s, net 14.029s
+
+[ 6101] loss: 0.050
+Time per step 0.003s, net 14.159s
+
+[ 6151] loss: 0.048
+Time per step 0.002s, net 14.281s
+
+[ 6201] loss: 0.047
+Time per step 0.002s, net 14.371s
+
+[ 6251] loss: 0.048
+Time per step 0.002s, net 14.472s
+
+[ 6301] loss: 0.048
+Time per step 0.002s, net 14.580s
+
+[ 6351] loss: 0.049
+Time per step 0.002s, net 14.695s
+
+[ 6401] loss: 0.047
+Time per step 0.002s, net 14.806s
+
+[ 6451] loss: 0.049
+Time per step 0.002s, net 14.921s
+Finished Training
+
+
+[   51] loss: 0.041
+Time per step 0.001s, net 0.055s
+
+[  101] loss: 0.036
+Time per step 0.002s, net 0.172s
+
+[  151] loss: 0.034
+Time per step 0.003s, net 0.302s
+
+[  201] loss: 0.031
+Time per step 0.003s, net 0.435s
+
+[  251] loss: 0.031
+Time per step 0.003s, net 0.575s
+
+[  301] loss: 0.029
+Time per step 0.003s, net 0.708s
+
+[  351] loss: 0.029
+Time per step 0.003s, net 0.844s
+
+[  401] loss: 0.028
+Time per step 0.003s, net 0.976s
+
+[  451] loss: 0.027
+Time per step 0.003s, net 1.110s
+
+[  501] loss: 0.026
+Time per step 0.003s, net 1.244s
+
+[  551] loss: 0.025
+Time per step 0.003s, net 1.377s
+
+[  601] loss: 0.026
+Time per step 0.003s, net 1.510s
+
+[  651] loss: 0.027
+Time per step 0.003s, net 1.645s
+
+[  701] loss: 0.029
+Time per step 0.003s, net 1.778s
+
+[  751] loss: 0.028
+Time per step 0.002s, net 1.881s
+
+[  801] loss: 0.028
+Time per step 0.002s, net 2.005s
+
+[  851] loss: 0.029
+Time per step 0.003s, net 2.149s
+
+[  901] loss: 0.028
+Time per step 0.001s, net 2.224s
+
+[  951] loss: 0.029
+Time per step 0.002s, net 2.313s
+
+[ 1001] loss: 0.028
+Time per step 0.002s, net 2.405s
+
+[ 1051] loss: 0.029
+Time per step 0.002s, net 2.504s
+
+[ 1101] loss: 0.028
+Time per step 0.002s, net 2.608s
+
+[ 1151] loss: 0.028
+Time per step 0.002s, net 2.716s
+
+[ 1201] loss: 0.028
+Time per step 0.002s, net 2.821s
+
+[ 1251] loss: 0.028
+Time per step 0.002s, net 2.928s
+
+[ 1301] loss: 0.027
+Time per step 0.003s, net 3.053s
+
+[ 1351] loss: 0.027
+Time per step 0.003s, net 3.188s
+
+[ 1401] loss: 0.027
+Time per step 0.003s, net 3.324s
+
+[ 1451] loss: 0.028
+Time per step 0.003s, net 3.460s
+
+[ 1501] loss: 0.027
+Time per step 0.002s, net 3.538s
+
+[ 1551] loss: 0.027
+Time per step 0.002s, net 3.616s
+
+[ 1601] loss: 0.028
+Time per step 0.002s, net 3.708s
+
+[ 1651] loss: 0.029
+Time per step 0.003s, net 3.849s
+
+[ 1701] loss: 0.029
+Time per step 0.003s, net 3.995s
+
+[ 1751] loss: 0.029
+Time per step 0.002s, net 4.073s
+
+[ 1801] loss: 0.029
+Time per step 0.003s, net 4.201s
+
+[ 1851] loss: 0.030
+Time per step 0.003s, net 4.342s
+
+[ 1901] loss: 0.030
+Time per step 0.003s, net 4.474s
+
+[ 1951] loss: 0.029
+Time per step 0.003s, net 4.607s
+
+[ 2001] loss: 0.030
+Time per step 0.003s, net 4.748s
+
+[ 2051] loss: 0.029
+Time per step 0.001s, net 4.822s
+
+[ 2101] loss: 0.030
+Time per step 0.002s, net 4.907s
+
+[ 2151] loss: 0.030
+Time per step 0.002s, net 5.001s
+
+[ 2201] loss: 0.029
+Time per step 0.003s, net 5.137s
+
+[ 2251] loss: 0.029
+Time per step 0.003s, net 5.270s
+
+[ 2301] loss: 0.029
+Time per step 0.003s, net 5.402s
+
+[ 2351] loss: 0.029
+Time per step 0.002s, net 5.477s
+
+[ 2401] loss: 0.028
+Time per step 0.003s, net 5.615s
+
+[ 2451] loss: 0.028
+Time per step 0.003s, net 5.748s
+
+[ 2501] loss: 0.028
+Time per step 0.003s, net 5.881s
+
+[ 2551] loss: 0.029
+Time per step 0.003s, net 6.016s
+
+[ 2601] loss: 0.027
+Time per step 0.003s, net 6.145s
+
+[ 2651] loss: 0.027
+Time per step 0.001s, net 6.217s
+
+[ 2701] loss: 0.028
+Time per step 0.002s, net 6.300s
+
+[ 2751] loss: 0.027
+Time per step 0.002s, net 6.389s
+
+[ 2801] loss: 0.027
+Time per step 0.002s, net 6.484s
+
+[ 2851] loss: 0.027
+Time per step 0.002s, net 6.589s
+
+[ 2901] loss: 0.028
+Time per step 0.002s, net 6.702s
+
+[ 2951] loss: 0.029
+Time per step 0.002s, net 6.814s
+
+[ 3001] loss: 0.028
+Time per step 0.002s, net 6.925s
+
+[ 3051] loss: 0.028
+Time per step 0.002s, net 7.032s
+
+[ 3101] loss: 0.027
+Time per step 0.002s, net 7.142s
+
+[ 3151] loss: 0.028
+Time per step 0.003s, net 7.272s
+
+[ 3201] loss: 0.027
+Time per step 0.003s, net 7.403s
+
+[ 3251] loss: 0.028
+Time per step 0.003s, net 7.534s
+
+[ 3301] loss: 0.028
+Time per step 0.001s, net 7.609s
+
+[ 3351] loss: 0.028
+Time per step 0.002s, net 7.696s
+
+[ 3401] loss: 0.028
+Time per step 0.002s, net 7.785s
+
+[ 3451] loss: 0.028
+Time per step 0.002s, net 7.875s
+
+[ 3501] loss: 0.027
+Time per step 0.002s, net 7.975s
+
+[ 3551] loss: 0.027
+Time per step 0.002s, net 8.097s
+
+[ 3601] loss: 0.028
+Time per step 0.003s, net 8.236s
+
+[ 3651] loss: 0.028
+Time per step 0.003s, net 8.371s
+
+[ 3701] loss: 0.027
+Time per step 0.003s, net 8.503s
+
+[ 3751] loss: 0.027
+Time per step 0.003s, net 8.638s
+
+[ 3801] loss: 0.027
+Time per step 0.003s, net 8.773s
+
+[ 3851] loss: 0.027
+Time per step 0.003s, net 8.914s
+
+[ 3901] loss: 0.027
+Time per step 0.003s, net 9.050s
+
+[ 3951] loss: 0.027
+Time per step 0.003s, net 9.186s
+
+[ 4001] loss: 0.027
+Time per step 0.003s, net 9.322s
+
+[ 4051] loss: 0.027
+Time per step 0.003s, net 9.459s
+
+[ 4101] loss: 0.027
+Time per step 0.003s, net 9.594s
+
+[ 4151] loss: 0.028
+Time per step 0.003s, net 9.731s
+
+[ 4201] loss: 0.027
+Time per step 0.003s, net 9.867s
+
+[ 4251] loss: 0.027
+Time per step 0.003s, net 10.003s
+
+[ 4301] loss: 0.027
+Time per step 0.003s, net 10.141s
+
+[ 4351] loss: 0.027
+Time per step 0.003s, net 10.276s
+
+[ 4401] loss: 0.027
+Time per step 0.003s, net 10.412s
+
+[ 4451] loss: 0.026
+Time per step 0.003s, net 10.582s
+
+[ 4501] loss: 0.027
+Time per step 0.003s, net 10.716s
+
+[ 4551] loss: 0.027
+Time per step 0.002s, net 10.794s
+
+[ 4601] loss: 0.027
+Time per step 0.002s, net 10.887s
+
+[ 4651] loss: 0.027
+Time per step 0.002s, net 10.994s
+
+[ 4701] loss: 0.027
+Time per step 0.002s, net 11.115s
+
+[ 4751] loss: 0.026
+Time per step 0.003s, net 11.261s
+
+[ 4801] loss: 0.027
+Time per step 0.003s, net 11.403s
+
+[ 4851] loss: 0.028
+Time per step 0.003s, net 11.540s
+
+[ 4901] loss: 0.027
+Time per step 0.003s, net 11.678s
+
+[ 4951] loss: 0.027
+Time per step 0.003s, net 11.817s
+
+[ 5001] loss: 0.027
+Time per step 0.003s, net 11.956s
+
+[ 5051] loss: 0.027
+Time per step 0.003s, net 12.093s
+
+[ 5101] loss: 0.027
+Time per step 0.002s, net 12.201s
+
+[ 5151] loss: 0.028
+Time per step 0.002s, net 12.320s
+
+[ 5201] loss: 0.027
+Time per step 0.003s, net 12.455s
+
+[ 5251] loss: 0.027
+Time per step 0.003s, net 12.591s
+
+[ 5301] loss: 0.027
+Time per step 0.003s, net 12.725s
+
+[ 5351] loss: 0.028
+Time per step 0.003s, net 12.862s
+
+[ 5401] loss: 0.028
+Time per step 0.002s, net 12.941s
+
+[ 5451] loss: 0.028
+Time per step 0.002s, net 13.039s
+
+[ 5501] loss: 0.027
+Time per step 0.003s, net 13.176s
+
+[ 5551] loss: 0.028
+Time per step 0.002s, net 13.252s
+
+[ 5601] loss: 0.029
+Time per step 0.001s, net 13.326s
+
+[ 5651] loss: 0.028
+Time per step 0.002s, net 13.417s
+
+[ 5701] loss: 0.029
+Time per step 0.002s, net 13.513s
+
+[ 5751] loss: 0.028
+Time per step 0.002s, net 13.609s
+
+[ 5801] loss: 0.028
+Time per step 0.003s, net 13.744s
+
+[ 5851] loss: 0.028
+Time per step 0.003s, net 13.880s
+
+[ 5901] loss: 0.028
+Time per step 0.003s, net 14.011s
+
+[ 5951] loss: 0.028
+Time per step 0.002s, net 14.087s
+
+[ 6001] loss: 0.029
+Time per step 0.002s, net 14.169s
+
+[ 6051] loss: 0.028
+Time per step 0.002s, net 14.256s
+
+[ 6101] loss: 0.028
+Time per step 0.002s, net 14.348s
+
+[ 6151] loss: 0.028
+Time per step 0.002s, net 14.450s
+
+[ 6201] loss: 0.029
+Time per step 0.003s, net 14.584s
+
+[ 6251] loss: 0.029
+Time per step 0.003s, net 14.718s
+
+[ 6301] loss: 0.028
+Time per step 0.003s, net 14.852s
+
+[ 6351] loss: 0.029
+Time per step 0.003s, net 14.986s
+
+[ 6401] loss: 0.029
+Time per step 0.002s, net 15.062s
+
+[ 6451] loss: 0.029
+Time per step 0.002s, net 15.155s
+Finished Training
+
+
+[   51] loss: 0.040
+Time per step 0.001s, net 0.055s
+
+[  101] loss: 0.039
+Time per step 0.001s, net 0.118s
+
+[  151] loss: 0.036
+Time per step 0.002s, net 0.193s
+
+[  201] loss: 0.035
+Time per step 0.002s, net 0.276s
+
+[  251] loss: 0.035
+Time per step 0.002s, net 0.369s
+
+[  301] loss: 0.035
+Time per step 0.002s, net 0.471s
+
+[  351] loss: 0.035
+Time per step 0.002s, net 0.581s
+
+[  401] loss: 0.036
+Time per step 0.002s, net 0.691s
+
+[  451] loss: 0.036
+Time per step 0.002s, net 0.802s
+
+[  501] loss: 0.036
+Time per step 0.002s, net 0.924s
+
+[  551] loss: 0.035
+Time per step 0.003s, net 1.057s
+
+[  601] loss: 0.035
+Time per step 0.003s, net 1.192s
+
+[  651] loss: 0.035
+Time per step 0.002s, net 1.277s
+
+[  701] loss: 0.035
+Time per step 0.002s, net 1.377s
+
+[  751] loss: 0.034
+Time per step 0.001s, net 1.451s
+
+[  801] loss: 0.035
+Time per step 0.002s, net 1.528s
+
+[  851] loss: 0.036
+Time per step 0.002s, net 1.613s
+
+[  901] loss: 0.036
+Time per step 0.002s, net 1.705s
+
+[  951] loss: 0.036
+Time per step 0.002s, net 1.800s
+
+[ 1001] loss: 0.036
+Time per step 0.002s, net 1.900s
+
+[ 1051] loss: 0.036
+Time per step 0.002s, net 2.013s
+
+[ 1101] loss: 0.036
+Time per step 0.002s, net 2.125s
+
+[ 1151] loss: 0.036
+Time per step 0.003s, net 2.260s
+
+[ 1201] loss: 0.036
+Time per step 0.003s, net 2.390s
+
+[ 1251] loss: 0.036
+Time per step 0.003s, net 2.540s
+
+[ 1301] loss: 0.035
+Time per step 0.003s, net 2.679s
+
+[ 1351] loss: 0.035
+Time per step 0.004s, net 2.895s
+
+[ 1401] loss: 0.035
+Time per step 0.003s, net 3.030s
+
+[ 1451] loss: 0.034
+Time per step 0.003s, net 3.165s
+
+[ 1501] loss: 0.034
+Time per step 0.003s, net 3.307s
+
+[ 1551] loss: 0.034
+Time per step 0.003s, net 3.452s
+
+[ 1601] loss: 0.034
+Time per step 0.003s, net 3.604s
+
+[ 1651] loss: 0.034
+Time per step 0.003s, net 3.740s
+
+[ 1701] loss: 0.033
+Time per step 0.003s, net 3.875s
+
+[ 1751] loss: 0.032
+Time per step 0.003s, net 4.012s
+
+[ 1801] loss: 0.034
+Time per step 0.003s, net 4.143s
+
+[ 1851] loss: 0.033
+Time per step 0.003s, net 4.275s
+
+[ 1901] loss: 0.034
+Time per step 0.003s, net 4.410s
+
+[ 1951] loss: 0.035
+Time per step 0.003s, net 4.546s
+
+[ 2001] loss: 0.034
+Time per step 0.003s, net 4.683s
+
+[ 2051] loss: 0.035
+Time per step 0.003s, net 4.819s
+
+[ 2101] loss: 0.036
+Time per step 0.003s, net 4.956s
+
+[ 2151] loss: 0.036
+Time per step 0.002s, net 5.042s
+
+[ 2201] loss: 0.036
+Time per step 0.002s, net 5.139s
+
+[ 2251] loss: 0.038
+Time per step 0.002s, net 5.247s
+
+[ 2301] loss: 0.036
+Time per step 0.002s, net 5.360s
+
+[ 2351] loss: 0.038
+Time per step 0.002s, net 5.473s
+
+[ 2401] loss: 0.036
+Time per step 0.002s, net 5.588s
+
+[ 2451] loss: 0.037
+Time per step 0.003s, net 5.716s
+
+[ 2501] loss: 0.036
+Time per step 0.003s, net 5.857s
+
+[ 2551] loss: 0.036
+Time per step 0.003s, net 6.006s
+
+[ 2601] loss: 0.036
+Time per step 0.003s, net 6.150s
+
+[ 2651] loss: 0.036
+Time per step 0.003s, net 6.297s
+
+[ 2701] loss: 0.036
+Time per step 0.003s, net 6.443s
+
+[ 2751] loss: 0.035
+Time per step 0.003s, net 6.590s
+
+[ 2801] loss: 0.035
+Time per step 0.003s, net 6.759s
+
+[ 2851] loss: 0.036
+Time per step 0.003s, net 6.900s
+
+[ 2901] loss: 0.036
+Time per step 0.002s, net 6.987s
+
+[ 2951] loss: 0.036
+Time per step 0.002s, net 7.086s
+
+[ 3001] loss: 0.035
+Time per step 0.002s, net 7.192s
+
+[ 3051] loss: 0.035
+Time per step 0.002s, net 7.300s
+
+[ 3101] loss: 0.035
+Time per step 0.002s, net 7.415s
+
+[ 3151] loss: 0.034
+Time per step 0.002s, net 7.533s
+
+[ 3201] loss: 0.034
+Time per step 0.003s, net 7.689s
+
+[ 3251] loss: 0.035
+Time per step 0.004s, net 7.864s
+
+[ 3301] loss: 0.034
+Time per step 0.002s, net 7.952s
+
+[ 3351] loss: 0.034
+Time per step 0.002s, net 8.048s
+
+[ 3401] loss: 0.034
+Time per step 0.003s, net 8.201s
+
+[ 3451] loss: 0.034
+Time per step 0.003s, net 8.347s
+
+[ 3501] loss: 0.033
+Time per step 0.003s, net 8.490s
+
+[ 3551] loss: 0.033
+Time per step 0.002s, net 8.576s
+
+[ 3601] loss: 0.033
+Time per step 0.002s, net 8.672s
+
+[ 3651] loss: 0.033
+Time per step 0.002s, net 8.771s
+
+[ 3701] loss: 0.034
+Time per step 0.002s, net 8.878s
+
+[ 3751] loss: 0.034
+Time per step 0.002s, net 8.996s
+
+[ 3801] loss: 0.033
+Time per step 0.003s, net 9.128s
+
+[ 3851] loss: 0.034
+Time per step 0.002s, net 9.221s
+
+[ 3901] loss: 0.034
+Time per step 0.002s, net 9.320s
+
+[ 3951] loss: 0.034
+Time per step 0.003s, net 9.455s
+
+[ 4001] loss: 0.034
+Time per step 0.002s, net 9.540s
+
+[ 4051] loss: 0.034
+Time per step 0.003s, net 9.683s
+
+[ 4101] loss: 0.034
+Time per step 0.003s, net 9.820s
+
+[ 4151] loss: 0.034
+Time per step 0.003s, net 9.961s
+
+[ 4201] loss: 0.034
+Time per step 0.003s, net 10.102s
+
+[ 4251] loss: 0.034
+Time per step 0.003s, net 10.273s
+
+[ 4301] loss: 0.034
+Time per step 0.003s, net 10.421s
+
+[ 4351] loss: 0.034
+Time per step 0.003s, net 10.585s
+
+[ 4401] loss: 0.033
+Time per step 0.003s, net 10.749s
+
+[ 4451] loss: 0.035
+Time per step 0.003s, net 10.896s
+
+[ 4501] loss: 0.034
+Time per step 0.002s, net 10.989s
+
+[ 4551] loss: 0.033
+Time per step 0.002s, net 11.085s
+
+[ 4601] loss: 0.034
+Time per step 0.003s, net 11.248s
+
+[ 4651] loss: 0.033
+Time per step 0.003s, net 11.406s
+
+[ 4701] loss: 0.034
+Time per step 0.003s, net 11.550s
+
+[ 4751] loss: 0.034
+Time per step 0.002s, net 11.639s
+
+[ 4801] loss: 0.033
+Time per step 0.002s, net 11.729s
+
+[ 4851] loss: 0.033
+Time per step 0.002s, net 11.839s
+
+[ 4901] loss: 0.033
+Time per step 0.003s, net 11.973s
+
+[ 4951] loss: 0.034
+Time per step 0.002s, net 12.074s
+
+[ 5001] loss: 0.033
+Time per step 0.003s, net 12.206s
+
+[ 5051] loss: 0.033
+Time per step 0.003s, net 12.341s
+
+[ 5101] loss: 0.033
+Time per step 0.003s, net 12.480s
+
+[ 5151] loss: 0.033
+Time per step 0.003s, net 12.618s
+
+[ 5201] loss: 0.033
+Time per step 0.003s, net 12.750s
+
+[ 5251] loss: 0.033
+Time per step 0.002s, net 12.829s
+
+[ 5301] loss: 0.033
+Time per step 0.003s, net 12.961s
+
+[ 5351] loss: 0.033
+Time per step 0.002s, net 13.039s
+
+[ 5401] loss: 0.032
+Time per step 0.002s, net 13.137s
+
+[ 5451] loss: 0.032
+Time per step 0.002s, net 13.238s
+
+[ 5501] loss: 0.033
+Time per step 0.002s, net 13.342s
+
+[ 5551] loss: 0.032
+Time per step 0.002s, net 13.456s
+
+[ 5601] loss: 0.033
+Time per step 0.002s, net 13.567s
+
+[ 5651] loss: 0.032
+Time per step 0.002s, net 13.685s
+
+[ 5701] loss: 0.033
+Time per step 0.002s, net 13.807s
+
+[ 5751] loss: 0.033
+Time per step 0.003s, net 13.960s
+
+[ 5801] loss: 0.032
+Time per step 0.003s, net 14.119s
+
+[ 5851] loss: 0.032
+Time per step 0.003s, net 14.259s
+
+[ 5901] loss: 0.032
+Time per step 0.003s, net 14.399s
+
+[ 5951] loss: 0.032
+Time per step 0.003s, net 14.536s
+
+[ 6001] loss: 0.033
+Time per step 0.003s, net 14.674s
+
+[ 6051] loss: 0.032
+Time per step 0.003s, net 14.808s
+
+[ 6101] loss: 0.032
+Time per step 0.002s, net 14.890s
+
+[ 6151] loss: 0.033
+Time per step 0.002s, net 15.002s
+
+[ 6201] loss: 0.033
+Time per step 0.002s, net 15.102s
+
+[ 6251] loss: 0.032
+Time per step 0.002s, net 15.213s
+
+[ 6301] loss: 0.032
+Time per step 0.002s, net 15.337s
+
+[ 6351] loss: 0.031
+Time per step 0.003s, net 15.477s
+
+[ 6401] loss: 0.032
+Time per step 0.003s, net 15.619s
+
+[ 6451] loss: 0.032
+Time per step 0.003s, net 15.762s
+Finished Training
+
+
+[   51] loss: 0.037
+Time per step 0.001s, net 0.057s
+
+[  101] loss: 0.041
+Time per step 0.001s, net 0.123s
+
+[  151] loss: 0.037
+Time per step 0.002s, net 0.212s
+
+[  201] loss: 0.036
+Time per step 0.002s, net 0.311s
+
+[  251] loss: 0.032
+Time per step 0.002s, net 0.413s
+
+[  301] loss: 0.032
+Time per step 0.002s, net 0.519s
+
+[  351] loss: 0.034
+Time per step 0.002s, net 0.635s
+
+[  401] loss: 0.034
+Time per step 0.002s, net 0.747s
+
+[  451] loss: 0.034
+Time per step 0.002s, net 0.866s
+
+[  501] loss: 0.034
+Time per step 0.002s, net 0.985s
+
+[  551] loss: 0.033
+Time per step 0.003s, net 1.116s
+
+[  601] loss: 0.034
+Time per step 0.001s, net 1.191s
+
+[  651] loss: 0.033
+Time per step 0.003s, net 1.327s
+
+[  701] loss: 0.033
+Time per step 0.003s, net 1.460s
+
+[  751] loss: 0.033
+Time per step 0.003s, net 1.594s
+
+[  801] loss: 0.033
+Time per step 0.003s, net 1.725s
+
+[  851] loss: 0.034
+Time per step 0.003s, net 1.858s
+
+[  901] loss: 0.034
+Time per step 0.003s, net 1.994s
+
+[  951] loss: 0.033
+Time per step 0.003s, net 2.129s
+
+[ 1001] loss: 0.034
+Time per step 0.003s, net 2.265s
+
+[ 1051] loss: 0.033
+Time per step 0.003s, net 2.401s
+
+[ 1101] loss: 0.034
+Time per step 0.003s, net 2.534s
+
+[ 1151] loss: 0.034
+Time per step 0.002s, net 2.615s
+
+[ 1201] loss: 0.033
+Time per step 0.002s, net 2.701s
+
+[ 1251] loss: 0.033
+Time per step 0.002s, net 2.800s
+
+[ 1301] loss: 0.032
+Time per step 0.002s, net 2.913s
+
+[ 1351] loss: 0.032
+Time per step 0.002s, net 3.038s
+
+[ 1401] loss: 0.032
+Time per step 0.003s, net 3.173s
+
+[ 1451] loss: 0.031
+Time per step 0.003s, net 3.308s
+
+[ 1501] loss: 0.030
+Time per step 0.003s, net 3.447s
+
+[ 1551] loss: 0.031
+Time per step 0.003s, net 3.584s
+
+[ 1601] loss: 0.029
+Time per step 0.003s, net 3.721s
+
+[ 1651] loss: 0.029
+Time per step 0.003s, net 3.858s
+
+[ 1701] loss: 0.029
+Time per step 0.003s, net 3.995s
+
+[ 1751] loss: 0.030
+Time per step 0.003s, net 4.132s
+
+[ 1801] loss: 0.030
+Time per step 0.002s, net 4.210s
+
+[ 1851] loss: 0.029
+Time per step 0.002s, net 4.298s
+
+[ 1901] loss: 0.030
+Time per step 0.002s, net 4.386s
+
+[ 1951] loss: 0.030
+Time per step 0.002s, net 4.489s
+
+[ 2001] loss: 0.030
+Time per step 0.002s, net 4.596s
+
+[ 2051] loss: 0.029
+Time per step 0.002s, net 4.700s
+
+[ 2101] loss: 0.029
+Time per step 0.002s, net 4.812s
+
+[ 2151] loss: 0.028
+Time per step 0.002s, net 4.935s
+
+[ 2201] loss: 0.028
+Time per step 0.003s, net 5.064s
+
+[ 2251] loss: 0.028
+Time per step 0.003s, net 5.192s
+
+[ 2301] loss: 0.028
+Time per step 0.003s, net 5.320s
+
+[ 2351] loss: 0.028
+Time per step 0.003s, net 5.458s
+
+[ 2401] loss: 0.028
+Time per step 0.003s, net 5.597s
+
+[ 2451] loss: 0.028
+Time per step 0.003s, net 5.736s
+
+[ 2501] loss: 0.028
+Time per step 0.003s, net 5.875s
+
+[ 2551] loss: 0.028
+Time per step 0.003s, net 6.012s
+
+[ 2601] loss: 0.029
+Time per step 0.003s, net 6.150s
+
+[ 2651] loss: 0.028
+Time per step 0.003s, net 6.288s
+
+[ 2701] loss: 0.027
+Time per step 0.003s, net 6.426s
+
+[ 2751] loss: 0.028
+Time per step 0.003s, net 6.578s
+
+[ 2801] loss: 0.027
+Time per step 0.003s, net 6.717s
+
+[ 2851] loss: 0.028
+Time per step 0.003s, net 6.849s
+
+[ 2901] loss: 0.026
+Time per step 0.002s, net 6.930s
+
+[ 2951] loss: 0.026
+Time per step 0.004s, net 7.148s
+
+[ 3001] loss: 0.027
+Time per step 0.002s, net 7.234s
+
+[ 3051] loss: 0.026
+Time per step 0.002s, net 7.322s
+
+[ 3101] loss: 0.026
+Time per step 0.002s, net 7.408s
+
+[ 3151] loss: 0.027
+Time per step 0.003s, net 7.539s
+
+[ 3201] loss: 0.026
+Time per step 0.003s, net 7.675s
+
+[ 3251] loss: 0.027
+Time per step 0.003s, net 7.810s
+
+[ 3301] loss: 0.027
+Time per step 0.003s, net 7.944s
+
+[ 3351] loss: 0.026
+Time per step 0.001s, net 8.019s
+
+[ 3401] loss: 0.026
+Time per step 0.002s, net 8.107s
+
+[ 3451] loss: 0.026
+Time per step 0.002s, net 8.201s
+
+[ 3501] loss: 0.027
+Time per step 0.002s, net 8.298s
+
+[ 3551] loss: 0.027
+Time per step 0.002s, net 8.394s
+
+[ 3601] loss: 0.026
+Time per step 0.002s, net 8.492s
+
+[ 3651] loss: 0.026
+Time per step 0.002s, net 8.604s
+
+[ 3701] loss: 0.026
+Time per step 0.003s, net 8.739s
+
+[ 3751] loss: 0.026
+Time per step 0.002s, net 8.831s
+
+[ 3801] loss: 0.026
+Time per step 0.002s, net 8.929s
+
+[ 3851] loss: 0.027
+Time per step 0.002s, net 9.026s
+
+[ 3901] loss: 0.026
+Time per step 0.002s, net 9.128s
+
+[ 3951] loss: 0.027
+Time per step 0.002s, net 9.229s
+
+[ 4001] loss: 0.027
+Time per step 0.002s, net 9.335s
+
+[ 4051] loss: 0.026
+Time per step 0.002s, net 9.447s
+
+[ 4101] loss: 0.026
+Time per step 0.003s, net 9.585s
+
+[ 4151] loss: 0.026
+Time per step 0.003s, net 9.723s
+
+[ 4201] loss: 0.026
+Time per step 0.003s, net 9.865s
+
+[ 4251] loss: 0.026
+Time per step 0.003s, net 10.002s
+
+[ 4301] loss: 0.026
+Time per step 0.003s, net 10.164s
+
+[ 4351] loss: 0.026
+Time per step 0.003s, net 10.312s
+
+[ 4401] loss: 0.026
+Time per step 0.003s, net 10.446s
+
+[ 4451] loss: 0.026
+Time per step 0.002s, net 10.529s
+
+[ 4501] loss: 0.026
+Time per step 0.002s, net 10.633s
+
+[ 4551] loss: 0.026
+Time per step 0.002s, net 10.738s
+
+[ 4601] loss: 0.026
+Time per step 0.002s, net 10.849s
+
+[ 4651] loss: 0.025
+Time per step 0.002s, net 10.974s
+
+[ 4701] loss: 0.026
+Time per step 0.003s, net 11.107s
+
+[ 4751] loss: 0.026
+Time per step 0.003s, net 11.244s
+
+[ 4801] loss: 0.025
+Time per step 0.003s, net 11.381s
+
+[ 4851] loss: 0.026
+Time per step 0.003s, net 11.538s
+
+[ 4901] loss: 0.027
+Time per step 0.003s, net 11.688s
+
+[ 4951] loss: 0.026
+Time per step 0.003s, net 11.837s
+
+[ 5001] loss: 0.026
+Time per step 0.002s, net 11.920s
+
+[ 5051] loss: 0.026
+Time per step 0.002s, net 12.011s
+
+[ 5101] loss: 0.025
+Time per step 0.002s, net 12.106s
+
+[ 5151] loss: 0.026
+Time per step 0.002s, net 12.206s
+
+[ 5201] loss: 0.026
+Time per step 0.002s, net 12.310s
+
+[ 5251] loss: 0.027
+Time per step 0.003s, net 12.456s
+
+[ 5301] loss: 0.026
+Time per step 0.002s, net 12.579s
+
+[ 5351] loss: 0.026
+Time per step 0.002s, net 12.704s
+
+[ 5401] loss: 0.027
+Time per step 0.002s, net 12.828s
+
+[ 5451] loss: 0.026
+Time per step 0.002s, net 12.950s
+
+[ 5501] loss: 0.027
+Time per step 0.002s, net 13.074s
+
+[ 5551] loss: 0.026
+Time per step 0.003s, net 13.209s
+
+[ 5601] loss: 0.026
+Time per step 0.003s, net 13.350s
+
+[ 5651] loss: 0.026
+Time per step 0.003s, net 13.498s
+
+[ 5701] loss: 0.026
+Time per step 0.003s, net 13.644s
+
+[ 5751] loss: 0.026
+Time per step 0.003s, net 13.783s
+
+[ 5801] loss: 0.025
+Time per step 0.003s, net 13.916s
+
+[ 5851] loss: 0.026
+Time per step 0.002s, net 13.994s
+
+[ 5901] loss: 0.025
+Time per step 0.002s, net 14.080s
+
+[ 5951] loss: 0.026
+Time per step 0.002s, net 14.192s
+
+[ 6001] loss: 0.026
+Time per step 0.003s, net 14.322s
+
+[ 6051] loss: 0.026
+Time per step 0.003s, net 14.451s
+
+[ 6101] loss: 0.025
+Time per step 0.003s, net 14.585s
+
+[ 6151] loss: 0.025
+Time per step 0.003s, net 14.724s
+
+[ 6201] loss: 0.025
+Time per step 0.003s, net 14.863s
+
+[ 6251] loss: 0.026
+Time per step 0.002s, net 14.940s
+
+[ 6301] loss: 0.026
+Time per step 0.002s, net 15.032s
+
+[ 6351] loss: 0.024
+Time per step 0.002s, net 15.130s
+
+[ 6401] loss: 0.025
+Time per step 0.003s, net 15.271s
+
+[ 6451] loss: 0.025
+Time per step 0.003s, net 15.418s
+Finished Training
+
+
+[   51] loss: 0.045
+Time per step 0.001s, net 0.059s
+
+[  101] loss: 0.054
+Time per step 0.002s, net 0.141s
+
+[  151] loss: 0.052
+Time per step 0.002s, net 0.228s
+
+[  201] loss: 0.047
+Time per step 0.002s, net 0.315s
+
+[  251] loss: 0.043
+Time per step 0.003s, net 0.479s
+
+[  301] loss: 0.041
+Time per step 0.003s, net 0.625s
+
+[  351] loss: 0.041
+Time per step 0.002s, net 0.712s
+
+[  401] loss: 0.040
+Time per step 0.003s, net 0.851s
+
+[  451] loss: 0.038
+Time per step 0.003s, net 0.995s
+
+[  501] loss: 0.038
+Time per step 0.002s, net 1.106s
+
+[  551] loss: 0.037
+Time per step 0.002s, net 1.226s
+
+[  601] loss: 0.037
+Time per step 0.002s, net 1.348s
+
+[  651] loss: 0.036
+Time per step 0.003s, net 1.476s
+
+[  701] loss: 0.035
+Time per step 0.002s, net 1.598s
+
+[  751] loss: 0.035
+Time per step 0.003s, net 1.728s
+
+[  801] loss: 0.033
+Time per step 0.003s, net 1.862s
+
+[  851] loss: 0.032
+Time per step 0.003s, net 1.999s
+
+[  901] loss: 0.031
+Time per step 0.002s, net 2.078s
+
+[  951] loss: 0.030
+Time per step 0.002s, net 2.175s
+
+[ 1001] loss: 0.028
+Time per step 0.002s, net 2.277s
+
+[ 1051] loss: 0.028
+Time per step 0.002s, net 2.378s
+
+[ 1101] loss: 0.028
+Time per step 0.002s, net 2.498s
+
+[ 1151] loss: 0.028
+Time per step 0.002s, net 2.618s
+
+[ 1201] loss: 0.027
+Time per step 0.002s, net 2.742s
+
+[ 1251] loss: 0.027
+Time per step 0.003s, net 2.867s
+
+[ 1301] loss: 0.027
+Time per step 0.003s, net 3.005s
+
+[ 1351] loss: 0.027
+Time per step 0.003s, net 3.151s
+
+[ 1401] loss: 0.027
+Time per step 0.003s, net 3.291s
+
+[ 1451] loss: 0.028
+Time per step 0.002s, net 3.371s
+
+[ 1501] loss: 0.028
+Time per step 0.002s, net 3.464s
+
+[ 1551] loss: 0.028
+Time per step 0.002s, net 3.581s
+
+[ 1601] loss: 0.029
+Time per step 0.002s, net 3.701s
+
+[ 1651] loss: 0.028
+Time per step 0.002s, net 3.816s
+
+[ 1701] loss: 0.028
+Time per step 0.002s, net 3.927s
+
+[ 1751] loss: 0.028
+Time per step 0.001s, net 4.001s
+
+[ 1801] loss: 0.028
+Time per step 0.001s, net 4.070s
+
+[ 1851] loss: 0.028
+Time per step 0.002s, net 4.158s
+
+[ 1901] loss: 0.028
+Time per step 0.002s, net 4.252s
+
+[ 1951] loss: 0.028
+Time per step 0.002s, net 4.352s
+
+[ 2001] loss: 0.027
+Time per step 0.002s, net 4.458s
+
+[ 2051] loss: 0.029
+Time per step 0.002s, net 4.570s
+
+[ 2101] loss: 0.028
+Time per step 0.003s, net 4.705s
+
+[ 2151] loss: 0.028
+Time per step 0.003s, net 4.843s
+
+[ 2201] loss: 0.028
+Time per step 0.003s, net 4.994s
+
+[ 2251] loss: 0.028
+Time per step 0.003s, net 5.136s
+
+[ 2301] loss: 0.027
+Time per step 0.003s, net 5.276s
+
+[ 2351] loss: 0.028
+Time per step 0.003s, net 5.412s
+
+[ 2401] loss: 0.028
+Time per step 0.001s, net 5.480s
+
+[ 2451] loss: 0.028
+Time per step 0.004s, net 5.671s
+
+[ 2501] loss: 0.028
+Time per step 0.003s, net 5.812s
+
+[ 2551] loss: 0.027
+Time per step 0.003s, net 5.952s
+
+[ 2601] loss: 0.028
+Time per step 0.003s, net 6.095s
+
+[ 2651] loss: 0.028
+Time per step 0.003s, net 6.237s
+
+[ 2701] loss: 0.027
+Time per step 0.003s, net 6.380s
+
+[ 2751] loss: 0.028
+Time per step 0.003s, net 6.528s
+
+[ 2801] loss: 0.028
+Time per step 0.003s, net 6.667s
+
+[ 2851] loss: 0.028
+Time per step 0.003s, net 6.805s
+
+[ 2901] loss: 0.029
+Time per step 0.003s, net 6.939s
+
+[ 2951] loss: 0.029
+Time per step 0.002s, net 7.030s
+
+[ 3001] loss: 0.029
+Time per step 0.002s, net 7.153s
+
+[ 3051] loss: 0.028
+Time per step 0.003s, net 7.280s
+
+[ 3101] loss: 0.029
+Time per step 0.003s, net 7.438s
+
+[ 3151] loss: 0.029
+Time per step 0.002s, net 7.524s
+
+[ 3201] loss: 0.028
+Time per step 0.002s, net 7.625s
+
+[ 3251] loss: 0.028
+Time per step 0.002s, net 7.731s
+
+[ 3301] loss: 0.027
+Time per step 0.003s, net 7.876s
+
+[ 3351] loss: 0.027
+Time per step 0.002s, net 7.957s
+
+[ 3401] loss: 0.028
+Time per step 0.002s, net 8.065s
+
+[ 3451] loss: 0.027
+Time per step 0.002s, net 8.183s
+
+[ 3501] loss: 0.027
+Time per step 0.003s, net 8.311s
+
+[ 3551] loss: 0.028
+Time per step 0.003s, net 8.452s
+
+[ 3601] loss: 0.027
+Time per step 0.003s, net 8.595s
+
+[ 3651] loss: 0.026
+Time per step 0.003s, net 8.729s
+
+[ 3701] loss: 0.027
+Time per step 0.002s, net 8.814s
+
+[ 3751] loss: 0.027
+Time per step 0.002s, net 8.907s
+
+[ 3801] loss: 0.027
+Time per step 0.002s, net 9.001s
+
+[ 3851] loss: 0.027
+Time per step 0.002s, net 9.100s
+
+[ 3901] loss: 0.027
+Time per step 0.002s, net 9.220s
+
+[ 3951] loss: 0.027
+Time per step 0.003s, net 9.354s
+
+[ 4001] loss: 0.027
+Time per step 0.003s, net 9.489s
+
+[ 4051] loss: 0.027
+Time per step 0.003s, net 9.630s
+
+[ 4101] loss: 0.028
+Time per step 0.003s, net 9.775s
+
+[ 4151] loss: 0.028
+Time per step 0.003s, net 9.921s
+
+[ 4201] loss: 0.028
+Time per step 0.002s, net 10.003s
+
+[ 4251] loss: 0.028
+Time per step 0.002s, net 10.104s
+
+[ 4301] loss: 0.028
+Time per step 0.002s, net 10.215s
+
+[ 4351] loss: 0.028
+Time per step 0.002s, net 10.325s
+
+[ 4401] loss: 0.028
+Time per step 0.002s, net 10.441s
+
+[ 4451] loss: 0.028
+Time per step 0.003s, net 10.569s
+
+[ 4501] loss: 0.028
+Time per step 0.003s, net 10.700s
+
+[ 4551] loss: 0.028
+Time per step 0.003s, net 10.858s
+
+[ 4601] loss: 0.028
+Time per step 0.003s, net 11.003s
+
+[ 4651] loss: 0.028
+Time per step 0.002s, net 11.089s
+
+[ 4701] loss: 0.029
+Time per step 0.002s, net 11.196s
+
+[ 4751] loss: 0.029
+Time per step 0.002s, net 11.305s
+
+[ 4801] loss: 0.029
+Time per step 0.002s, net 11.421s
+
+[ 4851] loss: 0.028
+Time per step 0.002s, net 11.540s
+
+[ 4901] loss: 0.029
+Time per step 0.003s, net 11.665s
+
+[ 4951] loss: 0.029
+Time per step 0.003s, net 11.793s
+
+[ 5001] loss: 0.029
+Time per step 0.003s, net 11.924s
+
+[ 5051] loss: 0.028
+Time per step 0.003s, net 12.063s
+
+[ 5101] loss: 0.029
+Time per step 0.003s, net 12.217s
+
+[ 5151] loss: 0.028
+Time per step 0.003s, net 12.372s
+
+[ 5201] loss: 0.028
+Time per step 0.003s, net 12.512s
+
+[ 5251] loss: 0.028
+Time per step 0.002s, net 12.595s
+
+[ 5301] loss: 0.029
+Time per step 0.002s, net 12.693s
+
+[ 5351] loss: 0.029
+Time per step 0.002s, net 12.798s
+
+[ 5401] loss: 0.029
+Time per step 0.002s, net 12.921s
+
+[ 5451] loss: 0.029
+Time per step 0.002s, net 13.007s
+
+[ 5501] loss: 0.029
+Time per step 0.002s, net 13.101s
+
+[ 5551] loss: 0.029
+Time per step 0.002s, net 13.195s
+
+[ 5601] loss: 0.029
+Time per step 0.002s, net 13.295s
+
+[ 5651] loss: 0.028
+Time per step 0.003s, net 13.430s
+
+[ 5701] loss: 0.029
+Time per step 0.002s, net 13.539s
+
+[ 5751] loss: 0.029
+Time per step 0.003s, net 13.684s
+
+[ 5801] loss: 0.028
+Time per step 0.003s, net 13.849s
+
+[ 5851] loss: 0.029
+Time per step 0.003s, net 13.995s
+
+[ 5901] loss: 0.030
+Time per step 0.003s, net 14.134s
+
+[ 5951] loss: 0.030
+Time per step 0.002s, net 14.219s
+
+[ 6001] loss: 0.029
+Time per step 0.002s, net 14.319s
+
+[ 6051] loss: 0.029
+Time per step 0.002s, net 14.423s
+
+[ 6101] loss: 0.030
+Time per step 0.002s, net 14.533s
+
+[ 6151] loss: 0.030
+Time per step 0.002s, net 14.652s
+
+[ 6201] loss: 0.031
+Time per step 0.003s, net 14.798s
+
+[ 6251] loss: 0.030
+Time per step 0.003s, net 14.945s
+
+[ 6301] loss: 0.030
+Time per step 0.003s, net 15.088s
+
+[ 6351] loss: 0.031
+Time per step 0.003s, net 15.235s
+
+[ 6401] loss: 0.029
+Time per step 0.001s, net 15.309s
+
+[ 6451] loss: 0.029
+Time per step 0.002s, net 15.412s
+Finished Training
+
+
+[   51] loss: 0.044
+Time per step 0.001s, net 0.061s
+
+[  101] loss: 0.039
+Time per step 0.002s, net 0.142s
+
+[  151] loss: 0.037
+Time per step 0.002s, net 0.227s
+
+[  201] loss: 0.036
+Time per step 0.002s, net 0.316s
+
+[  251] loss: 0.038
+Time per step 0.002s, net 0.408s
+
+[  301] loss: 0.039
+Time per step 0.002s, net 0.513s
+
+[  351] loss: 0.039
+Time per step 0.002s, net 0.628s
+
+[  401] loss: 0.039
+Time per step 0.002s, net 0.746s
+
+[  451] loss: 0.040
+Time per step 0.003s, net 0.877s
+
+[  501] loss: 0.041
+Time per step 0.003s, net 1.016s
+
+[  551] loss: 0.040
+Time per step 0.003s, net 1.154s
+
+[  601] loss: 0.041
+Time per step 0.003s, net 1.295s
+
+[  651] loss: 0.041
+Time per step 0.003s, net 1.437s
+
+[  701] loss: 0.040
+Time per step 0.003s, net 1.572s
+
+[  751] loss: 0.041
+Time per step 0.002s, net 1.655s
+
+[  801] loss: 0.041
+Time per step 0.002s, net 1.747s
+
+[  851] loss: 0.041
+Time per step 0.002s, net 1.843s
+
+[  901] loss: 0.041
+Time per step 0.002s, net 1.944s
+
+[  951] loss: 0.040
+Time per step 0.002s, net 2.061s
+
+[ 1001] loss: 0.039
+Time per step 0.002s, net 2.185s
+
+[ 1051] loss: 0.039
+Time per step 0.003s, net 2.333s
+
+[ 1101] loss: 0.039
+Time per step 0.002s, net 2.417s
+
+[ 1151] loss: 0.038
+Time per step 0.002s, net 2.507s
+
+[ 1201] loss: 0.037
+Time per step 0.002s, net 2.605s
+
+[ 1251] loss: 0.038
+Time per step 0.002s, net 2.710s
+
+[ 1301] loss: 0.038
+Time per step 0.002s, net 2.816s
+
+[ 1351] loss: 0.037
+Time per step 0.002s, net 2.937s
+
+[ 1401] loss: 0.037
+Time per step 0.003s, net 3.065s
+
+[ 1451] loss: 0.036
+Time per step 0.003s, net 3.200s
+
+[ 1501] loss: 0.037
+Time per step 0.003s, net 3.337s
+
+[ 1551] loss: 0.036
+Time per step 0.003s, net 3.475s
+
+[ 1601] loss: 0.037
+Time per step 0.003s, net 3.609s
+
+[ 1651] loss: 0.036
+Time per step 0.002s, net 3.692s
+
+[ 1701] loss: 0.036
+Time per step 0.002s, net 3.787s
+
+[ 1751] loss: 0.036
+Time per step 0.002s, net 3.888s
+
+[ 1801] loss: 0.035
+Time per step 0.002s, net 3.991s
+
+[ 1851] loss: 0.036
+Time per step 0.002s, net 4.106s
+
+[ 1901] loss: 0.035
+Time per step 0.002s, net 4.225s
+
+[ 1951] loss: 0.034
+Time per step 0.002s, net 4.350s
+
+[ 2001] loss: 0.035
+Time per step 0.002s, net 4.432s
+
+[ 2051] loss: 0.034
+Time per step 0.002s, net 4.530s
+
+[ 2101] loss: 0.035
+Time per step 0.002s, net 4.637s
+
+[ 2151] loss: 0.035
+Time per step 0.003s, net 4.763s
+
+[ 2201] loss: 0.034
+Time per step 0.002s, net 4.843s
+
+[ 2251] loss: 0.034
+Time per step 0.002s, net 4.945s
+
+[ 2301] loss: 0.034
+Time per step 0.002s, net 5.052s
+
+[ 2351] loss: 0.033
+Time per step 0.002s, net 5.157s
+
+[ 2401] loss: 0.033
+Time per step 0.002s, net 5.269s
+
+[ 2451] loss: 0.033
+Time per step 0.003s, net 5.395s
+
+[ 2501] loss: 0.033
+Time per step 0.003s, net 5.523s
+
+[ 2551] loss: 0.033
+Time per step 0.003s, net 5.663s
+
+[ 2601] loss: 0.033
+Time per step 0.003s, net 5.806s
+
+[ 2651] loss: 0.033
+Time per step 0.003s, net 5.942s
+
+[ 2701] loss: 0.033
+Time per step 0.002s, net 6.026s
+
+[ 2751] loss: 0.033
+Time per step 0.002s, net 6.119s
+
+[ 2801] loss: 0.033
+Time per step 0.002s, net 6.216s
+
+[ 2851] loss: 0.033
+Time per step 0.002s, net 6.312s
+
+[ 2901] loss: 0.032
+Time per step 0.002s, net 6.420s
+
+[ 2951] loss: 0.032
+Time per step 0.003s, net 6.552s
+
+[ 3001] loss: 0.033
+Time per step 0.003s, net 6.686s
+
+[ 3051] loss: 0.032
+Time per step 0.002s, net 6.768s
+
+[ 3101] loss: 0.033
+Time per step 0.002s, net 6.863s
+
+[ 3151] loss: 0.033
+Time per step 0.002s, net 6.959s
+
+[ 3201] loss: 0.032
+Time per step 0.002s, net 7.067s
+
+[ 3251] loss: 0.033
+Time per step 0.002s, net 7.181s
+
+[ 3301] loss: 0.032
+Time per step 0.002s, net 7.301s
+
+[ 3351] loss: 0.033
+Time per step 0.003s, net 7.443s
+
+[ 3401] loss: 0.033
+Time per step 0.003s, net 7.584s
+
+[ 3451] loss: 0.032
+Time per step 0.003s, net 7.728s
+
+[ 3501] loss: 0.034
+Time per step 0.003s, net 7.871s
+
+[ 3551] loss: 0.033
+Time per step 0.003s, net 8.020s
+
+[ 3601] loss: 0.033
+Time per step 0.003s, net 8.166s
+
+[ 3651] loss: 0.033
+Time per step 0.003s, net 8.308s
+
+[ 3701] loss: 0.033
+Time per step 0.002s, net 8.401s
+
+[ 3751] loss: 0.033
+Time per step 0.002s, net 8.505s
+
+[ 3801] loss: 0.032
+Time per step 0.002s, net 8.611s
+
+[ 3851] loss: 0.033
+Time per step 0.002s, net 8.719s
+
+[ 3901] loss: 0.033
+Time per step 0.002s, net 8.832s
+
+[ 3951] loss: 0.032
+Time per step 0.002s, net 8.942s
+
+[ 4001] loss: 0.033
+Time per step 0.002s, net 9.050s
+
+[ 4051] loss: 0.033
+Time per step 0.003s, net 9.184s
+
+[ 4101] loss: 0.032
+Time per step 0.003s, net 9.326s
+
+[ 4151] loss: 0.033
+Time per step 0.003s, net 9.464s
+
+[ 4201] loss: 0.032
+Time per step 0.002s, net 9.547s
+
+[ 4251] loss: 0.033
+Time per step 0.002s, net 9.635s
+
+[ 4301] loss: 0.033
+Time per step 0.002s, net 9.757s
+
+[ 4351] loss: 0.032
+Time per step 0.003s, net 9.898s
+
+[ 4401] loss: 0.034
+Time per step 0.002s, net 9.977s
+
+[ 4451] loss: 0.033
+Time per step 0.002s, net 10.062s
+
+[ 4501] loss: 0.033
+Time per step 0.002s, net 10.171s
+
+[ 4551] loss: 0.033
+Time per step 0.002s, net 10.281s
+
+[ 4601] loss: 0.032
+Time per step 0.002s, net 10.392s
+
+[ 4651] loss: 0.033
+Time per step 0.002s, net 10.503s
+
+[ 4701] loss: 0.033
+Time per step 0.002s, net 10.614s
+
+[ 4751] loss: 0.033
+Time per step 0.002s, net 10.723s
+
+[ 4801] loss: 0.034
+Time per step 0.002s, net 10.841s
+
+[ 4851] loss: 0.033
+Time per step 0.003s, net 10.968s
+
+[ 4901] loss: 0.032
+Time per step 0.003s, net 11.102s
+
+[ 4951] loss: 0.033
+Time per step 0.003s, net 11.247s
+
+[ 5001] loss: 0.034
+Time per step 0.003s, net 11.395s
+
+[ 5051] loss: 0.034
+Time per step 0.003s, net 11.545s
+
+[ 5101] loss: 0.033
+Time per step 0.003s, net 11.690s
+
+[ 5151] loss: 0.034
+Time per step 0.003s, net 11.830s
+
+[ 5201] loss: 0.033
+Time per step 0.002s, net 11.911s
+
+[ 5251] loss: 0.033
+Time per step 0.002s, net 12.012s
+
+[ 5301] loss: 0.033
+Time per step 0.002s, net 12.125s
+
+[ 5351] loss: 0.033
+Time per step 0.002s, net 12.244s
+
+[ 5401] loss: 0.033
+Time per step 0.002s, net 12.367s
+
+[ 5451] loss: 0.032
+Time per step 0.003s, net 12.506s
+
+[ 5501] loss: 0.033
+Time per step 0.003s, net 12.649s
+
+[ 5551] loss: 0.033
+Time per step 0.003s, net 12.783s
+
+[ 5601] loss: 0.033
+Time per step 0.002s, net 12.864s
+
+[ 5651] loss: 0.033
+Time per step 0.002s, net 12.962s
+
+[ 5701] loss: 0.032
+Time per step 0.002s, net 13.076s
+
+[ 5751] loss: 0.032
+Time per step 0.002s, net 13.189s
+
+[ 5801] loss: 0.033
+Time per step 0.002s, net 13.305s
+
+[ 5851] loss: 0.033
+Time per step 0.002s, net 13.421s
+
+[ 5901] loss: 0.032
+Time per step 0.002s, net 13.536s
+
+[ 5951] loss: 0.033
+Time per step 0.002s, net 13.652s
+
+[ 6001] loss: 0.032
+Time per step 0.003s, net 13.780s
+
+[ 6051] loss: 0.032
+Time per step 0.003s, net 13.920s
+
+[ 6101] loss: 0.031
+Time per step 0.003s, net 14.068s
+
+[ 6151] loss: 0.033
+Time per step 0.002s, net 14.144s
+
+[ 6201] loss: 0.033
+Time per step 0.002s, net 14.259s
+
+[ 6251] loss: 0.033
+Time per step 0.002s, net 14.361s
+
+[ 6301] loss: 0.033
+Time per step 0.002s, net 14.470s
+
+[ 6351] loss: 0.033
+Time per step 0.002s, net 14.582s
+
+[ 6401] loss: 0.032
+Time per step 0.002s, net 14.704s
+
+[ 6451] loss: 0.033
+Time per step 0.002s, net 14.824s
+Finished Training
+
+
+[   51] loss: 0.016
+Time per step 0.031s, net 1.568s
+
+[  101] loss: 0.013
+Time per step 0.034s, net 3.285s
+
+[  151] loss: 0.016
+Time per step 0.034s, net 4.987s
+
+[  201] loss: 0.015
+Time per step 0.034s, net 6.692s
+
+[  251] loss: 0.015
+Time per step 0.036s, net 8.506s
+
+[  301] loss: 0.018
+Time per step 0.036s, net 10.310s
+
+[  351] loss: 0.018
+Time per step 0.034s, net 11.988s
+
+[  401] loss: 0.017
+Time per step 0.034s, net 13.664s
+
+[  451] loss: 0.017
+Time per step 0.033s, net 15.334s
+
+[  501] loss: 0.016
+Time per step 0.034s, net 17.037s
+
+[  551] loss: 0.016
+Time per step 0.033s, net 18.700s
+
+[  601] loss: 0.016
+Time per step 0.036s, net 20.498s
+
+[  651] loss: 0.017
+Time per step 0.043s, net 22.639s
+
+[  701] loss: 0.018
+Time per step 0.046s, net 24.936s
+
+[  751] loss: 0.017
+Time per step 0.045s, net 27.199s
+
+[  801] loss: 0.016
+Time per step 0.048s, net 29.595s
+
+[  851] loss: 0.017
+Time per step 0.049s, net 32.041s
+
+[  901] loss: 0.017
+Time per step 0.041s, net 34.111s
+
+[  951] loss: 0.016
+Time per step 0.045s, net 36.383s
+
+[ 1001] loss: 0.016
+Time per step 0.041s, net 38.452s
+
+[ 1051] loss: 0.016
+Time per step 0.052s, net 41.067s
+
+[ 1101] loss: 0.016
+Time per step 0.043s, net 43.210s
+
+[ 1151] loss: 0.016
+Time per step 0.043s, net 45.364s
+
+[ 1201] loss: 0.017
+Time per step 0.041s, net 47.435s
+
+[ 1251] loss: 0.017
+Time per step 0.042s, net 49.539s
+
+[ 1301] loss: 0.017
+Time per step 0.042s, net 51.663s
+
+[ 1351] loss: 0.018
+Time per step 0.044s, net 53.849s
+
+[ 1401] loss: 0.018
+Time per step 0.043s, net 56.008s
+
+[ 1451] loss: 0.018
+Time per step 0.044s, net 58.219s
+
+[ 1501] loss: 0.019
+Time per step 0.044s, net 60.441s
+
+[ 1551] loss: 0.019
+Time per step 0.044s, net 62.639s
+
+[ 1601] loss: 0.019
+Time per step 0.044s, net 64.821s
+
+[ 1651] loss: 0.018
+Time per step 0.043s, net 66.989s
+
+[ 1701] loss: 0.018
+Time per step 0.043s, net 69.147s
+
+[ 1751] loss: 0.018
+Time per step 0.044s, net 71.333s
+
+[ 1801] loss: 0.018
+Time per step 0.045s, net 73.561s
+
+[ 1851] loss: 0.019
+Time per step 0.044s, net 75.782s
+
+[ 1901] loss: 0.019
+Time per step 0.045s, net 78.010s
+
+[ 1951] loss: 0.020
+Time per step 0.048s, net 80.434s
+
+[ 2001] loss: 0.020
+Time per step 0.045s, net 82.679s
+
+[ 2051] loss: 0.020
+Time per step 0.045s, net 84.944s
+
+[ 2101] loss: 0.020
+Time per step 0.045s, net 87.200s
+
+[ 2151] loss: 0.019
+Time per step 0.046s, net 89.480s
+
+[ 2201] loss: 0.020
+Time per step 0.046s, net 91.781s
+
+[ 2251] loss: 0.019
+Time per step 0.045s, net 94.055s
+
+[ 2301] loss: 0.018
+Time per step 0.046s, net 96.353s
+
+[ 2351] loss: 0.019
+Time per step 0.045s, net 98.622s
+
+[ 2401] loss: 0.019
+Time per step 0.048s, net 101.028s
+
+[ 2451] loss: 0.019
+Time per step 0.045s, net 103.276s
+
+[ 2501] loss: 0.019
+Time per step 0.046s, net 105.584s
+
+[ 2551] loss: 0.018
+Time per step 0.045s, net 1[ 2551] l[ 2601] loss: 0.018
+Time per step 0.046s, net 1[ 2601] l[ 2651] loss: 0.018
+Time per step 0.045s, net 1[ 2651] l[ 2701] loss: 0.018
+Time per step 0.045s, net 1[ 2701] l[ 2751] loss: 0.019
+Time per step 0.046s, net 1[ 2751] l[ 2801] loss: 0.018
+Time per step 0.046s, net 1[ 2801] l[ 2851] loss: 0.019
+Time per step 0.048s, net 1[ 2851] l[ 2901] loss: 0.020
+Time per step 0.046s, net 1[ 2901] l[ 2951] loss: 0.020
+Time per step 0.045s, net 1[ 2951] l[ 3001] loss: 0.019
+Time per step 0.046s, net 1[ 3001] l[ 3051] loss: 0.019
+Time per step 0.046s, net 1[ 3051] l[ 3101] loss: 0.019
+Time per step 0.053s, net 1[ 3101] l[ 3151] loss: 0.019
+Time per step 0.048s, net 1[ 3151] l[ 3201] loss: 0.019
+Time per step 0.048s, net 1[ 3201] loss: 0.027
+Time per step 0.048s, net 153.491s
+
+[ 3251] loss: 0.027
+Time per step 0.054s, net 156.168s
+
+[ 3301] loss: 0.027
+Time per step 0.055s, net 158.903s
+
+[ 3351] loss: 0.027
+Time per step 0.052s, net 161.500s
+
+[ 3401] loss: 0.026
+Time per step 0.049s, net 163.935s
+
+[ 3451] loss: 0.027
+Time per step 0.048s, net 166.310s
+
+[ 3501] loss: 0.027
+Time per step 0.052s, net 168.918s
+
+[ 3551] loss: 0.027
+Time per step 0.050s, net 171.396s
+
+[ 3601] loss: 0.027
+Time per step 0.051s, net 173.924s
+
+[ 3651] loss: 0.026
+Time per step 0.048s, net 176.334s
+
+[ 3701] loss: 0.028
+Time per step 0.048s, net 178.747s
+
+[ 3751] loss: 0.027
+Time per step 0.048s, net 181.134s
+
+[ 3801] loss: 0.027
+Time per step 0.054s, net 183.847s
+
+[ 3851] loss: 0.027
+Time per step 0.051s, net 186.391s
+
+[ 3901] loss: 0.028
+Time per step 0.053s, net 189.033s
+
+[ 3951] loss: 0.027
+Time per step 0.051s, net 191.562s
+
+[ 4001] loss: 0.027
+Time per step 0.048s, net 193.959s
+
+[ 4051] loss: 0.028
+Time per step 0.048s, net 196.346s
+
+[ 4101] loss: 0.028
+Time per step 0.049s, net 198.818s
+
+[ 4151] loss: 0.029
+Time per step 0.047s, net 201.157s
+
+[ 4201] loss: 0.028
+Time per step 0.047s, net 203.503s
+
+[ 4251] loss: 0.028
+Time per step 0.046s, net 205.818s
+
+[ 4301] loss: 0.028
+Time per step 0.046s, net 208.135s
+
+[ 4351] loss: 0.028
+Time per step 0.047s, net 210.497s
+
+[ 4401] loss: 0.027
+Time per step 0.045s, net 212.758s
+
+[ 4451] loss: 0.027
+Time per step 0.046s, net 215.040s
+
+[ 4501] loss: 0.028
+Time per step 0.050s, net 217.515s
+
+[ 4551] loss: 0.027
+Time per step 0.048s, net 219.914s
+
+[ 4601] loss: 0.027
+Time per step 0.048s, net 222.304s
+
+[ 4651] loss: 0.028
+Time per step 0.048s, net 224.688s
+
+[ 4701] loss: 0.028
+Time per step 0.050s, net 227.203s
+
+[ 4751] loss: 0.027
+Time per step 0.047s, net 229.574s
+
+[ 4801] loss: 0.027
+Time per step 0.051s, net 232.144s
+
+[ 4851] loss: 0.027
+Time per step 0.048s, net 234.542s
+
+[ 4901] loss: 0.026
+Time per step 0.046s, net 236.832s
+
+[ 4951] loss: 0.027
+Time per step 0.046s, net 239.125s
+
+[ 5001] loss: 0.026
+Time per step 0.052s, net 241.737s
+
+[ 5051] loss: 0.027
+Time per step 0.049s, net 244.183s
+
+[ 5101] loss: 0.026
+Time per step 0.051s, net 246.715s
+
+[ 5151] loss: 0.027
+Time per step 0.048s, net 249.093s
+
+[ 5201] loss: 0.027
+Time per step 0.047s, net 251.468s
+
+[ 5251] loss: 0.027
+Time per step 0.047s, net 253.817s
+
+[ 5301] loss: 0.028
+Time per step 0.047s, net 256.179s
+
+[ 5351] loss: 0.027
+Time per step 0.047s, net 258.526s
+
+[ 5401] loss: 0.027
+Time per step 0.047s, net 260.897s
+
+[ 5451] loss: 0.027
+Time per step 0.047s, net 263.257s
+
+[ 5501] loss: 0.026
+Time per step 0.047s, net 265.630s
+
+[ 5551] loss: 0.027
+Time per step 0.048s, net 268.013s
+
+[ 5601] loss: 0.027
+Time per step 0.047s, net 270.361s
+
+[ 5651] loss: 0.027
+Time per step 0.047s, net 272.717s
+
+[ 5701] loss: 0.027
+Time per step 0.049s, net 275.171s
+
+[ 5751] loss: 0.028
+Time per step 0.048s, net 277.584s
+
+[ 5801] loss: 0.027
+Time per step 0.050s, net 280.061s
+
+[ 5851] loss: 0.026
+Time per step 0.046s, net 282.362s
+
+[ 5901] loss: 0.027
+Time per step 0.049s, net 284.822s
+
+[ 5951] loss: 0.027
+Time per step 0.050s, net 287.312s
+
+[ 6001] loss: 0.028
+Time per step 0.047s, net 289.649s
+
+[ 6051] loss: 0.027
+Time per step 0.049s, net 292.112s
+
+[ 6101] loss: 0.027
+Time per step 0.049s, net 294.583s
+
+[ 6151] loss: 0.027
+Time per step 0.046s, net 296.904s
+
+[ 6201] loss: 0.027
+Time per step 0.054s, net 299.595s
+
+[ 6251] loss: 0.028
+Time per step 0.050s, net 302.072s
+
+[ 6301] loss: 0.027
+Time per step 0.048s, net 304.497s
+
+[ 6351] loss: 0.028
+Time per step 0.049s, net 306.966s
+
+[ 6401] loss: 0.028
+Time per step 0.049s, net 309.440s
+
+[ 6451] loss: 0.028
+Time per step 0.047s, net 311.812s
+Finished Training
+
+
+[   51] loss: 0.025
+Time per step 0.030s, net 1.497s
+
+[  101] loss: 0.017
+Time per step 0.035s, net 3.255s
+
+[  151] loss: 0.020
+Time per step 0.032s, net 4.876s
+
+[  201] loss: 0.024
+Time per step 0.031s, net 6.425s
+
+[  251] loss: 0.019
+Time per step 0.031s, net 7.979s
+
+[  301] loss: 0.022
+Time per step 0.031s, net 9.531s
+
+[  351] loss: 0.023
+Time per step 0.031s, net 11.093s
+
+[  401] loss: 0.022
+Time per step 0.032s, net 12.709s
+
+[  451] loss: 0.022
+Time per step 0.031s, net 14.247s
+
+[  501] loss: 0.024
+Time per step 0.031s, net 15.805s
+
+[  551] loss: 0.025
+Time per step 0.031s, net 17.351s
+
+[  601] loss: 0.023
+Time per step 0.035s, net 19.077s
+
+[  651] loss: 0.022
+Time per step 0.031s, net 20.615s
+
+[  701] loss: 0.021
+Time per step 0.031s, net 22.163s
+
+[  751] loss: 0.022
+Time per step 0.033s, net 23.814s
+
+[  801] loss: 0.024
+Time per step 0.034s, net 25.525s
+
+[  851] loss: 0.025
+Time per step 0.041s, net 27.555s
+
+[  901] loss: 0.025
+Time per step 0.039s, net 29.499s
+
+[  951] loss: 0.024
+Time per step 0.038s, net 31.403s
+
+[ 1001] loss: 0.026
+Time per step 0.039s, net 33.348s
+
+[ 1051] loss: 0.026
+Time per step 0.038s, net 35.270s
+
+[ 1101] loss: 0.026
+Time per step 0.038s, net 37.167s
+
+[ 1151] loss: 0.025
+Time per step 0.041s, net 39.233s
+
+[ 1201] loss: 0.026
+Time per step 0.039s, net 41.184s
+
+[ 1251] loss: 0.025
+Time per step 0.039s, net 43.134s
+
+[ 1301] loss: 0.025
+Time per step 0.039s, net 45.066s
+
+[ 1351] loss: 0.025
+Time per step 0.039s, net 47.026s
+
+[ 1401] loss: 0.026
+Time per step 0.039s, net 48.982s
+
+[ 1451] loss: 0.026
+Time per step 0.043s, net 51.140s
+
+[ 1501] loss: 0.027
+Time per step 0.041s, net 53.205s
+
+[ 1551] loss: 0.026
+Time per step 0.041s, net 55.237s
+
+[ 1601] loss: 0.026
+Time per step 0.040s, net 57.229s
+
+[ 1651] loss: 0.026
+Time per step 0.040s, net 59.224s
+
+[ 1701] loss: 0.027
+Time per step 0.039s, net 61.191s
+
+[ 1751] loss: 0.027
+Time per step 0.039s, net 63.157s
+
+[ 1801] loss: 0.027
+Time per step 0.039s, net 65.124s
+
+[ 1851] loss: 0.027
+Time per step 0.039s, net 67.074s
+
+[ 1901] loss: 0.025
+Time per step 0.040s, net 69.097s
+
+[ 1951] loss: 0.026
+Time per step 0.040s, net 71.085s
+
+[ 2001] loss: 0.026
+Time per step 0.040s, net 73.106s
+
+[ 2051] loss: 0.027
+Time per step 0.040s, net 75.082s
+
+[ 2101] loss: 0.027
+Time per step 0.040s, net 77.067s
+
+[ 2151] loss: 0.027
+Time per step 0.043s, net 79.202s
+
+[ 2201] loss: 0.028
+Time per step 0.043s, net 81.333s
+
+[ 2251] loss: 0.027
+Time per step 0.043s, net 83.506s
+
+[ 2301] loss: 0.028
+Time per step 0.039s, net 85.461s
+
+[ 2351] loss: 0.028
+Time per step 0.040s, net 87.459s
+
+[ 2401] loss: 0.028
+Time per step 0.039s, net 89.423s
+
+[ 2451] loss: 0.029
+Time per step 0.041s, net 91.457s
+
+[ 2501] loss: 0.029
+Time per step 0.040s, net 93.450s
+
+[ 2551] loss: 0.029
+Time per step 0.039s, net 95.422s
+
+[ 2601] loss: 0.029
+Time per step 0.040s, net 97.406s
+
+[ 2651] loss: 0.028
+Time per step 0.039s, net 99.378s
+
+[ 2701] loss: 0.029
+Time per step 0.039s, net 101.349s
+
+[ 2751] loss: 0.031
+Time per step 0.040s, net 103.355s
+
+[ 2801] loss: 0.029
+Time per step 0.040s, net 105.335s
+
+[ 2851] loss: 0.030
+Time per step 0.040s, net 107.322s
+
+[ 2901] loss: 0.029
+Time per step 0.039s, net 109.280s
+
+[ 2951] loss: 0.029
+Time per step 0.039s, net 111.254s
+
+[ 3001] loss: 0.030
+Time per step 0.040s, net 113.253s
+
+[ 3051] loss: 0.029
+Time per step 0.041s, net 115.281s
+
+[ 3101] loss: 0.030
+Time per step 0.042s, net 117.400s
+
+[ 3151] loss: 0.030
+Time per step 0.040s, net 119.424s
+
+[ 3201] loss: 0.030
+Time per step 0.047s, net 121.762s
+
+[ 3251] loss: 0.031
+Time per step 0.041s, net 123.814s
+
+[ 3301] loss: 0.030
+Time per step 0.042s, net 125.897s
+
+[ 3351] loss: 0.032
+Time per step 0.041s, net 127.962s
+
+[ 3401] loss: 0.031
+Time per step 0.041s, net 130.011s
+
+[ 3451] loss: 0.030
+Time per step 0.041s, net 132.062s
+
+[ 3501] loss: 0.031
+Time per step 0.041s, net 134.102s
+
+[ 3551] loss: 0.031
+Time per step 0.041s, net 136.137s
+
+[ 3601] loss: 0.032
+Time per step 0.041s, net 138.202s
+
+[ 3651] loss: 0.031
+Time per step 0.041s, net 140.254s
+
+[ 3701] loss: 0.033
+Time per step 0.044s, net 142.477s
+
+[ 3751] loss: 0.031
+Time per step 0.040s, net 144.484s
+
+[ 3801] loss: 0.032
+Time per step 0.040s, net 146.507s
+
+[ 3851] loss: 0.031
+Time per step 0.040s, net 148.529s
+
+[ 3901] loss: 0.032
+Time per step 0.040s, net 150.537s
+
+[ 3951] loss: 0.032
+Time per step 0.041s, net 152.569s
+
+[ 4001] loss: 0.032
+Time per step 0.041s, net 154.639s
+
+[ 4051] loss: 0.031
+Time per step 0.042s, net 156.735s
+
+[ 4101] loss: 0.031
+Time per step 0.041s, net 158.794s
+
+[ 4151] loss: 0.031
+Time per step 0.041s, net 160.852s
+
+[ 4201] loss: 0.031
+Time per step 0.042s, net 162.931s
+
+[ 4251] loss: 0.031
+Time per step 0.041s, net 164.961s
+
+[ 4301] loss: 0.032
+Time per step 0.041s, net 167.020s
+
+[ 4351] loss: 0.032
+Time per step 0.046s, net 169.302s
+
+[ 4401] loss: 0.031
+Time per step 0.044s, net 171.507s
+
+[ 4451] loss: 0.031
+Time per step 0.042s, net 173.621s
+
+[ 4501] loss: 0.031
+Time per step 0.042s, net 175.726s
+
+[ 4551] loss: 0.032
+Time per step 0.042s, net 177.829s
+
+[ 4601] loss: 0.032
+Time per step 0.042s, net 179.914s
+
+[ 4651] loss: 0.032
+Time per step 0.042s, net 181.998s
+
+[ 4701] loss: 0.032
+Time per step 0.042s, net 184.089s
+
+[ 4751] loss: 0.032
+Time per step 0.042s, net 186.188s
+
+[ 4801] loss: 0.032
+Time per step 0.042s, net 188.297s
+
+[ 4851] loss: 0.031
+Time per step 0.042s, net 190.383s
+
+[ 4901] loss: 0.033
+Time per step 0.041s, net 192.436s
+
+[ 4951] loss: 0.031
+Time per step 0.044s, net 194.623s
+
+[ 5001] loss: 0.032
+Time per step 0.041s, net 196.696s
+
+[ 5051] loss: 0.032
+Time per step 0.042s, net 198.775s
+
+[ 5101] loss: 0.032
+Time per step 0.041s, net 200.806s
+
+[ 5151] loss: 0.031
+Time per step 0.047s, net 203.159s
+
+[ 5201] loss: 0.031
+Time per step 0.043s, net 205.333s
+
+[ 5251] loss: 0.031
+Time per step 0.041s, net 207.402s
+
+[ 5301] loss: 0.030
+Time per step 0.041s, net 209.466s
+
+[ 5351] loss: 0.031
+Time per step 0.042s, net 211.549s
+
+[ 5401] loss: 0.031
+Time per step 0.041s, net 213.608s
+
+[ 5451] loss: 0.032
+Time per step 0.046s, net 215.899s
+
+[ 5501] loss: 0.032
+Time per step 0.044s, net 218.077s
+
+[ 5551] loss: 0.032
+Time per step 0.042s, net 220.192s
+
+[ 5601] loss: 0.032
+Time per step 0.043s, net 222.354s
+
+[ 5651] loss: 0.032
+Time per step 0.046s, net 224.665s
+
+[ 5701] loss: 0.032
+Time per step 0.046s, net 226.990s
+
+[ 5751] loss: 0.033
+Time per step 0.046s, net 229.275s
+
+[ 5801] loss: 0.033
+Time per step 0.042s, net 231.377s
+
+[ 5851] loss: 0.033
+Time per step 0.042s, net 233.469s
+
+[ 5901] loss: 0.032
+Time per step 0.045s, net 235.740s
+
+[ 5951] loss: 0.032
+Time per step 0.042s, net 237.817s
+
+[ 6001] loss: 0.032
+Time per step 0.046s, net 240.099s
+
+[ 6051] loss: 0.033
+Time per step 0.042s, net 242.190s
+
+[ 6101] loss: 0.032
+Time per step 0.042s, net 244.313s
+
+[ 6151] loss: 0.032
+Time per step 0.042s, net 246.436s
+
+[ 6201] loss: 0.032
+Time per step 0.042s, net 248.558s
+
+[ 6251] loss: 0.032
+Time per step 0.043s, net 250.709s
+
+[ 6301] loss: 0.033
+Time per step 0.043s, net 252.850s
+
+[ 6351] loss: 0.034
+Time per step 0.047s, net 255.195s
+
+[ 6401] loss: 0.033
+Time per step 0.046s, net 257.497s
+
+[ 6451] loss: 0.034
+Time per step 0.042s, net 259.593s
+Finished Training
+
+
+[   51] loss: 0.036
+Time per step 0.028s, net 1.392s
+
+[  101] loss: 0.020
+Time per step 0.031s, net 2.931s
+
+[  151] loss: 0.022
+Time per step 0.032s, net 4.524s
+
+[  201] loss: 0.021
+Time per step 0.031s, net 6.090s
+
+[  251] loss: 0.021
+Time per step 0.032s, net 7.670s
+
+[  301] loss: 0.022
+Time per step 0.031s, net 9.225s
+
+[  351] loss: 0.022
+Time per step 0.031s, net 10.771s
+
+[  401] loss: 0.022
+Time per step 0.034s, net 12.468s
+
+[  451] loss: 0.021
+Time per step 0.032s, net 14.051s
+
+[  501] loss: 0.021
+Time per step 0.036s, net 15.870s
+
+[  551] loss: 0.021
+Time per step 0.036s, net 17.681s
+
+[  601] loss: 0.021
+Time per step 0.033s, net 19.335s
+
+[  651] loss: 0.021
+Time per step 0.034s, net 21.025s
+
+[  701] loss: 0.021
+Time per step 0.034s, net 22.749s
+
+[  751] loss: 0.019
+Time per step 0.036s, net 24.528s
+
+[  801] loss: 0.018
+Time per step 0.035s, net 26.295s
+
+[  851] loss: 0.018
+Time per step 0.036s, net 28.089s
+
+[  901] loss: 0.019
+Time per step 0.034s, net 29.776s
+
+[  951] loss: 0.020
+Time per step 0.038s, net 31.696s
+
+[ 1001] loss: 0.021
+Time per step 0.035s, net 33.422s
+
+[ 1051] loss: 0.022
+Time per step 0.038s, net 35.322s
+
+[ 1101] loss: 0.023
+Time per step 0.038s, net 37.227s
+
+[ 1151] loss: 0.023
+Time per step 0.040s, net 39.225s
+
+[ 1201] loss: 0.023
+Time per step 0.037s, net 41.065s
+
+[ 1251] loss: 0.023
+Time per step 0.040s, net 43.076s
+
+[ 1301] loss: 0.022
+Time per step 0.037s, net 44.940s
+
+[ 1351] loss: 0.022
+Time per step 0.041s, net 47.010s
+
+[ 1401] loss: 0.022
+Time per step 0.040s, net 49.015s
+
+[ 1451] loss: 0.022
+Time per step 0.036s, net 50.805s
+
+[ 1501] loss: 0.022
+Time per step 0.037s, net 52.646s
+
+[ 1551] loss: 0.021
+Time per step 0.037s, net 54.489s
+
+[ 1601] loss: 0.022
+Time per step 0.037s, net 56.336s
+
+[ 1651] loss: 0.023
+Time per step 0.037s, net 58.191s
+
+[ 1701] loss: 0.023
+Time per step 0.037s, net 60.064s
+
+[ 1751] loss: 0.024
+Time per step 0.037s, net 61.923s
+
+[ 1801] loss: 0.024
+Time per step 0.038s, net 63.814s
+
+[ 1851] loss: 0.024
+Time per step 0.043s, net 65.988s
+
+[ 1901] loss: 0.024
+Time per step 0.039s, net 67.919s
+
+[ 1951] loss: 0.024
+Time per step 0.040s, net 69.897s
+
+[ 2001] loss: 0.024
+Time per step 0.038s, net 71.806s
+
+[ 2051] loss: 0.024
+Time per step 0.037s, net 73.681s
+
+[ 2101] loss: 0.024
+Time per step 0.038s, net 75.574s
+
+[ 2151] loss: 0.023
+Time per step 0.039s, net 77.515s
+
+[ 2201] loss: 0.023
+Time per step 0.038s, net 79.436s
+
+[ 2251] loss: 0.023
+Time per step 0.038s, net 81.334s
+
+[ 2301] loss: 0.023
+Time per step 0.038s, net 83.251s
+
+[ 2351] loss: 0.023
+Time per step 0.039s, net 85.217s
+
+[ 2401] loss: 0.023
+Time per step 0.039s, net 87.152s
+
+[ 2451] loss: 0.023
+Time per step 0.039s, net 89.104s
+
+[ 2501] loss: 0.023
+Time per step 0.038s, net 91.009s
+
+[ 2551] loss: 0.024
+Time per step 0.038s, net 92.908s
+
+[ 2601] loss: 0.024
+Time per step 0.041s, net 94.950s
+
+[ 2651] loss: 0.024
+Time per step 0.038s, net 96.848s
+
+[ 2701] loss: 0.024
+Time per step 0.038s, net 98.734s
+
+[ 2751] loss: 0.024
+Time per step 0.038s, net 100.641s
+
+[ 2801] loss: 0.023
+Time per step 0.038s, net 102.522s
+
+[ 2851] loss: 0.023
+Time per step 0.037s, net 104.391s
+
+[ 2901] loss: 0.024
+Time per step 0.038s, net 106.297s
+
+[ 2951] loss: 0.024
+Time per step 0.038s, net 108.178s
+
+[ 3001] loss: 0.023
+Time per step 0.037s, net 110.031s
+
+[ 3051] loss: 0.023
+Time per step 0.038s, net 111.935s
+
+[ 3101] loss: 0.024
+Time per step 0.048s, net 114.315s
+
+[ 3151] loss: 0.025
+Time per step 0.041s, net 116.381s
+
+[ 3201] loss: 0.025
+Time per step 0.043s, net 118.550s
+
+[ 3251] loss: 0.024
+Time per step 0.039s, net 120.514s
+
+[ 3301] loss: 0.024
+Time per step 0.040s, net 122.508s
+
+[ 3351] loss: 0.024
+Time per step 0.041s, net 124.539s
+
+[ 3401] loss: 0.024
+Time per step 0.039s, net 126.492s
+
+[ 3451] loss: 0.024
+Time per step 0.039s, net 128.438s
+
+[ 3501] loss: 0.024
+Time per step 0.037s, net 130.289s
+
+[ 3551] loss: 0.024
+Time per step 0.037s, net 132.134s
+
+[ 3601] loss: 0.024
+Time per step 0.037s, net 133.976s
+
+[ 3651] loss: 0.024
+Time per step 0.037s, net 135.831s
+
+[ 3701] loss: 0.024
+Time per step 0.037s, net 137.682s
+
+[ 3751] loss: 0.024
+Time per step 0.037s, net 139.528s
+
+[ 3801] loss: 0.024
+Time per step 0.046s, net 141.834s
+
+[ 3851] loss: 0.024
+Time per step 0.040s, net 143.812s
+
+[ 3901] loss: 0.024
+Time per step 0.038s, net 145.696s
+
+[ 3951] loss: 0.024
+Time per step 0.037s, net 147.562s
+
+[ 4001] loss: 0.025
+Time per step 0.037s, net 149.417s
+
+[ 4051] loss: 0.025
+Time per step 0.037s, net 151.266s
+
+[ 4101] loss: 0.025
+Time per step 0.041s, net 153.297s
+
+[ 4151] loss: 0.024
+Time per step 0.039s, net 155.249s
+
+[ 4201] loss: 0.024
+Time per step 0.044s, net 157.468s
+
+[ 4251] loss: 0.025
+Time per step 0.039s, net 159.407s
+
+[ 4301] loss: 0.026
+Time per step 0.039s, net 161.341s
+
+[ 4351] loss: 0.025
+Time per step 0.039s, net 163.286s
+
+[ 4401] loss: 0.025
+Time per step 0.039s, net 165.217s
+
+[ 4451] loss: 0.025
+Time per step 0.038s, net 167.128s
+
+[ 4501] loss: 0.025
+Time per step 0.038s, net 169.030s
+
+[ 4551] loss: 0.025
+Time per step 0.037s, net 170.882s
+
+[ 4601] loss: 0.025
+Time per step 0.041s, net 172.912s
+
+[ 4651] loss: 0.025
+Time per step 0.038s, net 174.805s
+
+[ 4701] loss: 0.025
+Time per step 0.037s, net 176.675s
+
+[ 4751] loss: 0.025
+Time per step 0.036s, net 178.485s
+
+[ 4801] loss: 0.025
+Time per step 0.036s, net 180.279s
+
+[ 4851] loss: 0.025
+Time per step 0.037s, net 182.130s
+
+[ 4901] loss: 0.026
+Time per step 0.038s, net 184.027s
+
+[ 4951] loss: 0.026
+Time per step 0.038s, net 185.942s
+
+[ 5001] loss: 0.025
+Time per step 0.037s, net 187.804s
+
+[ 5051] loss: 0.025
+Time per step 0.035s, net 189.578s
+
+[ 5101] loss: 0.025
+Time per step 0.037s, net 191.409s
+
+[ 5151] loss: 0.024
+Time per step 0.035s, net 193.177s
+
+[ 5201] loss: 0.025
+Time per step 0.036s, net 194.963s
+
+[ 5251] loss: 0.025
+Time per step 0.046s, net 197.279s
+
+[ 5301] loss: 0.025
+Time per step 0.043s, net 199.430s
+
+[ 5351] loss: 0.025
+Time per step 0.042s, net 201.512s
+
+[ 5401] loss: 0.025
+Time per step 0.041s, net 203.557s
+
+[ 5451] loss: 0.025
+Time per step 0.041s, net 205.621s
+
+[ 5501] loss: 0.025
+Time per step 0.055s, net 208.365s
+
+[ 5551] loss: 0.025
+Time per step 0.045s, net 210.622s
+
+[ 5601] loss: 0.025
+Time per step 0.041s, net 212.657s
+
+[ 5651] loss: 0.026
+Time per step 0.043s, net 214.793s
+
+[ 5701] loss: 0.025
+Time per step 0.042s, net 216.885s
+
+[ 5751] loss: 0.025
+Time per step 0.032s, net 218.505s
+
+[ 5801] loss: 0.025
+Time per step 0.042s, net 220.605s
+
+[ 5851] loss: 0.026
+Time per step 0.033s, net 222.250s
+
+[ 5901] loss: 0.026
+Time per step 0.038s, net 224.150s
+
+[ 5951] loss: 0.027
+Time per step 0.032s, net 225.772s
+
+[ 6001] loss: 0.026
+Time per step 0.043s, net 227.902s
+
+[ 6051] loss: 0.026
+Time per step 0.038s, net 229.827s
+
+[ 6101] loss: 0.025
+Time per step 0.038s, net 231.745s
+
+[ 6151] loss: 0.026
+Time per step 0.048s, net 234.150s
+
+[ 6201] loss: 0.026
+Time per step 0.036s, net 235.972s
+
+[ 6251] loss: 0.025
+Time per step 0.039s, net 237.902s
+
+[ 6301] loss: 0.026
+Time per step 0.033s, net 239.557s
+
+[ 6351] loss: 0.025
+Time per step 0.037s, net 241.388s
+
+[ 6401] loss: 0.025
+Time per step 0.043s, net 243.525s
+
+[ 6451] loss: 0.025
+Time per step 0.042s, net 245.618s
+Finished Training
+
+82s
+Finished Training
+
+.044s
+Finished Training
+
+nished Training
+

@@ -15,14 +15,14 @@ from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
 from td_utils import run_models
 
 def main(delete_dir=False):
-    save_path = '../trained_models/03_td_discrete_corr/'
+    save_path = '../../engram/Ching/03_td_discrete_corr/'
     if delete_dir:
         rmtree(save_path, ignore_errors=True)
 
     iters = 3
-    gammas = [0.75, 0.8]
-    spatial_sigmas = [0., 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]
-    sparsity_ps = [0.2, 0.1, 0.05, 0.03, 0.02, 0.01, 0.0075, 0.005, 0.002]
+    gammas = [0.75, 0.8, 0.6, 0.85]
+    spatial_sigmas = [0., 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25]
+    sparsity_ps = np.linspace(0.2, 0.002, num=30, endpoint=True)
     lr_range = [5E-3, 1E-3, 5E-4, 1E-4]
     num_states = 20*20
     num_steps = 6500
@@ -43,7 +43,8 @@ def main(delete_dir=False):
         dset_path = save_path + f'sparsity{sparsity_p}/sigma{spatial_sigma}/{gamma}/'
         run_models(
             dset_path, iters, lr_range, dataset, dataset_config, gamma,
-            input_size, save_outputs=True
+            input_size, save_outputs=True, test_over_all=False,
+            print_file=open('dummy.txt', 'w')
             )
 
     args = []
@@ -51,7 +52,7 @@ def main(delete_dir=False):
         for spatial_sigma in spatial_sigmas:
             for sparsity_p in sparsity_ps:
                 args.append([gamma, spatial_sigma, sparsity_p])
-    Parallel(n_jobs=7)(delayed(grid_train)(arg) for arg in args)
+    Parallel(n_jobs=30)(delayed(grid_train)(arg) for arg in args)
 
 if __name__ == "__main__":
     main()
