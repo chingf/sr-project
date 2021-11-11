@@ -141,7 +141,6 @@ class MLP(module.Module):
                layer.reset_parameters()
 
 class Hopfield(module.Module):
-
     def __init__(self, input_size, lr=1E-3, clamp=np.inf):
         super(Hopfield, self).__init__()
         self.M = torch.zeros(1, input_size, input_size)
@@ -172,3 +171,21 @@ class Hopfield(module.Module):
     def reset(self):
         torch.nn.init.zeros_(self.M)
 
+class OjaRNN(AnalyticSR):
+    """ Output is M.T @ i """
+
+    def __init__(
+        self, num_states, gamma, stay_case=0, ca3_kwargs={}
+        ):
+        """
+        Args:
+            stay_case: 
+                0: run the model with no modifications
+                1: ignore stay inputs by stitching together transition inputs,
+                2: ignore stay inputs but continue learning rate update during stay
+        """
+
+        super(OjaRNN, self).__init__(num_states, gamma, stay_case)
+        self.dg = dg.DG()
+        self.ca3 = ca3.OjaCA3(num_states, gamma, **ca3_kwargs) 
+        self.estimates_T = True
