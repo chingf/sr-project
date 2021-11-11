@@ -11,7 +11,8 @@ posinf = 1E30
 class CA3(module.Module):
     def __init__(
         self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,
-        parameterize=False, alpha=1., beta=1., rollout=None
+        parameterize=False, alpha=1., beta=1., rollout=None,
+        output_params={}
         ):
 
         super(CA3, self).__init__()
@@ -24,16 +25,55 @@ class CA3(module.Module):
         self.alpha = alpha
         self.beta = beta
         self.rollout = rollout
+        self.output_params = {
+            'num_iterations': np.inf, 'nonlinearity': None
+            }
+        self.output_params.update(output_params)
         self._init_trainable()
         self.reset()
     
-    def forward(self, input, update_transition=True):
+    def forward_old(self, input, update_transition=True):
         M = self.get_M_hat()
         if update_transition:
             if self.curr_input is not None:
                 self.prev_input = torch.squeeze(self.curr_input)
             self.curr_input = torch.squeeze(input)
         output = torch.matmul(M.t(), torch.squeeze(input))
+        return output
+
+    def forward(self, input, update_transition=True):
+        num_iterations = self.output_params['num_iterations']
+        nonlinearity = self.output_params['nonlinearity']
+
+        if np.isinf(num_iterations):
+            M = self.get_M_hat()
+            if update_transition:
+                if self.curr_input is not None:
+                    self.prev_input = torch.squeeze(self.curr_input)
+                self.curr_input = torch.squeeze(input)
+            output = torch.matmul(M.t(), torch.squeeze(input))
+        else:
+            output = torch.zeros_like(input)
+            dt = 1.
+            for iteration in range(num_iterations):
+                current = torch.matmul(self.gamma_M0*self.T.t(), output)
+
+                # Option: apply nonlinearity onto current
+                if nonlinearity == 'sigmoid':
+                    current = sigmoid(current)
+                elif nonlinearity == 'tanh':
+                    current = tanh(current)
+                elif nonlinearity == 'clamp':
+                    current = self.nonlin_clamp(current)
+
+                # Provide input current
+                current = current + input
+
+                # Iterate output
+                dxdt = -output + current
+                output = output + dt*dxdt
+                output = relu(output)
+                output = torch.nan_to_num(output, posinf=posinf) # for training
         return output
 
     def update(self):
