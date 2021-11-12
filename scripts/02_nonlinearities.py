@@ -11,8 +11,14 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
 
+# Parameters for script
+n_jobs = 56
+skip_existing_dir = True
+num_iters = 40
 experiment_dir = '../trained_models/02_nonlinearities/'
+experiment_dir = '../../engram/Ching/02_nonlinearities/'
 
+# Define training distribution
 datasets = [inputs.Sim1DWalk]
 datasets_config_ranges = [{
     'num_steps': [3, 10, 20, 30, 40],
@@ -22,15 +28,16 @@ datasets_config_ranges = [{
 
 
 gammas = [0.4, 0.6, 0.8, 0.9, 0.95]
-nonlinearities = ['None', 'sigmoid', 'tanh', 'clamp']
+nonlinearities = ['None', 'sigmoid', 'tanh']
 
 args = []
 for gamma in gammas:
     for nonlinearity in nonlinearities:
-        args.append((gamma, nonlinearity))
+        for itr in range(num_iters):
+            args.append((gamma, nonlinearity, itr))
 
 def grid_train(arg):
-    gamma, nonlinearity = arg
+    gamma, nonlinearity, idx = arg
     gamma_dir = experiment_dir + f'{gamma}/'
     nonlinearity_dir = gamma_dir + f'{nonlinearity}/'
     losses = []
@@ -56,17 +63,17 @@ def grid_train(arg):
         'num_states': 2, 'gamma':gamma,
         'ca3_kwargs':{'output_params':output_params}
         }
-    for idx in range(5):
-        iteration_dir = nonlinearity_dir + f'{idx}/'
-        if os.path.isdir(iteration_dir): continue
-        net = STDP_SR(**net_configs)
-        net, loss = train(
-            iteration_dir, net, datasets, datasets_config_ranges,
-            train_steps=401, print_every_steps=25,
-            early_stop=False, return_test_error=True
-            )
+
+    iteration_dir = nonlinearity_dir + f'{idx}/'
+    if os.path.isdir(iteration_dir): return
+    net = STDP_SR(**net_configs)
+    net, loss = train(
+        iteration_dir, net, datasets, datasets_config_ranges,
+        train_steps=501, print_every_steps=25,
+        early_stop=False, return_test_error=True
+        )
     with open(nonlinearity_dir + 'net_configs.p', 'wb') as f:
         pickle.dump(net_configs, f)
 
-Parallel(n_jobs=7)(delayed(grid_train)(arg) for arg in args)
+Parallel(n_jobs=n_jobs)(delayed(grid_train)(arg) for arg in args)
 
