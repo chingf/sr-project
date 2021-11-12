@@ -476,3 +476,62 @@ class STDP_CA3(nn.Module):
         else:
             self.leaky_slope = 0
 
+class OjaCA3(module.Module):
+    def __init__(self, num_states, gamma_M0, lr=1E-3):
+
+        super(OjaCA3, self).__init__()
+        self.num_states = num_states
+        self.gamma_M0 = gamma_M0
+        self.lr = lr
+        self.reset()
+    
+    def forward(self, input, update_transition=True):
+        M = self.get_M_hat()
+        if update_transition:
+            if self.curr_input is not None:
+                self.prev_input = torch.squeeze(self.curr_input)
+            self.curr_input = torch.squeeze(input)
+        output = torch.matmul(M.t(), torch.squeeze(input))
+        return output
+
+    def update(self):
+        if self.prev_input is None:
+            return
+        forget_term = torch.outer(self.curr_input, self.curr_input)@self.T
+        update_term = torch.outer(self.prev_input, self.curr_input)
+        self.T = self.T + self.lr*(update_term - forget_term)
+        self.T = torch.clamp(self.T, min=0)
+
+        self.real_T_tilde += np.outer(self.prev_input, self.curr_input)
+        self.real_T_count[self.prev_input>0] += 1
+
+    def get_T(self):
+        return self.T
+
+    def get_J(self):
+        return self.T.t()
+
+    def reset(self):
+        self.T = torch.zeros(self.num_states, self.num_states)
+        self.real_T_tilde = self.T.clone().numpy()
+        self.real_T_count = np.zeros(self.num_states)
+        self.prev_input = None
+        self.curr_input = None
+
+    def get_M_hat(self, gamma=None):
+        """ Inverts the learned T matrix to get putative M matrix """
+
+        if gamma is None:
+            gamma = self.gamma_M0
+        T = self.get_T()
+        M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+        return M_hat
+
+    def get_ideal_T_estimate(self):
+        """ Returns the ideal T matrix """
+
+        return self.real_T_tilde/self.real_T_count[:,None]
+
+    def set_num_states(self, num_states):
+        self.num_states = num_states
+
