@@ -53,10 +53,10 @@ class CA3(module.Module):
                 self.curr_input = torch.squeeze(input)
             output = torch.matmul(M.t(), torch.squeeze(input))
         else:
-            output = torch.zeros_like(input)
+            output = torch.squeeze(torch.zeros_like(input))
             dt = 1.
             for iteration in range(num_iterations):
-                current = torch.matmul(self.gamma_M0*self.T.t(), output)
+                current = torch.matmul(self.gamma_M0*self.T.t(), output.t())
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'sigmoid':
@@ -67,7 +67,7 @@ class CA3(module.Module):
                     current = self.nonlin_clamp(current)
 
                 # Provide input current
-                current = current + input
+                current = current + torch.squeeze(input)
 
                 # Iterate output
                 dxdt = -output + current
@@ -141,6 +141,12 @@ class CA3(module.Module):
         if self.parameterize:
             self.alpha = self.beta = nn.Parameter(torch.ones(1))
             self.dummy = nn.Parameter(torch.ones(1))
+        # Nonlinearity may be a clamp
+        if self.output_params['nonlinearity'] == 'clamp':
+            self.nonlin_clamp = LeakyClamp(
+                floor=nn.Parameter(torch.tensor([0.])),
+                ceil=nn.Parameter(torch.tensor([1.]))
+                )
 
 class STDP_CA3(nn.Module):
     """
@@ -155,7 +161,7 @@ class STDP_CA3(nn.Module):
 
     def __init__(
             self, num_states, gamma_M0, gamma_T=0.99999, leaky_slope=1e-4,
-            A_pos_sign=None, A_neg_sign=None,
+            A_pos_sign=None, A_neg_sign=None, start_valid=False,
             approx_B=False,
             output_params={}
             ):
@@ -167,6 +173,7 @@ class STDP_CA3(nn.Module):
         self.leaky_slope = leaky_slope
         self.A_pos_sign = A_pos_sign
         self.A_neg_sign = A_neg_sign
+        self.start_valid = start_valid
         self.approx_B = approx_B
         self.output_params = {
             'num_iterations': np.inf, 'input_clamp': np.inf,
@@ -319,7 +326,9 @@ class STDP_CA3(nn.Module):
     def reset(self):
         init_scale = 0.0001
         self.J = np.clip(np.random.rand(self.num_states, self.num_states), 0, 1)
-        self.J = 0*self.J*(1/np.sum(self.J, axis=0))
+        self.J = self.J*(1/np.sum(self.J, axis=0)) # normalize rows of T
+        if not self.start_valid:
+            self.J = self.J*0
         self.eta_invs = np.ones(self.J.shape[0])*init_scale
         self.B_pos = np.zeros(self.num_states)
         self.B_neg = np.zeros(self.num_states)
@@ -477,12 +486,13 @@ class STDP_CA3(nn.Module):
             self.leaky_slope = 0
 
 class OjaCA3(module.Module):
-    def __init__(self, num_states, gamma_M0, lr=1E-3):
+    def __init__(self, num_states, gamma_M0, lr=1E-3, start_valid=False):
 
         super(OjaCA3, self).__init__()
         self.num_states = num_states
         self.gamma_M0 = gamma_M0
         self.lr = lr
+        self.start_valid = start_valid
         self.reset()
     
     def forward(self, input, update_transition=True):
@@ -512,8 +522,13 @@ class OjaCA3(module.Module):
         return self.T.t()
 
     def reset(self):
-        self.T = torch.zeros(self.num_states, self.num_states)
-        self.real_T_tilde = self.T.clone().numpy()
+        if self.start_valid:
+            self.T = np.clip(np.random.rand(self.num_states, self.num_states), 0, 1)
+            self.T = self.T*(1/np.sum(self.T, axis=0)) # normalize cols of T
+            self.T = torch.tensor(self.T).float()
+        else:
+            self.T = torch.zeros(self.num_states, self.num_states)
+        self.real_T_tilde = torch.zeros_like(self.T).numpy()
         self.real_T_count = np.zeros(self.num_states)
         self.prev_input = None
         self.curr_input = None
