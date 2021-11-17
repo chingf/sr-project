@@ -24,7 +24,8 @@ class CA3(module.Module):
         self.parameterize = parameterize
         self.rollout = rollout
         self.output_params = {
-            'num_iterations': np.inf, 'nonlinearity': None
+            'num_iterations': np.inf, 'nonlinearity': None,
+            'nonlinearity_args': None # So far, just [floor, ceil] for clamp
             }
         self.output_params.update(output_params)
         self._init_trainable()
@@ -85,13 +86,15 @@ class CA3(module.Module):
         if self.use_dynamic_lr:
             new_state_counts = self.prev_input + self.gamma_T*self.state_counts
             lr_update = 1./new_state_counts
-            lr_update = torch.clamp(torch.nan_to_num(lr_update), 0, self.lr_ceil)
+            lr_update = torch.clamp(
+                torch.nan_to_num(lr_update), 0, torch.abs(self.lr_ceil)
+                )
             lr_decay = lr_update
             self.T -= forget_term * lr_decay[:,None]
             self.T += update_term * lr_update[:,None]
             self.state_counts = new_state_counts
         else:
-            self.T = self.T + self.lr*(update_term - forget_term)
+            self.T = self.T + torch.abs(self.lr)*(update_term - forget_term)
         self.T = torch.clamp(self.T, min=0)
 
     def get_T(self):
@@ -136,13 +139,24 @@ class CA3(module.Module):
 
     def _init_trainable(self):
         if self.parameterize:
-            pass
-        # Nonlinearity may be a clamp
-        if self.output_params['nonlinearity'] == 'clamp':
+            if self.output_params['nonlinearity'] != 'clamp':
+                print('Setting nonlinearity to clamp for parameterization')
+                self.output_params['nonlinearity'] = 'clamp'
+            self.lr = nn.Parameter(torch.tensor([1E-3]))
+            ceil = nn.Parameter(torch.empty(1))
+            nn.init.uniform_(ceil, 1.0, 4.0)
             self.nonlin_clamp = LeakyClamp(
-                floor=nn.Parameter(torch.tensor([0.])),
-                ceil=nn.Parameter(torch.tensor([5.]))
+                floor=nn.Parameter(torch.tensor([0.])), ceil=ceil
                 )
+        else:
+            self.lr = nn.Parameter(torch.tensor([self.lr]))
+            # Nonlinearity may be a clamp
+            if self.output_params['nonlinearity'] == 'clamp':
+                if self.output_params['nonlinearity_args'] is not None:
+                    floor, ceil = self.output_params['nonlinearity_args']
+                    floor = torch.tensor([floor])
+                    ceil = torch.tensor([ceil])
+                    self.nonlin_clamp = LeakyClamp(floor=floor, ceil=ceil)
 
 class STDP_CA3(nn.Module):
     """

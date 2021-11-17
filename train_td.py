@@ -52,7 +52,7 @@ def train(
         # Evaluate loss on each candidate
         losses = [[] for _ in candidate_params]
 
-        for _ in range(1):
+        for _ in range(3):
             # Select dataset parameters and load dataset
             dataset = datasets[step % num_datasets]
             dataset_config_rang = datasets_config_ranges[step % num_datasets]
@@ -79,18 +79,37 @@ def train(
                     _, outputs = net(dg_inputs, dg_modes, reset=True)
                 all_s = dg_inputs[:-1]
                 all_next_s = dg_inputs[1:]
-                phi = all_s.squeeze(1)
-                M = net.get_M(net.gamma)
-                psi_s = torch.stack([s.squeeze() @ M for s in all_s])
-                psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
-                value_function = psi_s
-                exp_value_function = phi + net.gamma*psi_s_prime
-                loss = criterion(value_function, exp_value_function)
+                subsample = np.random.choice(all_s.shape[0]-1, 50, replace=False)
+                all_s = dg_inputs[subsample]
+                all_next_s = dg_inputs[subsample+1]
+                test_phi = all_s.squeeze(1)
+
+                test_psi_s = torch.stack(
+                    [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_s.squeeze(0)]
+                    ).unsqueeze(0)
+                test_psi_s_prime = torch.stack(
+                    [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_next_s.squeeze(0)]
+                    ).unsqueeze(0)
+                test_value_function = test_psi_s
+                test_exp_value_function = test_phi + net.gamma*test_psi_s_prime
+                loss = criterion(test_value_function, test_exp_value_function)
+
+                #M = net.get_M(net.gamma)
+                #psi_s = torch.stack([s.squeeze() @ M for s in all_s])
+                #psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
+                #value_function = psi_s
+                #exp_value_function = phi + net.gamma*psi_s_prime
+                #loss = criterion(value_function, exp_value_function)
                 if regularize:
                     loss + 1E-3*np.sum(np.square(params))
                 losses[idx].append(loss.item())
+        print()
+        print(losses)
+
         losses = [np.mean(loss) for loss in losses]
     
+        print(candidate_params[np.argmin(losses)])
+
         # Take optimization step based on losses
         es_optimizer.tell(candidate_params, losses)
         set_parameters(net, parameter_names, candidate_params[np.argmin(losses)])
@@ -125,8 +144,6 @@ def train(
                 'Time per step {:0.3f}s, net {:0.3f}s'.format(time_step, time_net),
                  file=print_file
                 )
-            print(net.ca3.alpha)
-            print(net.ca3.beta)
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -176,25 +193,37 @@ class ReplayMemory(object):
         return len(self.memory)
 
 if __name__ == "__main__":
-    save_path = './trained_models/td_trained/'
+    save_path = './trained_models/td_trained_2/'
+
+    # Dataset parameters
     datasets = [sf_inputs_discrete.Sim2DWalk]
+    sparsity_p = 0.125
+    num_states = 20*20
     feature_maker_kwargs = {
-        'feature_dim': 100, 'feature_vals': None,
-        'feature_vals_p': [0.95, 0.05],
-        'feature_type': 'correlated_distributed', 'spatial_sigma': 1.25
+        'feature_dim': num_states, 'feature_vals': None,
+        'feature_vals_p': [1 - sparsity_p, sparsity_p],
+        'feature_type': 'correlated_distributed', 'spatial_sigma': 1.5
         }
     datasets_config_ranges = [{
-        'num_steps': [1000], 'num_states': [100],
+        'num_steps': [2000], 'num_states': [num_states],
         'feature_maker_kwargs': [feature_maker_kwargs]
         }]
+
+    # Network parameters
+    ca3_kwargs = {
+        'use_dynamic_lr':False, 'parameterize': True,
+        'output_params':{'num_iterations': 25,'nonlinearity': 'clamp'}
+        }
     net_params = {
-        'num_states':2, 'gamma':0.95,
-        'ca3_kwargs':{'use_dynamic_lr':False, 'lr': 1E-3, 'parameterize': True}
+        'num_states':2, 'gamma':0.6,
+        'ca3_kwargs': ca3_kwargs
         }
     net = AnalyticSR(**net_params)
+
+    # Metalearn network parameters
     train(
         save_path, net, datasets, datasets_config_ranges, train_steps=201,
-        early_stop=False, print_every_steps=10
+        early_stop=False, print_every_steps=2
         )
     with open(save_path + "net_configs.p", 'wb') as f:
         import pickle
