@@ -11,7 +11,7 @@ posinf = 1E30
 class CA3(module.Module):
     def __init__(
         self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,
-        parameterize=False, alpha=1., beta=1., rollout=None,
+        parameterize=False, rollout=None,
         output_params={}
         ):
 
@@ -22,8 +22,6 @@ class CA3(module.Module):
         self.use_dynamic_lr = use_dynamic_lr
         self.lr = lr
         self.parameterize = parameterize
-        self.alpha = alpha
-        self.beta = beta
         self.rollout = rollout
         self.output_params = {
             'num_iterations': np.inf, 'nonlinearity': None
@@ -114,22 +112,19 @@ class CA3(module.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-        alpha = self.alpha
-        beta = self.beta
 
         if self.rollout == None:
             try:
-                M_hat = torch.linalg.pinv(alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+                M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
             except:
                 print('SVD did not converge. Small values added on diagonal.')
-                new_alpha = alpha + 1E-6
-                M_hat = torch.linalg.pinv(new_alpha*torch.eye(T.shape[0]) - beta*gamma*T)
+                M_hat = torch.linalg.pinv(1.001*torch.eye(T.shape[0]) - gamma*T)
         else:
             M_hat = torch.zeros_like(T)
-            scale_term = (beta/alpha)*gamma
+            scale_term = gamma
             for t in range(self.rollout):
                 M_hat = M_hat + scale_term**t * torch.matrix_power(T, t)
-            M_hat = M_hat/alpha
+            M_hat = M_hat
 
         # For debugging: the eigenvalues
         #w, v = np.linalg.eig(-alpha*torch.eye(T.shape[0]) + beta*gamma*T.t())
@@ -141,8 +136,7 @@ class CA3(module.Module):
 
     def _init_trainable(self):
         if self.parameterize:
-            self.alpha = self.beta = nn.Parameter(torch.ones(1))
-            self.dummy = nn.Parameter(torch.ones(1))
+            pass
         # Nonlinearity may be a clamp
         if self.output_params['nonlinearity'] == 'clamp':
             self.nonlin_clamp = LeakyClamp(
