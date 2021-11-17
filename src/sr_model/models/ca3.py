@@ -41,22 +41,24 @@ class CA3(module.Module):
         output = torch.matmul(M.t(), torch.squeeze(input))
         return output
 
-    def forward(self, input, update_transition=True):
+    def forward(self, input, update_transition=True, gamma=None):
+        if gamma is None:
+            gamma = self.gamma_M0
         num_iterations = self.output_params['num_iterations']
         nonlinearity = self.output_params['nonlinearity']
+        if update_transition:
+            if self.curr_input is not None:
+                self.prev_input = torch.squeeze(self.curr_input)
+            self.curr_input = torch.squeeze(input)
 
         if np.isinf(num_iterations):
-            M = self.get_M_hat()
-            if update_transition:
-                if self.curr_input is not None:
-                    self.prev_input = torch.squeeze(self.curr_input)
-                self.curr_input = torch.squeeze(input)
+            M = self.get_M_hat(gamma)
             output = torch.matmul(M.t(), torch.squeeze(input))
         else:
             output = torch.squeeze(torch.zeros_like(input))
             dt = 1.
             for iteration in range(num_iterations):
-                current = torch.matmul(self.gamma_M0*self.T.t(), output.t())
+                current = torch.matmul(gamma*self.T.t(), output.t())
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'sigmoid':
@@ -145,7 +147,7 @@ class CA3(module.Module):
         if self.output_params['nonlinearity'] == 'clamp':
             self.nonlin_clamp = LeakyClamp(
                 floor=nn.Parameter(torch.tensor([0.])),
-                ceil=nn.Parameter(torch.tensor([1.]))
+                ceil=nn.Parameter(torch.tensor([5.]))
                 )
 
 class STDP_CA3(nn.Module):
@@ -193,7 +195,7 @@ class STDP_CA3(nn.Module):
         self.num_states = num_states
         self.x_queue = torch.zeros((self.num_states, self.x_queue_length))
 
-    def forward(self, input, update_transition=True):
+    def forward(self, input, update_transition=True, gamma=None):
         """
         Returns activity of network given input. 
 
@@ -495,8 +497,8 @@ class OjaCA3(module.Module):
         self.start_valid = start_valid
         self.reset()
     
-    def forward(self, input, update_transition=True):
-        M = self.get_M_hat()
+    def forward(self, input, update_transition=True, gamma=None):
+        M = self.get_M_hat(gamma=gamma)
         if update_transition:
             if self.curr_input is not None:
                 self.prev_input = torch.squeeze(self.curr_input)

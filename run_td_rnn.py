@@ -92,9 +92,17 @@ def run(
                 all_s = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
                 all_next_s = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
             test_phi = all_s.squeeze(1)
-            M = net.get_M(gamma)
-            test_psi_s = torch.stack([s.squeeze() @ M for s in all_s])
-            test_psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
+
+            #M = net.get_M(gamma)
+            #test_psi_s = torch.stack([s.squeeze() @ M for s in all_s])
+            #test_psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
+
+            test_psi_s = torch.stack(
+                [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_s.squeeze(0)]
+                ).unsqueeze(0)
+            test_psi_s_prime = torch.stack(
+                [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_next_s.squeeze(0)]
+                ).unsqueeze(0)
             test_value_function = test_psi_s
             test_exp_value_function = test_phi + gamma*test_psi_s_prime
             test_loss = criterion(test_value_function, test_exp_value_function)
