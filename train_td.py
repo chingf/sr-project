@@ -52,61 +52,54 @@ def train(
         # Evaluate loss on each candidate
         losses = [[] for _ in candidate_params]
 
-        for _ in range(3):
-            # Select dataset parameters and load dataset
-            dataset = datasets[step % num_datasets]
-            dataset_config_rang = datasets_config_ranges[step % num_datasets]
-            dataset_config = {}
-            for key in dataset_config_rang:
-                num_samples = len(dataset_config_rang[key])
-                sample_idx = np.random.choice(num_samples)
-                dataset_config[key] = dataset_config_rang[key][sample_idx]
-            input = dataset(**dataset_config)
-            dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device)
-            dg_inputs = dg_inputs.unsqueeze(1)
-            dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
-            dg_modes = dg_modes.unsqueeze(1)
-            try:
-                net.ca3.set_num_states(input.feature_maker.feature_dim)
-            except:
-                net.ca3.set_num_states(input.num_states)
-
-            for idx, params in enumerate(candidate_params):
-                set_parameters(net, parameter_names, params)
-
-                # Feed inputs into network
-                with torch.no_grad():
-                    _, outputs = net(dg_inputs, dg_modes, reset=True)
-                subsample = np.random.choice(dg_inputs.shape[0]-1, 50, replace=False)
-                all_s = dg_inputs[subsample]
-                all_next_s = dg_inputs[subsample+1]
-                test_phi = all_s.squeeze(1)
-
-                test_psi_s = torch.stack(
-                    [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_s.squeeze(0)]
-                    ).unsqueeze(0)
-                test_psi_s_prime = torch.stack(
-                    [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_next_s.squeeze(0)]
-                    ).unsqueeze(0)
-                test_value_function = test_psi_s
-                test_exp_value_function = test_phi + net.gamma*test_psi_s_prime
-                loss = criterion(test_value_function, test_exp_value_function)
-
-                #M = net.get_M(net.gamma)
-                #psi_s = torch.stack([s.squeeze() @ M for s in all_s])
-                #psi_s_prime = torch.stack([next_s.squeeze() @ M for next_s in all_next_s])
-                #value_function = psi_s
-                #exp_value_function = phi + net.gamma*psi_s_prime
-                #loss = criterion(value_function, exp_value_function)
-                if regularize:
-                    loss + 1E-3*np.sum(np.square(params))
-                losses[idx].append(loss.item())
-        print()
-        print(losses)
-
-        losses = [np.mean(loss) for loss in losses]
+        with torch.no_grad():
+            for _ in range(3):
+                # Select dataset parameters and load dataset
+                dataset = datasets[step % num_datasets]
+                dataset_config_rang = datasets_config_ranges[step % num_datasets]
+                dataset_config = {}
+                for key in dataset_config_rang:
+                    num_samples = len(dataset_config_rang[key])
+                    sample_idx = np.random.choice(num_samples)
+                    dataset_config[key] = dataset_config_rang[key][sample_idx]
+                input = dataset(**dataset_config)
+                dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device)
+                dg_inputs = dg_inputs.unsqueeze(1)
+                dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
+                dg_modes = dg_modes.unsqueeze(1)
+                try:
+                    net.ca3.set_num_states(input.feature_maker.feature_dim)
+                except:
+                    net.ca3.set_num_states(input.num_states)
     
-        print(candidate_params[np.argmin(losses)])
+                for idx, params in enumerate(candidate_params):
+                    set_parameters(net, parameter_names, params)
+    
+                    # Feed inputs into network
+                    _, outputs = net(dg_inputs, dg_modes, reset=True)
+    
+                    # Randomly sample a set to test TD loss
+                    subsample = np.random.choice(dg_inputs.shape[0]-1, 50, replace=False)
+                    all_s = dg_inputs[subsample]
+                    all_next_s = dg_inputs[subsample+1]
+                    test_phi = all_s.squeeze(1)
+                    test_psi_s = torch.stack([
+                        net(s.view(1,1,-1), reset=False, update=False)[1].squeeze()\
+                        for s in all_s.squeeze(0)
+                        ]).unsqueeze(0)
+                    test_psi_s_prime = torch.stack([
+                        net(s.view(1,1,-1), reset=False, update=False)[1].squeeze()\
+                        for s in all_next_s.squeeze(0)
+                        ]).unsqueeze(0)
+                    test_value_function = test_psi_s
+                    test_exp_value_function = test_phi + net.gamma*test_psi_s_prime
+                    loss = criterion(test_value_function, test_exp_value_function)
+                    if regularize:
+                        loss + 1E-3*np.sum(np.square(params))
+                    losses[idx].append(loss.item())
+
+        # Average over losses of each candidate over the N separate tests
+        losses = [np.mean(loss) for loss in losses]
 
         # Take optimization step based on losses
         es_optimizer.tell(candidate_params, losses)
