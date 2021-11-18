@@ -180,7 +180,7 @@ class TitmouseWalk(object):
 class FeatureMaker(object):
     def __init__(
             self, num_states, feature_dim=32, feature_type='linear',
-            feature_vals=[0,1], spatial_dim=2, spatial_sigma=2,
+            feature_vals=None, spatial_dim=2, spatial_sigma=2,
             feature_vals_p=None, seed_generation=None, gaussian_truncate=4.
             ):
 
