@@ -77,9 +77,7 @@ def train(
                 # Feed inputs into network
                 with torch.no_grad():
                     _, outputs = net(dg_inputs, dg_modes, reset=True)
-                all_s = dg_inputs[:-1]
-                all_next_s = dg_inputs[1:]
-                subsample = np.random.choice(all_s.shape[0]-1, 50, replace=False)
+                subsample = np.random.choice(dg_inputs.shape[0]-1, 50, replace=False)
                 all_s = dg_inputs[subsample]
                 all_next_s = dg_inputs[subsample+1]
                 test_phi = all_s.squeeze(1)
@@ -193,16 +191,17 @@ class ReplayMemory(object):
         return len(self.memory)
 
 if __name__ == "__main__":
-    save_path = './trained_models/td_trained_2/'
+    save_path = './trained_models/td_trained/'
 
     # Dataset parameters
     datasets = [sf_inputs_discrete.Sim2DWalk]
     sparsity_p = 0.125
-    num_states = 20*20
+    num_states = input_size = 20*20
+    spatial_sigma = 1.5
     feature_maker_kwargs = {
-        'feature_dim': num_states, 'feature_vals': None,
+        'feature_dim': num_states,
         'feature_vals_p': [1 - sparsity_p, sparsity_p],
-        'feature_type': 'correlated_distributed', 'spatial_sigma': 1.5
+        'feature_type': 'correlated_distributed', 'spatial_sigma': spatial_sigma
         }
     datasets_config_ranges = [{
         'num_steps': [2000], 'num_states': [num_states],
