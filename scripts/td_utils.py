@@ -43,8 +43,8 @@ def run_models(
 
     # RNN-SF
     best_net = None; best_lr_val = np.inf;
-    if os.path.isfile(save_path + f'rnn_fixedlr_alpha/{iters-1}/results.p'):
-        print(f'{save_path}/rnn_fixed_lr_alpha already calculated. Skipping...')
+    if os.path.isfile(save_path + f'rnn/{iters-1}/results.p'):
+        print(f'{save_path}/rnn already calculated. Skipping...')
         return
     num_iters = int(np.log(1E-5)/np.log(gamma))
     ca3_kwargs = {
@@ -61,7 +61,7 @@ def run_models(
         )
     for _iter in range(iters):
         net.reset()
-        rnn_save_path = save_path + f'rnn_fixedlr_alpha/{_iter}'
+        rnn_save_path = save_path + f'rnn/{_iter}'
         if os.path.isfile(f'{rnn_save_path}/results.p'):
             print(f'{rnn_save_path} already calculated. Skipping...')
             continue
