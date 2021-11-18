@@ -25,7 +25,7 @@ def main(delete_dir=False):
     sparsity_ps = np.linspace(0.15, 0.002, num=30, endpoint=True)
     lr_range = [5E-3, 1E-3, 5E-4, 1E-4] # Only used for Linear model
     num_states = 20*20
-    num_steps = 6000
+    num_steps = 6500
 
     def grid_train(arg):
         gamma, spatial_sigma, sparsity_p = arg
