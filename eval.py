@@ -88,8 +88,8 @@ def eval(path_or_model, datasets):
                 res_true_v_est.append(true_v_est_error)
 
                 # Check normalization of T (both row and col)
-                res_t_row_norm.append(np.mean(np.sum(rnn_T, axis=1)))
-                res_t_col_norm.append(np.mean(np.sum(rnn_T, axis=0)))
+                res_t_row_norm.append(np.mean(np.sum(rnn_T[valid_counts,:], axis=1)))
+                res_t_col_norm.append(np.mean(np.sum(rnn_T[:, valid_counts], axis=0)))
 
             results_true_v_rnn.append(np.array(res_true_v_rnn))
             results_est_v_rnn.append(np.array(res_est_v_rnn))
