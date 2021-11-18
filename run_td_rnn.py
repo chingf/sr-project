@@ -45,7 +45,7 @@ def run(
     time_net = 0
     grad_avg = 0
 
-    if train_net:
+    if train_net: # Not very clean, but trains and returns the net
         datasets = [dataset]
         dc = deepcopy(dataset_config)
         dc['num_steps'] = min(3001, dc['num_steps'])
@@ -54,8 +54,9 @@ def run(
         datasets_config_ranges = [dc]
         net, return_error = train(
             save_path + 'training/', net, datasets, datasets_config_ranges,
-            train_steps=31, early_stop=False, print_every_steps=2
+            train_steps=12, early_stop=False, print_every_steps=2
             )
+        return None, None, None, net
     
     dset = dataset(**dataset_config)
     dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
