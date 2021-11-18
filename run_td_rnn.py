@@ -48,13 +48,13 @@ def run(
     if train_net: # Not very clean, but trains and returns the net
         datasets = [dataset]
         dc = deepcopy(dataset_config)
-        dc['num_steps'] = min(3001, dc['num_steps'])
+        dc['num_steps'] = min(2501, dc['num_steps'])
         for key in dc.keys():
             dc[key] = [dc[key]]
         datasets_config_ranges = [dc]
         net, return_error = train(
             save_path + 'training/', net, datasets, datasets_config_ranges,
-            train_steps=12, early_stop=False, print_every_steps=2
+            train_steps=9, early_stop=False, print_every_steps=1
             )
         return None, None, None, net
     
