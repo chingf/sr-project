@@ -168,22 +168,34 @@ class ReplayMemory(object):
 
 if __name__ == "__main__":
     save_path = '../trained_models/rnn_td_loss/'
-    feature_maker_kwargs = {
-        'feature_dim': 64, 'feature_vals': None,
-        #'feature_vals_p': [0.95, 0.05],
-        'feature_type': 'correlated_distributed', 'spatial_sigma': 1.25
-        }
+
+    sparsity_p = 0.125
+    spatial_sigma = 1.5
+    num_states = input_size = 20*20
+    num_steps = 4000
     dataset = sf_inputs_discrete.Sim2DWalk
-    dataset_config = {
-        'num_steps': 4000, 'num_states': 64,
-        'feature_maker_kwargs': feature_maker_kwargs
+    feature_maker_kwargs = {
+        'feature_dim': num_states, 'feature_type': 'correlated_distributed',
+        'feature_vals_p': [1-sparsity_p, sparsity_p], 'feature_vals': None,
+        'spatial_sigma': spatial_sigma
         }
+    dataset_config = {
+        'num_steps': num_steps, 'feature_maker_kwargs': feature_maker_kwargs,
+        'num_states': num_states
+        }
+    
     net = AnalyticSR(
-        num_states=dataset_config['num_states'], gamma=0.95,
-        ca3_kwargs={'use_dynamic_lr': False, 'lr': 1E-3, 'parameterize': True}
+        num_states=input_size, gamma=0.6,
+        ca3_kwargs={
+            'use_dynamic_lr':False, 'lr': -0.002046,
+            'output_params':{
+                'num_iterations':25, 'nonlinearity': 'clamp',
+                'nonlinearity_args': [-0.055744, 2.045]
+                }
+            }
         )
-    outputs, loss = run(
-        save_path, net, dataset, dataset_config, gamma=net.gamma,
-        train_net=True
+    _ = run(
+        'test/', net, dataset, dataset_config,
+        gamma=0.6,
+        train_net=False, test_over_all=False
         )
-    print(f'Final loss {loss}')

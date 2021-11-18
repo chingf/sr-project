@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import cma
 
-from datasets import inputs
+from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR, MLP, Linear
 
 device = 'cpu'
@@ -156,9 +156,24 @@ class ReplayMemory(object):
 
 if __name__ == "__main__":
     save_path = './trained_models/linear/'
-    dataset = inputs.Sim1DWalk
-    dataset_config = {
-        'num_steps': 8000, 'left_right_stay_prob': [1,1,1], 'num_states': 10
+
+    sparsity_p = 0.125
+    spatial_sigma = 1.5
+    num_states = input_size = 20*20
+    num_steps = 4000
+    dataset = sf_inputs_discrete.Sim2DWalk
+    feature_maker_kwargs = {
+        'feature_dim': num_states, 'feature_type': 'correlated_distributed',
+        'feature_vals_p': [1-sparsity_p, sparsity_p], 'feature_vals': None,
+        'spatial_sigma': spatial_sigma
         }
-    net = Linear(input_size=10)
-    run(save_path, net, dataset, dataset_config)
+    dataset_config = {
+        'num_steps': num_steps, 'feature_maker_kwargs': feature_maker_kwargs,
+        'num_states': num_states
+        }
+    net = Linear(input_size=input_size)
+    run(
+        save_path, net, dataset, dataset_config, gamma=0.6,
+        test_over_all=False, lr=1E-3
+        )
+
