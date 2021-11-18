@@ -20,12 +20,12 @@ def main(delete_dir=False):
         rmtree(save_path, ignore_errors=True)
 
     iters = 3
-    gammas = [0.75, 0.8, 0.6, 0.85]
+    gammas = [0.75, 0.6, 0.8, 0.85, 0.4]
     spatial_sigmas = [0., 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25]
-    sparsity_ps = np.linspace(0.2, 0.002, num=30, endpoint=True)
-    lr_range = [5E-3, 1E-3, 5E-4, 1E-4]
+    sparsity_ps = np.linspace(0.15, 0.002, num=30, endpoint=True)
+    lr_range = [5E-3, 1E-3, 5E-4, 1E-4] # Only used for Linear model
     num_states = 20*20
-    num_steps = 6500
+    num_steps = 6000
 
     def grid_train(arg):
         gamma, spatial_sigma, sparsity_p = arg
@@ -41,10 +41,11 @@ def main(delete_dir=False):
             }
         input_size = num_states
         dset_path = save_path + f'sparsity{sparsity_p}/sigma{spatial_sigma}/{gamma}/'
+        run_hopfield = gamma==0.6 # Arbitrary
         run_models(
             dset_path, iters, lr_range, dataset, dataset_config, gamma,
             input_size, save_outputs=True, test_over_all=False,
-            print_file=open('dummy.txt', 'w')
+            print_file=open('dummy.txt', 'w'), run_hopfield=run_hopfield
             )
 
     args = []
@@ -52,7 +53,7 @@ def main(delete_dir=False):
         for spatial_sigma in spatial_sigmas:
             for sparsity_p in sparsity_ps:
                 args.append([gamma, spatial_sigma, sparsity_p])
-    Parallel(n_jobs=30)(delayed(grid_train)(arg) for arg in args)
+    Parallel(n_jobs=56)(delayed(grid_train)(arg) for arg in args)
 
 if __name__ == "__main__":
     main()
