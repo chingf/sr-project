@@ -32,7 +32,7 @@ for tau_neg in tau_negs:
                 grid_params.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
 
 def main():
-    Parallel(n_jobs=30)(delayed(grid_train)(param) for param in grid_params)
+    Parallel(n_jobs=56)(delayed(grid_train)(param) for param in grid_params)
 
 def slurm_main(idx):
     param = grid_params[idx]
