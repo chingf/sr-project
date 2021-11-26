@@ -54,7 +54,7 @@ def run(
         datasets_config_ranges = [dc]
         net, return_error = train(
             save_path + 'training/', net, datasets, datasets_config_ranges,
-            train_steps=9, early_stop=False, print_every_steps=1
+            train_steps=10, early_stop=False, print_every_steps=1
             )
         return None, None, None, net
     

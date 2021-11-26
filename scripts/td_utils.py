@@ -21,25 +21,25 @@ def run_models(
     save_outputs=False, test_over_all=True, print_file=None, run_hopfield=False
     ):
 
-    # Hopfield
-    if run_hopfield: # Gamma doesn't matter for Hopfield so only run once
-        print(f'Running {save_path} for Hopfield')
-        net = Hopfield(input_size, lr=1E-3, clamp=np.inf)
-        for _iter in range(iters):
-            hopfield_save_path = save_path + f'hopfield/{_iter}'
-            if os.path.isfile(f'{hopfield_save_path}/results.p'):
-                print(f'{hopfield_save_path} already calculated. Skipping...')
-                continue
-            net.reset()
-            dset = dataset(**dataset_config)
-            dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to('cpu').unsqueeze(1)
-            outputs = net(dg_inputs)
-            if save_outputs:
-                results = {'outputs': outputs, 'dset': dset}
-                if not os.path.isdir(hopfield_save_path):
-                    os.makedirs(hopfield_save_path)
-                with open(f'{hopfield_save_path}/results.p', 'wb') as f:
-                    pickle.dump(results, f)
+#    # Hopfield
+#    if run_hopfield: # Gamma doesn't matter for Hopfield so only run once
+#        print(f'Running {save_path} for Hopfield')
+#        net = Hopfield(input_size, lr=1E-3, clamp=np.inf)
+#        for _iter in range(iters):
+#            hopfield_save_path = save_path + f'hopfield/{_iter}'
+#            if os.path.isfile(f'{hopfield_save_path}/results.p'):
+#                print(f'{hopfield_save_path} already calculated. Skipping...')
+#                continue
+#            net.reset()
+#            dset = dataset(**dataset_config)
+#            dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to('cpu').unsqueeze(1)
+#            outputs = net(dg_inputs)
+#            if save_outputs:
+#                results = {'outputs': outputs, 'dset': dset}
+#                if not os.path.isdir(hopfield_save_path):
+#                    os.makedirs(hopfield_save_path)
+#                with open(f'{hopfield_save_path}/results.p', 'wb') as f:
+#                    pickle.dump(results, f)
 
     # RNN-SF
     best_net = None; best_lr_val = np.inf;
@@ -80,34 +80,34 @@ def run_models(
             with open(f'{rnn_save_path}/results.p', 'wb') as f:
                 pickle.dump(results, f)
 
-    # Linear
-    print(f'Running {save_path} for Linear')
-    best_lr = np.inf; best_lr_val = np.inf;
-    net = Linear(input_size=input_size)
-    for lr in lr_range:
-        net.reset()
-        _, loss = run_linear(
-            save_path + 'test/', net, dataset, dataset_config, gamma=gamma, lr=lr,
-            test_over_all=test_over_all, print_file=print_file
-            )
-        if loss < best_lr_val:
-            best_lr = lr; best_lr_val = loss;
-    for _iter in range(iters):
-        net.reset()
-        linear_save_path = save_path + f'linear/{_iter}'
-        outputs, _ = run_linear(
-            linear_save_path, net, dataset, dataset_config, lr=best_lr, gamma=gamma,
-            test_over_all=test_over_all, print_file=print_file
-            )
+#    # Linear
+#    print(f'Running {save_path} for Linear')
+#    best_lr = np.inf; best_lr_val = np.inf;
+#    net = Linear(input_size=input_size)
+#    for lr in lr_range:
+#        net.reset()
+#        _, loss = run_linear(
+#            save_path + 'test/', net, dataset, dataset_config, gamma=gamma, lr=lr,
+#            test_over_all=test_over_all, print_file=print_file
+#            )
+#        if loss < best_lr_val:
+#            best_lr = lr; best_lr_val = loss;
+#    for _iter in range(iters):
+#        net.reset()
+#        linear_save_path = save_path + f'linear/{_iter}'
+#        outputs, _ = run_linear(
+#            linear_save_path, net, dataset, dataset_config, lr=best_lr, gamma=gamma,
+#            test_over_all=test_over_all, print_file=print_file
+#            )
     
-    # MLP
-    print(f'Running {save_path} for MLP')
-    net = MLP(input_size=input_size, hidden_size=input_size*2)
-    for _iter in range(iters):
-        net.reset()
-        mlp_save_path = save_path + f'mlp/{_iter}'
-        outputs, _ = run_mlp(
-            mlp_save_path, net, dataset, dataset_config, gamma=gamma,
-            test_over_all=test_over_all, print_file=print_file
-            )
+#    # MLP
+#    print(f'Running {save_path} for MLP')
+#    net = MLP(input_size=input_size, hidden_size=input_size*2)
+#    for _iter in range(iters):
+#        net.reset()
+#        mlp_save_path = save_path + f'mlp/{_iter}'
+#        outputs, _ = run_mlp(
+#            mlp_save_path, net, dataset, dataset_config, gamma=gamma,
+#            test_over_all=test_over_all, print_file=print_file
+#            )
 
