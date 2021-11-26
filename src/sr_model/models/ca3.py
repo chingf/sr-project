@@ -57,15 +57,26 @@ class CA3(module.Module):
             output = torch.squeeze(torch.zeros_like(input))
             dt = 1.
             for iteration in range(num_iterations):
-                current = torch.matmul(gamma*self.T.t(), output.t())
+                current = torch.matmul(self.T.t(), output.t())
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'sigmoid':
-                    current = sigmoid(current)
+                    nonlin_a = torch.absolute(self.nonlin_a)
+                    current = sigmoid(nonlin_a*current + self.nonlin_b)
                 elif nonlinearity == 'tanh':
-                    current = tanh(current)
+                    nonlin_a = torch.absolute(self.nonlin_a)
+                    current = tanh(nonlin_a*current + self.nonlin_b)
                 elif nonlinearity == 'clamp':
-                    current = self.nonlin_clamp(current)
+                    clamp_offset = torch.absolute(self.clamp_offset)
+                    clamp_min = self.clamp_min
+                    clamp_max = self.clamp_min + clamp_offset
+                    current = torch.clamp(
+                        current, min=clamp_min.item(),
+                        max=clamp_max.item()
+                        )
+
+                # Apply neuromodulatory gamma
+                current = gamma*current
 
                 # Provide input current
                 current = current + torch.squeeze(input)
@@ -94,7 +105,12 @@ class CA3(module.Module):
             self.T += update_term * lr_update[:,None]
             self.state_counts = new_state_counts
         else:
-            self.T = self.T + torch.abs(self.lr)*(update_term - forget_term)
+            if self.parameterize:
+                lr_update = torch.abs(self.lr_update)*0.01
+                lr_decay = torch.abs(self.lr_decay)*0.01
+                self.T = self.T + lr_update*update_term - lr_decay*forget_term
+            else:
+                self.T = self.T + torch.abs(self.lr)*(update_term - forget_term)
         self.T = torch.clamp(self.T, min=0)
 
     def get_T(self):
@@ -139,24 +155,31 @@ class CA3(module.Module):
 
     def _init_trainable(self):
         if self.parameterize:
-            if self.output_params['nonlinearity'] != 'clamp':
-                print('Setting nonlinearity to clamp for parameterization')
-                self.output_params['nonlinearity'] = 'clamp'
-            self.lr = nn.Parameter(torch.tensor([1E-3]))
-            ceil = nn.Parameter(torch.empty(1))
-            nn.init.uniform_(ceil, 1.0, 4.0)
-            self.nonlin_clamp = LeakyClamp(
-                floor=nn.Parameter(torch.tensor([0.])), ceil=ceil
-                )
+            if self.output_params['nonlinearity'] is None:
+                raise ValueError('Please specify nonlinearity')
+            self.lr_update = nn.Parameter(torch.tensor([1E-3]))
+            self.lr_decay = nn.Parameter(torch.tensor([1E-3]))
+
+            if self.output_params['nonlinearity'] == 'clamp':
+                self.clamp_min = nn.Parameter(torch.tensor([0.]))
+                self.clamp_offset = nn.Parameter(torch.empty(1))
+                nn.init.uniform_(self.clamp_offset, 1.0, 4.0)
+            elif self.output_params['nonlinearity'] == 'sigmoid' or \
+                    self.output_params['nonlinearity'] == 'tanh':
+                self.nonlin_a = nn.Parameter(torch.tensor([1.]))
+                self.nonlin_b = nn.Parameter(torch.tensor([0.]))
         else:
             self.lr = nn.Parameter(torch.tensor([self.lr]))
             # Nonlinearity may be a clamp
             if self.output_params['nonlinearity'] == 'clamp':
                 if self.output_params['nonlinearity_args'] is not None:
-                    floor, ceil = self.output_params['nonlinearity_args']
-                    floor = torch.tensor([floor])
-                    ceil = torch.tensor([ceil])
-                    self.nonlin_clamp = LeakyClamp(floor=floor, ceil=ceil)
+                    _min, _offset = self.output_params['nonlinearity_args']
+                    self.clamp_min = torch.tensor([_min])
+                    self.clamp_offset = torch.tensor([_offset])
+            elif self.output_params['nonlinearity'] == 'sigmoid' or \
+                    self.output_params['nonlinearity'] == 'tanh':
+                self.nonlin_a = torch.tensor([1.])
+                self.nonlin_b = torch.tensor([0.])
 
 class STDP_CA3(nn.Module):
     """
