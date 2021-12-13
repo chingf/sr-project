@@ -137,7 +137,7 @@ def run(
 
     writer.close()
     print('Finished Training\n', file=print_file)
-    return np.array(outputs), prev_running_loss
+    return np.array(outputs), prev_running_loss, dset, net
 
 class ReplayMemory(object):
 

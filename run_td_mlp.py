@@ -142,7 +142,7 @@ def run(
     if return_dset:
         return np.array(outputs), prev_running_loss, dset
     else:
-        return np.array(outputs), prev_running_loss
+        return np.array(outputs), prev_running_loss, dset, net
 
 class ReplayMemory(object):
 
