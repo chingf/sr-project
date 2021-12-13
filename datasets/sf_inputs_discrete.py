@@ -265,7 +265,7 @@ class FeatureMaker(object):
             )
         blurred_features = blurred_features.reshape(num_states, feature_dim)
         blurred_features -= np.min(blurred_features, axis=1)[:,None]
-        blurred_features = normalize(blurred_features, axis=1, norm='l1')
+        blurred_features = normalize(blurred_features, axis=1, norm='l2')
 
         if feature_vals is not None:
             val_midpoints = (feature_vals[1:] + feature_vals[:-1])/2
@@ -297,7 +297,7 @@ class FeatureMaker(object):
             )
         blurred_features = blurred_features.reshape(num_states, feature_dim)
         blurred_features -= np.min(blurred_features, axis=1)[:,None]
-        blurred_features = normalize(blurred_features, axis=1, norm='l1')
+        blurred_features = normalize(blurred_features, axis=1, norm='l2')
 
         if feature_vals is not None:
             val_midpoints = (feature_vals[1:] + feature_vals[:-1])/2
