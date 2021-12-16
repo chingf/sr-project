@@ -45,40 +45,71 @@ def run_models(
     best_net = None; best_lr_val = np.inf;
     if os.path.isfile(save_path + f'rnn/{iters-1}/results.p'):
         print(f'{save_path}/rnn already calculated. Skipping...')
-        return
-    num_iters = int(np.log(1E-5)/np.log(gamma))
-    ca3_kwargs = {
-        'use_dynamic_lr':False, 'parameterize': True,
-        'output_params':{'num_iterations': num_iters,'nonlinearity': 'clamp'}
-        }
-    net = AnalyticSR( # Initialize network
-        num_states=input_size, gamma=gamma,
-        ca3_kwargs=ca3_kwargs
-        )
-    _, _, _, net = run_rnn( # Meta-learn LR and nonlinearity
-        save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
-        train_net=True, test_over_all=False
-        )
-    for _iter in range(iters):
-        net.reset()
-        rnn_save_path = save_path + f'rnn/{_iter}'
-        if os.path.isfile(f'{rnn_save_path}/results.p'):
-            print(f'{rnn_save_path} already calculated. Skipping...')
-            continue
-        try:
+    else:
+        num_iters = int(np.log(1E-5)/np.log(gamma))
+        ca3_kwargs = {
+            'use_dynamic_lr':False, 'parameterize': True,
+            'output_params':{'num_iterations': num_iters,'nonlinearity': 'clamp'}
+            }
+        net = AnalyticSR( # Initialize network
+            num_states=input_size, gamma=gamma,
+            ca3_kwargs=ca3_kwargs
+            )
+        _, _, _, net = run_rnn( # Meta-learn LR and nonlinearity
+            save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
+            train_net=True, test_over_all=False
+            )
+        for _iter in range(iters):
+            net.reset()
+            rnn_save_path = save_path + f'rnn/{_iter}'
+            if os.path.isfile(f'{rnn_save_path}/results.p'):
+                print(f'{rnn_save_path} already calculated. Skipping...')
+                continue
+            try:
+                outputs, _, dset, _ = run_rnn(
+                    rnn_save_path, net, dataset, dataset_config, gamma=gamma,
+                    train_net=False, test_over_all=False
+                    )
+            except RuntimeError as e:
+                if 'svd' in str(e):
+                    continue
+                else:
+                    raise
+            if save_outputs:
+                results = {'outputs': outputs, 'dset': dset}
+                with open(f'{rnn_save_path}/results.p', 'wb') as f:
+                    pickle.dump(results, f)
+
+    # RNN-SF Shuffle
+    if os.path.isfile(save_path + f'rnn_shuffle/{iters-1}/results.p'):
+        print(f'{save_path}/rnn_shuffle already calculated. Skipping...')
+    else:
+        num_iters = int(np.log(1E-5)/np.log(gamma))
+        ca3_kwargs = {
+            'use_dynamic_lr':False, 'parameterize': True,
+            'output_params':{'num_iterations': num_iters,'nonlinearity': 'clamp'}
+            }
+        net = AnalyticSR( # Initialize network
+            num_states=input_size, gamma=gamma,
+            ca3_kwargs=ca3_kwargs
+            )
+        for _iter in range(iters):
+            rnn_save_path = save_path + f'rnn/{_iter}'
+            model_path = f'{rnn_save_path}/model.pt'
+            if not os.path.isfile(model_path):
+                print(f'{rnn_save_path} not calculated. Skipping shuffle...')
+                continue
+            model_state_dict = torch.load(model_path)
+            net.load_state_dict(model_state_dict)
+            net.reset()
             outputs, _, dset, _ = run_rnn(
                 rnn_save_path, net, dataset, dataset_config, gamma=gamma,
-                train_net=False, test_over_all=False
+                train_net=False, test_over_all=False, shuffle=True
                 )
-        except RuntimeError as e:
-            if 'svd' in str(e):
-                continue
-            else:
-                raise
-        if save_outputs:
-            results = {'outputs': outputs, 'dset': dset}
-            with open(f'{rnn_save_path}/results.p', 'wb') as f:
-                pickle.dump(results, f)
+            if save_outputs:
+                results = {'outputs': outputs, 'dset': dset}
+                with open(f'{rnn_save_path}/results.p', 'wb') as f:
+                    pickle.dump(results, f)
 
     # Linear
     print(f'Running {save_path} for Linear')
