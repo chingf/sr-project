@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
 from datasets import inputs
-from sr_model.models.models import AnalyticSR, STDP_SR, OjaRNN
+from sr_model.models.models import AnalyticSR, STDP_SR, OjaRNN, Linear
 
 device = 'cpu'
 
@@ -37,25 +37,22 @@ def eval(path_or_model, datasets):
             print("Loading default configs")
             net = STDP_SR(num_states=64, gamma=0.4)
         net.load_state_dict(torch.load(model_path))
-        net.ca3.set_differentiability(False)
     else:
         net = path_or_model
     
-    results_true_v_rnn = []
-    results_est_v_rnn = []
-    results_true_v_est = []
+    results_T_error = [] # From underlying T
+    results_M_error = [] # From SR of underlying T
     results_T_row_norm = [] # Rows in a proper T sum to 1
     results_T_col_norm = []
     
     with torch.no_grad():
         for dset in datasets:
-            res_true_v_rnn = []
-            res_est_v_rnn = []
-            res_true_v_est = []
+            res_t_error = []
+            res_m_error = []
             res_t_row_norm = []
             res_t_col_norm = []
-            net.ca3.set_num_states(dset.num_states)
-            net.ca3.reset()
+            net.set_num_states(dset.num_states)
+            net.reset()
 
             dg_inputs = torch.from_numpy(dset.dg_inputs.T).float().to(device).unsqueeze(1)
             dg_modes = torch.from_numpy(dset.dg_modes.T).float().to(device).unsqueeze(1)
@@ -63,42 +60,34 @@ def eval(path_or_model, datasets):
                 curr_dg_input = dg_inputs[step].unsqueeze(0)
                 curr_dg_mode = dg_modes[step].unsqueeze(0)
                 reset = True if step == 0 else False
-                _, outputs = net(curr_dg_input, curr_dg_mode, reset=reset)
-                rnn_T = net.ca3.get_T().detach().numpy()
+
+                if isinstance(net, Linear):
+                    outputs = net(curr_dg_input, reset=reset)
+                else:
+                    _, outputs = net(curr_dg_input, reset=reset)
 
                 if step==0: continue
 
-                # How well the RNN estimates the true T
+                # How well the model estimates the true T/M
+                net_T = net.get_T().detach().numpy()
+                net_M = net.get_M().detach().numpy()
                 true_T = dset.get_true_T()
-                true_error = np.mean(np.abs(true_T - rnn_T))
-                res_true_v_rnn.append(true_error)
-
-                # How well the RNN follows the observed T
-                est_T = net.ca3.get_ideal_T_estimate()
-                valid_counts = net.ca3.real_T_count > 0
-                est_error = np.mean(np.abs(
-                    est_T[valid_counts,:] - rnn_T[valid_counts,:]
-                    ))
-                res_est_v_rnn.append(est_error)
-
-                # How well the observed T estimates the true T
-                true_v_est_error = np.mean(np.abs(
-                    est_T[valid_counts,:] - true_T[valid_counts,:]
-                    ))
-                res_true_v_est.append(true_v_est_error)
+                true_M = np.linalg.pinv(np.eye(true_T.shape[0]) - net.gamma*true_T)
+                t_error = np.mean(np.abs(true_T - net_T))
+                m_error = np.mean(np.abs(true_M - net_M))
+                res_t_error.append(t_error)
+                res_m_error.append(m_error)
 
                 # Check normalization of T (both row and col)
-                res_t_row_norm.append(np.mean(np.sum(rnn_T[valid_counts,:], axis=1)))
-                res_t_col_norm.append(np.mean(np.sum(rnn_T[:, valid_counts], axis=0)))
+                res_t_row_norm.append(np.mean(np.sum(net_T, axis=1)))
+                res_t_col_norm.append(np.mean(np.sum(net_T, axis=0)))
 
-            results_true_v_rnn.append(np.array(res_true_v_rnn))
-            results_est_v_rnn.append(np.array(res_est_v_rnn))
-            results_true_v_est.append(np.array(res_true_v_est))
+            results_T_error.append(np.array(res_t_error))
+            results_M_error.append(np.array(res_m_error))
             results_T_row_norm.append(np.array(res_t_row_norm))
             results_T_col_norm.append(np.array(res_t_col_norm))
 
-    return results_true_v_rnn, results_est_v_rnn, results_true_v_est,\
-        results_T_row_norm, results_T_col_norm
+    return results_T_error, results_M_error, results_T_row_norm, results_T_col_norm
 
 if __name__ == "__main__":
     save_path = './trained_models/0.95_2/'
@@ -111,33 +100,17 @@ if __name__ == "__main__":
         inputs.Sim2DLevyFlight(num_steps=1000, walls=7)
         ]
 
-    results_true_v_rnn, results_est_v_rnn, results_true_v_est,\
-        results_T_row_norm, results_T_col_norm = eval(
-            net, datasets
-            )
+    results_T_error, results_M_error, results_T_row_norm, results_T_col_norm =\
+        eval(net, datasets)
 
     plt.figure();
-    plt.plot(results_true_v_rnn[0], 'r-', label='1D Walk (RNN)')
-    plt.plot(results_true_v_rnn[2], 'b-', label='2D Walk (RNN)')
-    plt.plot(results_true_v_est[0], 'r--', label='1D Walk (original)')
-    plt.plot(results_true_v_est[2], 'b--', label='2D Walk (original)')
+    plt.plot(results_T_error[0], 'r-', label='1D Walk (RNN)')
+    plt.plot(results_T_error[2], 'b-', label='2D Walk (RNN)')
     plt.title("Estimation of True T")
     plt.ylabel("MAE")
     plt.xlabel("Timestep of Simulation")
     plt.legend()
     plt.tight_layout()
 #    plt.savefig('eval_true_v_rnn.png', dpi=300)
-    plt.show()
-
-    plt.figure();
-    plt.plot(results_est_v_rnn[0], label='1D Random Walk')
-    plt.plot(results_est_v_rnn[2], label='2D Random Walk')
-    plt.plot(results_est_v_rnn[3], label='2D Levy Flight')
-    plt.title("Deviation from Ideal Estimator")
-    plt.ylabel("MAE")
-    plt.xlabel("Timestep of Simulation")
-    plt.legend()
-    plt.tight_layout()
-#    plt.savefig('eval_est_v_rnn.png', dpi=300)
     plt.show()
 

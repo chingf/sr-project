@@ -74,11 +74,17 @@ class AnalyticSR(module.Module):
     def update(self):
         self.ca3.update()
 
+    def get_T(self):
+        return self.ca3.get_T()
+
     def get_M(self, gamma=None):
         return self.ca3.get_M_hat(gamma=gamma)
 
     def reset(self):
         self.ca3.reset()
+
+    def set_num_states(self, num_states):
+        self.ca3.set_num_states(num_states)
 
 class STDP_SR(AnalyticSR):
     """ Output is M.T @ i """
@@ -102,11 +108,14 @@ class STDP_SR(AnalyticSR):
 class Linear(module.Module):
     """ Output is i @ M"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, gamma=0.6, lr=1E-3):
         super(Linear, self).__init__()
         self.M = torch.zeros(1, input_size, input_size)
+        self.gamma = gamma
+        self.lr = lr
+        self.prev_input = None
 
-    def forward(self, inputs, reset=False):
+    def forward(self, inputs, reset=False, update=True):
         """
         inputs is (steps, batch, states)
         """
@@ -119,11 +128,32 @@ class Linear(module.Module):
             output = torch.bmm(input, self.M)
             output = output.squeeze(0)
             outputs.append(output)
+
+            if update and (self.prev_input is not None):
+                phi = self.prev_input
+                psi_s = torch.bmm(phi, self.M)
+                psi_s_prime = output
+                value_function = psi_s
+                expected_value_function = phi + self.gamma*psi_s_prime
+                error = expected_value_function - value_function
+                self.M[0,:,:] = self.M[0,:,:] + self.lr*error[0]*phi[0].t()
+            self.prev_input = input
         outputs = torch.stack(outputs)
         return outputs
 
+    def get_T(self):
+        return self.M.clone()
+
+    def get_M(self):
+        return self.M.clone()
+
     def reset(self):
         torch.nn.init.zeros_(self.M)
+        self.prev_input = None
+
+    def set_num_states(self, num_states):
+        self.M = torch.zeros(1, num_states, num_states)
+        self.reset()
 
 class MLP(module.Module):
     """ Output is M @ i """
