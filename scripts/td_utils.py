@@ -95,6 +95,7 @@ def run_models(
             )
         for _iter in range(iters):
             rnn_save_path = save_path + f'rnn/{_iter}'
+            rnn_shuffle_save_path = save_path + f'rnn_shuffle/{_iter}'
             model_path = f'{rnn_save_path}/model.pt'
             if not os.path.isfile(model_path):
                 print(f'{rnn_save_path} not calculated. Skipping shuffle...')
@@ -103,12 +104,12 @@ def run_models(
             net.load_state_dict(model_state_dict)
             net.reset()
             outputs, _, dset, _ = run_rnn(
-                rnn_save_path, net, dataset, dataset_config, gamma=gamma,
+                rnn_shuffle_save_path, net, dataset, dataset_config, gamma=gamma,
                 train_net=False, test_over_all=False, shuffle=True
                 )
             if save_outputs:
                 results = {'outputs': outputs, 'dset': dset}
-                with open(f'{rnn_save_path}/results.p', 'wb') as f:
+                with open(f'{rnn_shuffle_save_path}/results.p', 'wb') as f:
                     pickle.dump(results, f)
 
     # Linear
