@@ -193,7 +193,7 @@ class STDP_CA3(nn.Module):
     """
 
     def __init__(
-            self, num_states, gamma_M0, gamma_T=0.99999, leaky_slope=1e-4,
+            self, num_states, gamma_M0, gamma_T=0.99999,
             A_pos_sign=None, A_neg_sign=None, start_valid=False,
             approx_B=False,
             output_params={}
@@ -203,7 +203,6 @@ class STDP_CA3(nn.Module):
         self.num_states = num_states
         self.gamma_T = gamma_T
         self.gamma_M0 = gamma_M0
-        self.leaky_slope = leaky_slope
         self.A_pos_sign = A_pos_sign
         self.A_neg_sign = A_neg_sign
         self.start_valid = start_valid
@@ -333,28 +332,10 @@ class STDP_CA3(nn.Module):
         M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
         return M_hat
 
-    def get_ideal_M(self, gamma=None):
-        if gamma is None:
-            gamma = self.gamma_M0
-        T = self.get_ideal_T_estimate()
-        T = torch.from_numpy(T).float().to('cpu')
-        M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
-        return M_hat
-
     def get_T(self):
         """ Returns the learned T matrix, where T = J^T. """
 
         return self.J.t()
-
-    def get_ideal_T_estimate(self):
-        """ Returns the ideal T matrix """
-
-        return self.real_T_tilde/self.real_T_count[:,None]
-
-    def set_J_to_T_estimate(self):
-        """ Sets J to the correct transition matrix. """
-
-        self.J = torch.tensor(self.get_ideal_T_estimate().T).float()
 
     def reset(self):
         init_scale = 0.0001
@@ -384,7 +365,6 @@ class STDP_CA3(nn.Module):
         nn.init.constant_(self.x_queue, 0)
 
     def _update_J(self):
-
         num_states = self.num_states
         # Format learning rates for each neuron's outgoing synapses (shared by js)
         etas = torch.nan_to_num(1/self.eta_invs, posinf=posinf) # for training
@@ -511,13 +491,6 @@ class STDP_CA3(nn.Module):
                 ceil=nn.Parameter(torch.tensor([1.]))
                 )
 
-    def set_differentiability(self, differentiable):
-        self.differentiable = differentiable
-        if differentiable == True:
-            self.leaky_slope = 1e-5
-        else:
-            self.leaky_slope = 0
-
 class OjaCA3(module.Module):
     def __init__(self, num_states, gamma_M0, lr=1E-3, start_valid=False):
 
@@ -574,11 +547,6 @@ class OjaCA3(module.Module):
         T = self.get_T()
         M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
         return M_hat
-
-    def get_ideal_T_estimate(self):
-        """ Returns the ideal T matrix """
-
-        return self.real_T_tilde/self.real_T_count[:,None]
 
     def set_num_states(self, num_states):
         self.num_states = num_states

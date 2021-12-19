@@ -52,7 +52,7 @@ def run(
 
         # Get net response
         with torch.no_grad():
-            out = net(input)
+            out = net(input, update=False)
             outputs.append(out.detach().numpy().squeeze())
 
         if step == 0:
@@ -72,8 +72,8 @@ def run(
             next_states = torch.stack([t[1] for t in transitions]).squeeze(1)
     
             phi = states
-            psi_s = net(states)
-            psi_s_prime = net(next_states)
+            psi_s = net(states, update=False)
+            psi_s_prime = net(next_states, update=False)
             value_function = psi_s
             expected_value_function = phi + gamma*psi_s_prime
             errors = expected_value_function - value_function
@@ -90,8 +90,8 @@ def run(
                 all_s = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
                 all_next_s = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
             test_phi = all_s
-            test_psi_s = net(all_s)
-            test_psi_s_prime = net(all_next_s)
+            test_psi_s = net(all_s, update=False)
+            test_psi_s_prime = net(all_next_s, update=False)
             test_value_function = test_psi_s
             test_exp_value_function = test_phi + gamma*test_psi_s_prime
             test_loss = criterion(test_value_function, test_exp_value_function)
