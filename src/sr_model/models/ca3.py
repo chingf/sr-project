@@ -11,7 +11,7 @@ posinf = 1E30
 class CA3(module.Module):
     def __init__(
         self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,
-        parameterize=False, rollout=None,
+        parameterize=False, rollout=None, forget=None
         output_params={}
         ):
 
@@ -23,6 +23,7 @@ class CA3(module.Module):
         self.lr = lr
         self.parameterize = parameterize
         self.rollout = rollout
+        self.forget = forget # for modifying forget term in learning rule
         self.output_params = {
             'num_iterations': np.inf, 'nonlinearity': None,
             'nonlinearity_args': None # So far, just [floor, ceil] for clamp
@@ -91,8 +92,15 @@ class CA3(module.Module):
     def update(self):
         if self.prev_input is None:
             return
-        forget_term = torch.outer(self.prev_input, self.prev_input)@self.T
-        #forget_term = torch.outer(self.prev_input, torch.ones_like(self.prev_input))*self.T
+
+        if self.forget == "default":
+            forget_term = torch.outer(self.prev_input, self.prev_input)@self.T
+        elif self.forget == "oja":
+            forget_term = torch.outer(
+                torch.square(self.prev_input), torch.ones_like(self.prev_input)
+                ) * self.T
+        else:
+            raise ValueError("Invalid forget parameter.")
         update_term = torch.outer(self.prev_input, self.curr_input)
         if self.use_dynamic_lr:
             new_state_counts = self.prev_input + self.gamma_T*self.state_counts
