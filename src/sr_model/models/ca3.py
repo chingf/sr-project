@@ -93,7 +93,7 @@ class CA3(module.Module):
         if self.prev_input is None:
             return
 
-        if self.forget == "default":
+        if self.forget is None:
             forget_term = torch.outer(self.prev_input, self.prev_input)@self.T
         elif self.forget == "oja":
             forget_term = torch.outer(
