@@ -23,9 +23,9 @@ device = 'cpu'
 
 def run(
     save_path, net, dataset, dataset_config, print_file=None,
-    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
+    print_every_steps=500, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
     train_net=False, summ_write=True, test_over_all=True,
-    test_batch_size=32, shuffle=False
+    test_batch_size=32
     ):
 
     # Initializations
@@ -54,7 +54,7 @@ def run(
         datasets_config_ranges = [dc]
         net, return_error = train(
             save_path + 'training/', net, datasets, datasets_config_ranges,
-            train_steps=10, early_stop=False, print_every_steps=1
+            train_steps=3, early_stop=False, print_every_steps=1 #TODO
             )
         return None, None, None, net
     
@@ -85,30 +85,22 @@ def run(
     
             # Calculate error
             if test_over_all:
-                if not shuffle:
-                    all_transitions = buffer.memory
-                    all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
-                    all_next_s = torch.stack([t[1] for t in all_transitions]).squeeze(1)
-                else:
-                    raise ValueError("Shuffle with whole buffer not implemented/")
+                all_transitions = buffer.memory
+                all_s = torch.stack([t[0] for t in all_transitions]).squeeze(1)
+                all_next_s = torch.stack([t[1] for t in all_transitions]).squeeze(1)
             else:
-                if not shuffle:
-                    transitions = buffer.sample(min(step, test_batch_size))
-                    all_s = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
-                    all_next_s = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
-                else:
-                    transitions = buffer.sample(min(step, test_batch_size))
-                    all_s = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
-                    transitions = buffer.sample(min(step, test_batch_size))
-                    all_next_s = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
-                
+                transitions = buffer.sample(min(step, test_batch_size))
+                all_s = torch.stack([t[0] for t in transitions], dim=2).squeeze(0)
+                all_next_s = torch.stack([t[1] for t in transitions], dim=2).squeeze(0)
+
             test_phi = all_s.squeeze(1)
-    
             test_psi_s = torch.stack(
-                [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_s.squeeze(0)]
+                [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze()\
+                    for s in all_s.squeeze(0)]
                 ).unsqueeze(0)
             test_psi_s_prime = torch.stack(
-                [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze() for s in all_next_s.squeeze(0)]
+                [net(s.view(1,1,-1), reset=False, update=False)[1].squeeze()\
+                    for s in all_next_s.squeeze(0)]
                 ).unsqueeze(0)
             test_value_function = test_psi_s
             test_exp_value_function = test_phi + gamma*test_psi_s_prime
@@ -139,7 +131,7 @@ def run(
        
                 print('', flush=True, file=print_file)
                 print(
-                    '[{:5d}] loss: {:0.3f}'.format(step + 1, running_loss),
+                    '[{:5d}] loss: {:0.4f}'.format(step + 1, running_loss),
                     file=print_file
                     )
                 print(
@@ -152,6 +144,24 @@ def run(
                 prev_running_loss = running_loss
                 running_loss = 0.0
                 grad_avg = 0
+
+        # Get chance-level performance at the end of the walk
+        phi = np.random.choice(400, size=96)
+        phi_prime = np.random.choice(400, size=96)
+        phi = dset.feature_maker.feature_map[:, phi]
+        phi_prime = dset.feature_maker.feature_map[:, phi_prime]
+        psi = net(
+            torch.tensor(phi.T).float().unsqueeze(1),
+            reset=False, update=False
+            )[1]
+        psi_prime = net(
+            torch.tensor(phi_prime.T).float().unsqueeze(1),
+            reset=False, update=False
+            )[1]
+        td_error = (torch.tensor(phi.T) + gamma*psi_prime - psi).numpy()
+        chance_mse = np.mean(np.mean(np.square(td_error), axis=1))
+        if summ_write: writer.add_scalar('chance_loss', chance_mse, step)
+        print(f'Chance: {chance_mse}')
 
     if summ_write: writer.close()
     print('Finished Training\n', file=print_file)

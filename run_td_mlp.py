@@ -20,7 +20,7 @@ device = 'cpu'
 
 def run(
     save_path, net, dataset, dataset_config, print_file=None,
-    print_every_steps=50, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
+    print_every_steps=500, buffer_batch_size=32, buffer_size=5000, gamma=0.4,
     return_dset=False, test_over_all=True, test_batch_size=32
     ):
 
