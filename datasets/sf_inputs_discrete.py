@@ -292,6 +292,14 @@ class FeatureMaker(object):
                 p=self.feature_vals_p
                 )
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
+
+        # In case some states are still not encoded
+        no_support = np.sum(features, axis=2) == 0
+        new_support = np.random.choice(
+            feature_dim, size=np.sum(no_support), replace=False)
+        features[no_support, new_support] = 1.
+
+        # Blur gaussian
         blurred_features = gaussian_filter(
             features, sigma=sigma, truncate=self.gaussian_truncate
             )
