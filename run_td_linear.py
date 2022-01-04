@@ -143,7 +143,7 @@ def run(
         psi_prime = net(phi_prime, update=False)
         chance_mse = criterion(psi, phi + gamma*psi_prime)
         writer.add_scalar('chance_loss', chance_mse, step)
-        print(f'Chance: {chance_mse}')
+        writer.add_scalar('model_lr', lr, step)
     
     writer.close()
     print('Finished Training\n', file=print_file)
