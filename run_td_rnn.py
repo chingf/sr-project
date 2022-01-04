@@ -54,7 +54,7 @@ def run(
         datasets_config_ranges = [dc]
         net, return_error = train(
             save_path + 'training/', net, datasets, datasets_config_ranges,
-            train_steps=8, early_stop=False, print_every_steps=1 
+            train_steps=6, early_stop=False, print_every_steps=1 
             )
         return None, None, None, net
     
@@ -146,8 +146,9 @@ def run(
                 grad_avg = 0
 
         # Get chance-level performance at the end of the walk
-        phi = np.random.choice(400, size=96)
-        phi_prime = np.random.choice(400, size=96)
+        num_features = dset.feature_maker.feature_map.shape[1]
+        phi = np.random.choice(num_features, size=96)
+        phi_prime = np.random.choice(num_features, size=96)
         phi = dset.feature_maker.feature_map[:, phi]
         phi_prime = dset.feature_maker.feature_map[:, phi_prime]
         psi = net(
