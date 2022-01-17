@@ -29,6 +29,7 @@ class Sim1DWalk(object):
         self.left_right_stay_prob = self.left_right_stay_prob/np.sum(self.left_right_stay_prob)
         self.num_states = num_states
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+        self.est_T = get_est_T(self.dg_inputs)
 
     def get_true_T(self):
         true_T = np.zeros((self.num_states, self.num_states))
@@ -70,6 +71,7 @@ class Sim2DWalk(object):
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
         self.num_steps = self.dg_inputs.shape[1]
         self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
+        self.est_T = get_est_T(self.dg_inputs)
 
     def unravel_state_vector(self, state_vector):
         """
@@ -174,6 +176,7 @@ class Sim2DLevyFlight(object):
         self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
         self.num_steps = self.dg_inputs.shape[1]
         self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
+        self.est_T = get_est_T(self.dg_inputs)
 
     def unravel_state_vector(self, state_vector):
         """
@@ -628,4 +631,13 @@ class RBYCacheWalk(object):
             zs = downsample(zs, downsample_factor)
 
         return dg_inputs, dg_modes, xs, ys, zs
+
+def get_est_T(dg_inputs):
+    num_states, num_steps = dg_inputs.shape
+    T = np.zeros((num_states, num_states))
+    for step in np.arange(1, num_steps):
+        T += np.outer(dg_inputs[:,step-1], dg_inputs[:,step])
+    T = T/(np.sum(T, axis=1)[:, None]+1E-5)
+    return T
+    
 
