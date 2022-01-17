@@ -288,16 +288,39 @@ class FeatureMaker(object):
         else:
             arena_length = int(np.sqrt(num_states))
             features = np.random.choice(
-                [0,1.], size=(arena_length, arena_length, feature_dim),
+                [0,1.], size=(num_states, feature_dim),
                 p=self.feature_vals_p
                 )
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
 
+        # If correlation is zero, zero out non-unique features
+        unique_features, unique_indices = np.unique(
+            features, axis=0, return_index=True
+            ) # (num_states, n_unique_feat), (n_unique_feat)
+        non_unique_indices = np.ones(num_states).astype(bool)
+        non_unique_indices[unique_indices] = False
+        features[non_unique_indices] = 0
+
         # In case some states are still not encoded
-        no_support = np.sum(features, axis=2) == 0
-        new_support = np.random.choice(
-            feature_dim, size=np.sum(no_support), replace=False)
-        features[no_support, new_support] = 1.
+        no_support = np.sum(features, axis=1) == 0
+        n_no_support = np.sum(no_support)
+        if n_no_support > 0:
+            unused_features = []
+            for feature in np.arange(feature_dim):
+                one_hot_feature = np.zeros(feature_dim)
+                one_hot_feature[feature] = 1.
+                if not (one_hot_feature.tolist() in features.tolist()):
+                    unused_features.append(feature)
+            replace = len(unused_features) < n_no_support
+            if replace == True:
+                print("Warning: could not uniquely encode all states")
+            new_support = np.random.choice(
+                unused_features, size=n_no_support, replace=replace)
+            features[no_support, new_support] = 1.
+
+        # Shape into 2D if needed
+        if self.spatial_dim != 1:
+            features = features.reshape((arena_length, arena_length, -1))
 
         # Blur gaussian
         blurred_features = gaussian_filter(
