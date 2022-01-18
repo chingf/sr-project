@@ -294,12 +294,13 @@ class FeatureMaker(object):
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
 
         # If correlation is zero, zero out non-unique features
-        unique_features, unique_indices = np.unique(
-            features, axis=0, return_index=True
-            ) # (num_states, n_unique_feat), (n_unique_feat)
-        non_unique_indices = np.ones(num_states).astype(bool)
-        non_unique_indices[unique_indices] = False
-        features[non_unique_indices] = 0
+        if spatial_sigma == 0.:
+            unique_features, unique_indices = np.unique(
+                features, axis=0, return_index=True
+                ) # (num_states, n_unique_feat), (n_unique_feat)
+            non_unique_indices = np.ones(num_states).astype(bool)
+            non_unique_indices[unique_indices] = False
+            features[non_unique_indices] = 0
 
         # In case some states are still not encoded
         no_support = np.sum(features, axis=1) == 0
