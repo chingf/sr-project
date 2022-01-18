@@ -243,7 +243,23 @@ class STDP_CA3(nn.Module):
 
         input = torch.squeeze(input) # TODO: batching
         activity = self.get_recurrent_output(input)
-        _activity = self.update_activity_clamp(activity)
+
+        #_activity = self.update_activity_clamp(activity)
+
+        _activity = torch.abs(self.xp_clamp_a)*activity + self.xp_clamp_b
+        _activity = self.xp_clamp(activity)
+
+        #_activity = activity
+        #_activity[_activity < 1.] = 0
+        #_activity[_activity >= 1.] = 1.
+
+        #import matplotlib.pyplot as plt
+        #plt.plot(activity)
+        #plt.plot(self.the_input)
+        #plt.show()
+
+        #_activity = self.the_input
+
         if update_transition:
             self.prev_input = self.curr_input
             self.curr_input = input
@@ -265,12 +281,13 @@ class STDP_CA3(nn.Module):
             dt = 1.
             for iteration in range(num_iterations):
                 current = torch.matmul(self.gamma_M0*self.J, activity)
+                current = self.current_scale*current + self.current_bias
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'sigmoid':
-                    current = sigmoid(current)
+                    current = sigmoid(current)*self.sigmoid_scale
                 elif nonlinearity == 'tanh':
-                    current = tanh(current)
+                    current = tanh(current)*self.tanh_scale
                 elif nonlinearity == 'clamp':
                     current = self.nonlin_clamp(current)
 
@@ -285,7 +302,8 @@ class STDP_CA3(nn.Module):
                 activity = torch.nan_to_num(activity, posinf=posinf) # for training
 
         activity = self.output_param_scale*activity + self.output_param_bias
-        activity = relu(activity)
+        activity = relu(activity*self.downstream_scale)
+        self.the_input = input
 
         return activity
 
@@ -402,8 +420,13 @@ class STDP_CA3(nn.Module):
 
         # Make the update over all N^2 synapses
         update = torch.nan_to_num(update,posinf=posinf)
+        
         update = torch.abs(self.update_clamp_a)*update + self.update_clamp_b
         update = self.update_clamp(update)
+
+        #update[update < self.update_clamp_a] = 0.
+        #update[update >= self.update_clamp_a] = 1.
+
         self.J = decays*self.J + etas*update
 
     def _update_B_pos(self):
@@ -449,10 +472,7 @@ class STDP_CA3(nn.Module):
             self.B_neg = A*convolution
 
     def _update_eta_invs(self):
-        self.eta_invs = self.prev_input + self.gamma_T*self.eta_invs
-
-    def _decay_all_eta_invs(self):
-        self.eta_invs = self.gamma_T*self.eta_invs
+        self.eta_invs = self.eta_inv_scale*self.prev_input + self.gamma_T*self.eta_invs
 
     def _init_constants(self):
         self.dt = 1
@@ -462,7 +482,6 @@ class STDP_CA3(nn.Module):
         self.alpha_self_scaling = 1
 
         self.learning_rate_clamp = LeakyClamp(floor=0, ceil=1)
-
 
         self.x_queue_length = 20 # max needed for tau of 4
         self.x_queue = torch.zeros((self.num_states, self.x_queue_length))
@@ -482,22 +501,31 @@ class STDP_CA3(nn.Module):
             floor=0, ceil=nn.Parameter(torch.tensor([1.]))
             )
 
-        # Scales and clamps the neural activity used in the plasticity rules
-        self.update_activity_clamp = LeakyThreshold(
-            x0=nn.Parameter(torch.abs(torch.rand(1))),
-            x1=1, floor=0, ceil=None
-            ) # Floor and offset is necessary to bound activity used in update
-
         # Scales recurrent output
+        self.current_scale = nn.Parameter(torch.tensor([1.]))
+        self.current_bias = nn.Parameter(torch.tensor([0.]))
         self.output_param_scale = nn.Parameter(torch.tensor([1.]))
-        self.output_param_bias =  nn.Parameter(torch.tensor([0.]))
+        self.output_param_bias = nn.Parameter(torch.tensor([0.]))
+        self.downstream_scale = 1 #nn.Parameter(torch.tensor([1.]))
+
+        # Scales and clamps the neural activity used in the plasticity rules
+        self.xp_clamp_a = nn.Parameter(torch.tensor([1.]))
+        self.xp_clamp_b = nn.Parameter(torch.tensor([0.]))
+        self.xp_clamp = LeakyClamp(
+            floor=0, ceil=nn.Parameter(torch.tensor([1.]))
+            )
+        self.eta_inv_scale = 1 #nn.Parameter(torch.tensor([1.]))
 
         # Nonlinearity may be a clamp
         if self.output_params['nonlinearity'] == 'clamp':
             self.nonlin_clamp = LeakyClamp(
-                floor=nn.Parameter(torch.tensor([0.])),
-                ceil=nn.Parameter(torch.tensor([1.]))
+                floor=0, #nn.Parameter(torch.tensor([0.])),
+                ceil=nn.Parameter(torch.tensor([2.]))
                 )
+        elif self.output_params['nonlinearity'] == 'sigmoid':
+            self.sigmoid_scale = nn.Parameter(torch.tensor([3.]))
+        elif self.output_params['nonlinearity'] == 'tanh':
+            self.tanh_scale = nn.Parameter(torch.tensor([3.]))
 
 class OjaCA3(module.Module):
     def __init__(self, num_states, gamma_M0, lr=1E-3, start_valid=False):
