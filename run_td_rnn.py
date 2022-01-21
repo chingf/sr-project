@@ -146,11 +146,13 @@ def run(
                 grad_avg = 0
 
         # Get chance-level performance at the end of the walk
-        num_features = dset.feature_maker.feature_map.shape[1]
-        phi = np.random.choice(num_features, size=96)
-        phi_prime = np.random.choice(num_features, size=96)
-        phi = dset.feature_maker.feature_map[:, phi]
-        phi_prime = dset.feature_maker.feature_map[:, phi_prime]
+        try:
+            feature_map = dset.feature_maker.feature_map
+        except:
+            feature_map = np.eye(dset.num_states)
+        num_features = feature_map.shape[1]
+        phi = feature_map[:,np.random.choice(num_features, size=96)]
+        phi_prime = feature_map[:,np.random.choice(num_features, size=96)]
         psi = net(
             torch.tensor(phi.T).float().unsqueeze(1),
             reset=False, update=False

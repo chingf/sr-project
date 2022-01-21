@@ -42,7 +42,6 @@ def run_models(
                     pickle.dump(results, f)
 
     # RNN-SF
-    best_net = None; best_lr_val = np.inf;
     if os.path.isfile(save_path + f'rnn/{iters-1}/results.p'):
         print(f'{save_path}/rnn already calculated. Skipping...')
     else:
