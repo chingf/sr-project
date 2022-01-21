@@ -23,11 +23,9 @@ def main(delete_dir=False):
     gammas = [0.75, 0.6, 0.8] #[0.75, 0.6, 0.8, 0.85, 0.4]
     spatial_sigmas = [0.0, 1.0, 2.0, 3.0]
     sparsity_range = [[0.001, 0.2], [0.001, 0.1], [0.001, 0.04], [0.001, 0.023]]
-    #sparsity_ps = np.linspace(0.15, 0.002, num=30, endpoint=True)
-    #sparsity_ps = [sparsity_ps[-3]]
     lr_range = [5E-3, 1E-3, 5E-4, 1E-4] # Only used for Linear model
-    num_states = 14*14 #20*20
-    num_steps = 5401 #6501
+    num_states = 14*14
+    num_steps = 5401
 
     def grid_train(arg):
         gamma, spatial_sigma, sparsity_p = arg
