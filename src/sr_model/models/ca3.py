@@ -289,9 +289,7 @@ class STDP_CA3(nn.Module):
                 activity = relu(activity)
                 activity = torch.nan_to_num(activity, posinf=posinf) # for training
 
-        activity = self.output_param_scale*activity + self.output_param_bias
-        activity = relu(activity*self.downstream_scale)
-
+        activity = relu(activity)
         return activity
 
     def update(self):
@@ -473,8 +471,7 @@ class STDP_CA3(nn.Module):
             self.B_neg = A*convolution
 
     def _update_eta_invs(self):
-        #self.eta_invs = self.eta_inv_scale*self.prev_input + self.gamma_T*self.eta_invs
-        self.eta_invs = self.eta_inv_scale*self.X + self.gamma_T*self.eta_invs
+        self.eta_invs = self.X + self.gamma_T*self.eta_invs
 
     def _init_constants(self):
         self.dt = 1
@@ -499,16 +496,11 @@ class STDP_CA3(nn.Module):
         # Scales and clamps the update to the J matrix
         self.update_clamp_a = nn.Parameter(torch.tensor([1.]))
         self.update_clamp_b = nn.Parameter(torch.tensor([0.]))
-        self.update_clamp = LeakyClamp(
-            floor=0, ceil=1 #nn.Parameter(torch.tensor([1.]))
-            )
+        self.update_clamp = LeakyClamp(floor=0, ceil=1)
 
         # Scales recurrent output
         self.current_scale = nn.Parameter(torch.tensor([1.]))
         self.current_bias = nn.Parameter(torch.tensor([0.]))
-        self.output_param_scale = 1 #nn.Parameter(torch.tensor([1.]))
-        self.output_param_bias = 0 #nn.Parameter(torch.tensor([0.]))
-        self.downstream_scale = 1 #nn.Parameter(torch.tensor([1.]))
 
         # Scales and clamps the neural activity used in the plasticity rules
         self.xp_clamp_a = nn.Parameter(torch.tensor([1.]))
@@ -516,13 +508,11 @@ class STDP_CA3(nn.Module):
         self.xp_clamp = LeakyClamp(
             floor=0, ceil=nn.Parameter(torch.tensor([1.]))
             )
-        self.eta_inv_scale = 1 #nn.Parameter(torch.tensor([1.]))
 
         # Nonlinearity may be a clamp
         if self.output_params['nonlinearity'] == 'clamp':
             self.nonlin_clamp = LeakyClamp(
-                floor=0, #nn.Parameter(torch.tensor([0.])),
-                ceil=nn.Parameter(torch.tensor([2.]))
+                floor=0, ceil=nn.Parameter(torch.tensor([2.]))
                 )
         elif self.output_params['nonlinearity'] == 'sigmoid':
             self.sigmoid_scale = nn.Parameter(torch.tensor([3.]))
