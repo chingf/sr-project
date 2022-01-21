@@ -1,6 +1,7 @@
 import numpy as np
 import argparse
 import time
+import shutil
 import os
 from itertools import chain
 from copy import deepcopy
@@ -19,7 +20,7 @@ device = 'cpu'
 def train(
     save_path, net, datasets, datasets_config_ranges, print_file=None,
     train_steps=201, print_every_steps=50, early_stop=False,
-    return_test_error=False
+    return_test_error=False, train_M=False
     ):
 
     # Initializations
@@ -27,7 +28,6 @@ def train(
         os.makedirs(save_path)
     num_datasets = len(datasets)
     writer = SummaryWriter(save_path)
-    net.ca3.set_differentiability(False)
     lr=1E-3
     weight_decay = 0
     
@@ -78,8 +78,13 @@ def train(
                 with torch.no_grad():
                     _, outputs = net(dg_inputs, dg_modes, reset=True)
                 rnn_T = net.ca3.get_T().detach().numpy()
-                est_T = net.ca3.get_ideal_T_estimate()
-                diff = est_T - rnn_T
+                est_T = input.est_T
+                rnn_M = net.get_M()
+                est_M = np.linalg.pinv(np.eye(est_T.shape[0]) - net.gamma*est_T)
+                if train_M:
+                    diff = est_M_output - rnn_M_output
+                else:
+                    diff = est_T - rnn_T
                 mse_error = np.mean(np.square(diff))
                 mae_error = np.mean(np.abs(diff))
                 losses[idx].append(mse_error)
@@ -124,10 +129,6 @@ def train(
                 'Time per step {:0.3f}s, net {:0.3f}s'.format(time_step, time_net),
                  file=print_file
                 )
-            print(net.ca3.output_param_scale)
-            print(net.ca3.output_param_bias)
-            print(net.ca3.update_clamp_a)
-            print(net.ca3.update_clamp_b)
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -142,21 +143,30 @@ def train(
             break
     
     if return_test_error:
-        input = inputs.Sim2DWalk(num_steps=1000, num_states=8*8)
-        dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device)
-        dg_inputs = dg_inputs.unsqueeze(1)
-        dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
-        dg_modes = dg_modes.unsqueeze(1)
-        net.ca3.set_num_states(input.num_states)
-        with torch.no_grad():
-            _, outputs = net(dg_inputs, dg_modes, reset=True)
-        rnn_T = net.ca3.get_T().detach().numpy()
-        est_T = net.ca3.get_ideal_T_estimate()
-        return_error = np.mean(np.abs(est_T - rnn_T))
+        return_errors = []
+        for _ in range(5):
+            input = inputs.Sim2DWalk(num_steps=1000, num_states=8*8)
+            dg_inputs = torch.from_numpy(input.dg_inputs.T).float().to(device)
+            dg_inputs = dg_inputs.unsqueeze(1)
+            dg_modes = torch.from_numpy(input.dg_modes.T).float().to(device)
+            dg_modes = dg_modes.unsqueeze(1)
+            net.ca3.set_num_states(input.num_states)
+            with torch.no_grad():
+                _, outputs = net(dg_inputs, dg_modes, reset=True)
+            rnn_T = net.ca3.get_T().detach().numpy()
+            est_T = input.est_T
+            rnn_M = net.get_M()
+            est_M = np.linalg.pinv(np.eye(est_T.shape[0]) - net.gamma*est_T)
+            if train_M:
+                return_errors.append(np.mean(np.abs(est_M - rnn_M)))
+            else:
+                return_errors.append(np.mean(np.abs(est_T - rnn_T)))
+        return_error = np.mean(return_errors)
     else:
         return_error = prev_running_mae_loss
-    
-    writer.add_scalar('return_error', return_error, step)
+   
+    error_type = 'M' if train_M else 'T'
+    writer.add_scalar(f'return_error_{error_type}', return_error, step)
     writer.close()
     print('Finished Training\n', file=print_file)
     return net, return_error
@@ -180,37 +190,45 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/baseline/'
+    save_path = './trained_models/test_sigmoid/'
+    if os.path.exists(save_path):
+        shutil.rmtree(save_path)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     datasets = [
+        inputs.Sim1DWalk,
         inputs.Sim1DWalk,
         ]
     datasets_config_ranges = [
         {
-        'num_steps': [3, 10, 20, 30, 40],
+        'num_steps': [3, 10, 20, 30],
         'left_right_stay_prob': [[1, 1, 1], [1, 1, 5], [7, 1, 0], [1, 7, 0]],
         'num_states': [5, 10, 15, 25]
         },
+        {
+        'num_steps': [100, 200],
+        'num_states': [36, 64]
+        },
         ]
-    #output_params = {
-    #    'num_iterations':30, 'input_clamp':100, 'nonlinearity': 'None'
-    #    }
+    output_params = {
+        'num_iterations':10, 'input_clamp':100, 'nonlinearity': 'sigmoid'
+        }
     net_params = {
         'num_states':2, 'gamma':0.4,
-        #'ca3_kwargs':{'A_pos_sign':-1, 'A_neg_sign':1}
-        #'ca3_kwargs':{'output_params':output_params}
+        'ca3_kwargs':{
+            'A_pos_sign':1, 'A_neg_sign':-1,
+            'output_params':output_params
+            }
         }
-    net = STDP_SR(**net_params)
 
-    #nn.init.constant_(net.ca3.tau_pos, 0.75)
-    #nn.init.constant_(net.ca3.tau_neg, 3.75)
-    #net.ca3.tau_pos.requires_grad = False
-    #net.ca3.tau_neg.requires_grad = False
-
-    net, return_error = train(
-        save_path, net, datasets, datasets_config_ranges, train_steps=501,
-        early_stop=True, print_every_steps=25, return_test_error=True
-        )
-    print(f'Final Error: {return_error}')
     with open(save_path + "net_configs.p", 'wb') as f:
         import pickle
         pickle.dump(net_params, f)
+
+    net = STDP_SR(**net_params)
+    net, return_error = train(
+        save_path, net, datasets, datasets_config_ranges, train_steps=701,
+        early_stop=True, print_every_steps=25, return_test_error=True,
+        train_M=True
+        )
+    print(f'Final Error: {return_error}')
