@@ -28,7 +28,12 @@ device = 'cpu'
 save_field_info = True
 reload_field_info = True
 nshuffles = 40
-n_jobs = 30
+n_jobs = 56
+root_dir = "../../engram/Ching/03_td_discrete_corr/"
+arena_length = 14
+models = ['hopfield', 'linear', 'mlp', 'rnn', 'rnn_oja']
+gammas = [0.6, 0.75, 0.8, 0.4]
+
 
 def get_sparsity(key):
     p = re.compile('.*sparsity(.+?)\/.*')
@@ -59,10 +64,7 @@ def collect_metrics(args):
     nfieldkls = []
 
     gamma_dir = f'{root_dir}{sparsity}/{sigma}/{gamma}/'
-    if 'hopfield' in model:
-        model_dir = f'{gamma_dir}hopfield/'
-    else:
-        model_dir = f'{gamma_dir}rnn_fixedlr_alpha/'
+    model_dir = f'{gamma_dir}{model}/'
     if not os.path.isdir(model_dir): return
     for _iter in os.listdir(model_dir):
         iter_dir = model_dir + _iter + '/'
@@ -97,13 +99,8 @@ def collect_metrics(args):
 
 from joblib import Parallel, delayed
 
-root_dir = "../trained_models/03_td_discrete_corr/"
-root_dir = "../../engram/Ching/03_td_discrete_corr/"
-
-arena_length = 20
-
-for model in ['rnn']:
-    for gamma in [0.75, 0.8, 0.6, 0.85]:
+for model in models:
+    for gamma in gammas:
         init_sparsities = []
         sigmas = []
         final_sparsities = []
@@ -121,6 +118,7 @@ for model in ['rnn']:
                 args.append([sparsity, sigma, model])
         job_results = Parallel(n_jobs=n_jobs)(delayed(collect_metrics)(arg) for arg in args)
         for res in job_results:
+            if res is None: continue
             init_sparsities.extend(res[0])
             sigmas.extend(res[1])
             final_sparsities.extend(res[2])
