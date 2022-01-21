@@ -82,7 +82,7 @@ def train(
                 rnn_M = net.get_M()
                 est_M = np.linalg.pinv(np.eye(est_T.shape[0]) - net.gamma*est_T)
                 if train_M:
-                    diff = est_M_output - rnn_M_output
+                    diff = est_M - rnn_M
                 else:
                     diff = est_T - rnn_T
                 mse_error = np.mean(np.square(diff))
