@@ -30,8 +30,8 @@ datasets_config_ranges = [
     },
     ]
 
-gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-rsteps = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+gammas = [0.6, 0.7, 0.8, 0.9, 0.4, 0.5]
+rsteps = [2, 4, 6, 8, 10, 12, 14, 16] #, 18, 20]
 nonlinearities = [None, 'clamp']
 
 args = []
@@ -75,19 +75,20 @@ def grid_train(arg):
             'output_params': output_params
             }
         }
-    for idx in range(3):
+    for idx in range(5):
+        iter_path = save_path + f'{idx}/'
         net = STDP_SR(
             num_states=2, gamma=gamma, ca3_kwargs=net_configs['ca3_kwargs']
             )
         net, loss = train(
-            save_path, net, datasets, datasets_config_ranges, train_steps=801,
+            iter_path, net, datasets, datasets_config_ranges, train_steps=801,
             early_stop=True, return_test_error=True, train_M=True
             )
         losses.append(loss)
         if loss < 1E-4: break # No need to run more iterations
+        with open(iter_path + 'net_configs.p', 'wb') as f:
+            pickle.dump(net_configs, f)
     val = np.nanmin(losses)
-    with open(save_path + 'net_configs.p', 'wb') as f:
-        pickle.dump(net_configs, f)
     return gamma, rstep, nonlinearity, val
 
 if __name__ == "__main__":
