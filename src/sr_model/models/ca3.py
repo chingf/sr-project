@@ -217,7 +217,8 @@ class STDP_CA3(nn.Module):
         self.approx_B = approx_B
         self.output_params = {
             'num_iterations': np.inf, 'input_clamp': np.inf,
-            'nonlinearity': None
+            'nonlinearity': None,
+            'no_transform': False
             }
         self.output_params.update(output_params)
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
@@ -269,7 +270,6 @@ class STDP_CA3(nn.Module):
             dt = 1.
             for iteration in range(num_iterations):
                 current = torch.matmul(gamma*self.J, activity)
-                current = self.current_scale*current + self.current_bias
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'sigmoid':
@@ -277,7 +277,9 @@ class STDP_CA3(nn.Module):
                 elif nonlinearity == 'tanh':
                     current = tanh(current)*self.tanh_scale
                 elif nonlinearity == 'clamp':
-                    current = self.nonlin_clamp(current)
+                    current = self.nonlin_clamp(current + self.clamp_bias)
+                elif nonlinearity == 'relu':
+                    current = relu(current + self.relu_bias)
 
                 # Option: provide input only briefly
                 if iteration <= input_clamp:
@@ -286,10 +288,9 @@ class STDP_CA3(nn.Module):
                 # Iterate activity
                 dxdt = -activity + current
                 activity = activity + dt*dxdt
-                activity = relu(activity)
                 activity = torch.nan_to_num(activity, posinf=posinf) # for training
 
-        activity = relu(activity)
+        #activity = relu(activity)
         return activity
 
     def update(self):
@@ -498,10 +499,6 @@ class STDP_CA3(nn.Module):
         self.update_clamp_b = nn.Parameter(torch.tensor([0.]))
         self.update_clamp = LeakyClamp(floor=0, ceil=1)
 
-        # Scales recurrent output
-        self.current_scale = nn.Parameter(torch.tensor([1.]))
-        self.current_bias = nn.Parameter(torch.tensor([0.]))
-
         # Scales and clamps the neural activity used in the plasticity rules
         self.xp_clamp_a = nn.Parameter(torch.tensor([1.]))
         self.xp_clamp_b = nn.Parameter(torch.tensor([0.]))
@@ -514,6 +511,9 @@ class STDP_CA3(nn.Module):
             self.nonlin_clamp = LeakyClamp(
                 floor=0, ceil=nn.Parameter(torch.tensor([2.]))
                 )
+            self.clamp_bias = nn.Parameter(torch.tensor([0.]))
+        elif self.output_params['nonlinearity'] == 'relu':
+            self.relu_bias = nn.Parameter(torch.tensor([0.]))
         elif self.output_params['nonlinearity'] == 'sigmoid':
             self.sigmoid_scale = nn.Parameter(torch.tensor([3.]))
         elif self.output_params['nonlinearity'] == 'tanh':
