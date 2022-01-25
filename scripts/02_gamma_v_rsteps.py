@@ -30,9 +30,9 @@ datasets_config_ranges = [
     },
     ]
 
-gammas = [0.6, 0.7, 0.8, 0.9, 0.4, 0.5]
-rsteps = [2, 4, 6, 8, 10, 12, 14, 16] #, 18, 20]
-nonlinearities = [None, 'clamp']
+gammas = [0.6, 0.7, 0.8, 0.9]
+rsteps = [2, 5, 10, 15, 20]
+nonlinearities = [None, 'relu', 'clamp']
 
 args = []
 for gamma in gammas:
@@ -82,7 +82,7 @@ def grid_train(arg):
             )
         net, loss = train(
             iter_path, net, datasets, datasets_config_ranges, train_steps=801,
-            early_stop=True, return_test_error=True, train_M=True
+            early_stop=True, return_test_error=False, train_M=True
             )
         losses.append(loss)
         if loss < 1E-4: break # No need to run more iterations
