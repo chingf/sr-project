@@ -80,6 +80,10 @@ def train(
                 rnn_T = net.ca3.get_T().detach().numpy()
                 est_T = input.est_T
                 rnn_M = net.get_M()
+                try:
+                    rnn_M = rnn_M.numpy()
+                except:
+                    pass
                 est_M = np.linalg.pinv(np.eye(est_T.shape[0]) - net.gamma*est_T)
                 if train_M:
                     diff = est_M - rnn_M
@@ -190,7 +194,7 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/test_sigmoid/'
+    save_path = './trained_models/test/'
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
     if not os.path.exists(save_path):
@@ -211,10 +215,11 @@ if __name__ == "__main__":
         },
         ]
     output_params = {
-        'num_iterations':10, 'input_clamp':100, 'nonlinearity': 'sigmoid'
+        'num_iterations':14, 'input_clamp':np.inf,
+        'nonlinearity': 'relu'
         }
     net_params = {
-        'num_states':2, 'gamma':0.4,
+        'num_states':2, 'gamma':0.6,
         'ca3_kwargs':{
             'A_pos_sign':1, 'A_neg_sign':-1,
             'output_params':output_params
