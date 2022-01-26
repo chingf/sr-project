@@ -245,8 +245,7 @@ class STDP_CA3(nn.Module):
         input = torch.squeeze(input) # TODO: batching
         activity = self.get_recurrent_output(input, gamma)
 
-        _activity = torch.abs(self.xp_clamp_a)*activity + self.xp_clamp_b
-        _activity = self.xp_clamp(activity)
+        _activity = self.plasticity_activity_clamp(activity)
 
         if update_transition:
             self.prev_input = self.curr_input
@@ -288,9 +287,8 @@ class STDP_CA3(nn.Module):
                 # Iterate activity
                 dxdt = -activity + current
                 activity = activity + dt*dxdt
-                activity = torch.nan_to_num(activity, posinf=posinf) # for training
+                activity = torch.nan_to_num(activity) # for training
 
-        #activity = relu(activity)
         return activity
 
     def update(self):
@@ -419,15 +417,13 @@ class STDP_CA3(nn.Module):
         update = update*diag_mask + torch.diag(torch.squeeze(self_update))
 
         # Make the update over all N^2 synapses
-        update = torch.nan_to_num(update,posinf=posinf)
+        update = torch.nan_to_num(update)
         
         update = torch.abs(self.update_clamp_a)*update + self.update_clamp_b
         update = self.update_clamp(update)
 
-        #update[update < self.update_clamp_a] = 0.
-        #update[update >= self.update_clamp_a] = 1.
-
         self.J = decays*self.J + etas*update
+        self.J = torch.nan_to_num(self.J)
 
     def _update_B_pos(self):
         # Calculate scaling factor
@@ -500,10 +496,8 @@ class STDP_CA3(nn.Module):
         self.update_clamp = LeakyClamp(floor=0, ceil=1)
 
         # Scales and clamps the neural activity used in the plasticity rules
-        self.xp_clamp_a = nn.Parameter(torch.tensor([1.]))
-        self.xp_clamp_b = nn.Parameter(torch.tensor([0.]))
-        self.xp_clamp = LeakyClamp(
-            floor=0, ceil=nn.Parameter(torch.tensor([1.]))
+        self.plasticity_activity_clamp = LeakyClamp(
+            floor=-10, ceil=10 # For stability during metalearning
             )
 
         # Nonlinearity may be a clamp
