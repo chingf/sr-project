@@ -22,13 +22,13 @@ def main(delete_dir=False):
         rmtree(experiment_path, ignore_errors=True)
     os.makedirs(experiment_path)
     
-    iters = 1
+    iters = 5
     gammas = [0.4]
     models = ['rnn_sr', 'rnn_sf']
-    n_jobs = 1
+    n_jobs = 5
     lr_range = [1E-2]
-    num_states = 25 #64 #30 #100
-    num_steps = 5001 #20001 #4001 #20001
+    num_states = 25 # 100
+    num_steps = 10001 # 20001
     dataset = inputs.Sim2DWalk
     dataset_config = {'num_steps': num_steps, 'num_states': num_states}
     input_size = num_states
