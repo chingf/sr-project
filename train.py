@@ -57,8 +57,12 @@ def train(
 
         for _ in range(5):
             # Select dataset parameters and load dataset
-            dataset = datasets[step % num_datasets]
-            dataset_config_rang = datasets_config_ranges[step % num_datasets]
+            if step < 100:
+                dset_idx = 0
+            else:
+                dset_idx = step % num_datasets
+            dataset = datasets[dset_idx]
+            dataset_config_rang = datasets_config_ranges[dset_idx]
             dataset_config = {}
             for key in dataset_config_rang:
                 num_samples = len(dataset_config_rang[key])
@@ -194,7 +198,7 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/test/'
+    save_path = './trained_models/test6/'
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
     if not os.path.exists(save_path):
@@ -211,15 +215,15 @@ if __name__ == "__main__":
         },
         {
         'num_steps': [100, 200],
-        'num_states': [36, 64]
+        'num_states': [25, 36]
         },
         ]
     output_params = {
-        'num_iterations':14, 'input_clamp':np.inf,
-        'nonlinearity': 'relu'
+        'num_iterations': 20, 'input_clamp':np.inf,
+        'nonlinearity': None
         }
     net_params = {
-        'num_states':2, 'gamma':0.6,
+        'num_states':2, 'gamma':0.8,
         'ca3_kwargs':{
             'A_pos_sign':1, 'A_neg_sign':-1,
             'output_params':output_params
