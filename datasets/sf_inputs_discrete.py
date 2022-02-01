@@ -21,6 +21,10 @@ except:
 from sr_model.utils import pol2cart, downsample
 from datasets import inputs
 
+engram_dir = "/home/chingf/engram/Ching/"
+if not os.path.isdir(engram_dir):
+    engram_dir = "../../engram/Ching/"
+
 class Sim1DWalk(inputs.Sim1DWalk):
     """
     Simulates a walk in a 1D ring, where you can go left/right/stay
@@ -86,51 +90,57 @@ class Sim2DLevyFlight(inputs.Sim2DLevyFlight):
         self.dg_inputs = self.feature_maker.make_features(self.dg_inputs)
 
 class TitmouseWalk(object):
-
     def __init__(
             self, cm_to_bin=5, fps=3, num_steps=np.inf,
-            feature_maker_kwargs=None, num_states=14*14
+            feature_maker_kwargs=None, num_states=14*14, max_unoccupied=30
             ):
         self.cm_to_bin = cm_to_bin
         self.fps = fps
         self.num_steps = num_steps
         self.num_states = num_states
+        self.max_unoccupied = max_unoccupied
 
         # Load data
-        data_dir = '/home/chingf/Code/Payne2021/payne_et_al_2021_data/'
+        data_dir = f'{engram_dir}payne_et_al_2021_data/'
         titmouse_data = [f for f in os.listdir(data_dir) if f.startswith('HT')]
-        sampled_session = np.random.choice(titmouse_data)
-        path = data_dir + sampled_session
-        data = loadmat(path)['B'][0,0]
-        self.exp_fps = data[0][0,0]
-        self.exp_xs = data[1].squeeze()
-        self.exp_ys = data[2].squeeze()
-
-        # Interpolate and downsample original x/y coordinates
-        import pandas as pd
-        self.exp_xs = pd.Series(self.exp_xs).interpolate().to_numpy()
-        self.exp_ys = pd.Series(self.exp_ys).interpolate().to_numpy()
-
-        # Transform to discrete coordinates
-        self.contin_xs = self.exp_xs[::int(self.exp_fps/fps)]
-        self.contin_ys = self.exp_ys[::int(self.exp_fps/fps)]
-        self.contin_xs -= self.contin_xs.min()
-        self.contin_ys -= self.contin_ys.min()
-        max_pixel = max(self.contin_xs.max(), self.contin_ys.max())
-        self.contin_xs = (self.contin_xs/max_pixel)*69 # Assume 70x70 cm box
-        self.contin_ys = (self.contin_ys/max_pixel)*69
-        self.num_states = int((70/self.cm_to_bin) ** 2)
-        self.dg_inputs = self.get_onehot_states(self.contin_xs, self.contin_ys)
-        self.dg_modes = np.zeros(self.xs.shape)
-        
-        # Get features
-        self.state_inputs = self.dg_inputs.copy()
-        if feature_maker_kwargs is not None:
-            feature_maker_kwargs['spatial_dim'] = 2
-            self.feature_maker = FeatureMaker(
-                self.num_states, **feature_maker_kwargs
-                )
-            self.dg_inputs = self.feature_maker.make_features(self.state_inputs)
+        while True:
+            sampled_session = np.random.choice(titmouse_data)
+            self.sampled_session = sampled_session
+            path = data_dir + sampled_session
+            data = loadmat(path)['B'][0,0]
+            self.exp_fps = data[0][0,0]
+            self.exp_xs = data[1].squeeze()
+            self.exp_ys = data[2].squeeze()
+    
+            # Interpolate and downsample original x/y coordinates
+            import pandas as pd
+            self.exp_xs = pd.Series(self.exp_xs).interpolate().to_numpy()
+            self.exp_ys = pd.Series(self.exp_ys).interpolate().to_numpy()
+    
+            # Transform to discrete coordinates
+            self.contin_xs = self.exp_xs[::int(self.exp_fps/fps)]
+            self.contin_ys = self.exp_ys[::int(self.exp_fps/fps)]
+            self.contin_xs -= self.contin_xs.min()
+            self.contin_ys -= self.contin_ys.min()
+            max_pixel = max(self.contin_xs.max(), self.contin_ys.max())
+            self.contin_xs = (self.contin_xs/max_pixel)*69 # Assume 70x70 cm box
+            self.contin_ys = (self.contin_ys/max_pixel)*69
+            self.num_states = int((70/self.cm_to_bin) ** 2)
+            self.dg_inputs = self.get_onehot_states(self.contin_xs, self.contin_ys)
+            n_unoccupied = np.sum(np.sum(self.dg_inputs, axis=1) < self.fps)
+            if n_unoccupied < self.max_unoccupied:
+                continue # This dataset does not match criteria-- regenerate
+            self.dg_modes = np.zeros(self.xs.shape)
+            
+            # Get features
+            self.state_inputs = self.dg_inputs.copy()
+            if feature_maker_kwargs is not None:
+                feature_maker_kwargs['spatial_dim'] = 2
+                self.feature_maker = FeatureMaker(
+                    self.num_states, **feature_maker_kwargs
+                    )
+                self.dg_inputs = self.feature_maker.make_features(self.state_inputs)
+            break
 
     def get_onehot_states(self, contin_xs, contin_ys):
         """
@@ -165,12 +175,16 @@ class TitmouseWalk(object):
         self.xs = np.delete(self.xs, exclude_points)
         self.ys = np.delete(self.ys, exclude_points)
         self.states = np.delete(self.states, exclude_points)
-       
+
         # Truncate if needed
-        if self.num_steps != np.inf:
-            self.xs = self.xs[:self.num_steps]
-            self.ys = self.ys[:self.num_steps]
-            self.states = self.states[:self.num_steps]
+        if (self.num_steps != np.inf) and (self.xs.size > self.num_steps):
+            start_idx = np.random.choice(self.xs.size - (self.num_steps+1))
+            self.start_idx = start_idx
+            self.xs = self.xs[start_idx:start_idx + self.num_steps]
+            self.ys = self.ys[start_idx:start_idx + self.num_steps]
+            self.states = self.states[start_idx:start_idx + self.num_steps]
+        else:
+            self.start_idx = 0
 
         # Format into encoding
         encoding = np.zeros((self.num_states, self.xs.size))
@@ -294,7 +308,7 @@ class FeatureMaker(object):
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
 
         # If correlation is zero, zero out non-unique features
-        if spatial_sigma == 0.:
+        if self.spatial_sigma == 0.:
             unique_features, unique_indices = np.unique(
                 features, axis=0, return_index=True
                 ) # (num_states, n_unique_feat), (n_unique_feat)
