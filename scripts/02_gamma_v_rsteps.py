@@ -30,9 +30,9 @@ datasets_config_ranges = [
     },
     ]
 
-gammas = [0.6, 0.7, 0.8, 0.9]
-rsteps = [2, 5, 10, 15, 20]
-nonlinearities = [None, 'relu', 'clamp']
+gammas = [0.7, 0.8, 0.9]
+rsteps = [5, 7, 10, 12, 15, 17, 20, 22, 25]
+nonlinearities = [None, 'relu']
 
 args = []
 for gamma in gammas:
@@ -77,6 +77,8 @@ def grid_train(arg):
         }
     for idx in range(5):
         iter_path = save_path + f'{idx}/'
+        if os.path.isfile(iter_path + 'net_configs.p'):
+            continue
         net = STDP_SR(
             num_states=2, gamma=gamma, ca3_kwargs=net_configs['ca3_kwargs']
             )
