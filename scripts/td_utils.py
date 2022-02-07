@@ -18,7 +18,8 @@ from run_td_linear import run as run_linear
 
 def run_models(
     save_path, iters, lr_range, dataset, dataset_config, gamma, input_size,
-    save_outputs=False, test_over_all=True, print_file=None, run_hopfield=False
+    save_outputs=False, test_over_all=True, print_file=None, run_hopfield=False,
+    load_from_dir=None
     ):
 
     # Hopfield
@@ -54,10 +55,18 @@ def run_models(
             num_states=input_size, gamma=gamma,
             ca3_kwargs=ca3_kwargs
             )
-        _, _, _, net = run_rnn( # Meta-learn LR and nonlinearity
-            save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
-            train_net=True, test_over_all=False
-            )
+        net_loaded = False
+        if load_from_dir is not None:
+            load_from_path = load_from_dir + 'rnn/0/model.pt'
+            if os.path.isfile(load_from_path):
+                net.load_state_dict(torch.load(load_from_path))
+            net_loaded = True
+            print(f'Loading net from {load_from_dir}')
+        if not net_loaded:
+            _, _, _, net = run_rnn( # Meta-learn LR and nonlinearity
+                save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
+                train_net=True, test_over_all=False
+                )
         for _iter in range(iters):
             net.reset()
             rnn_save_path = save_path + f'rnn/{_iter}'
@@ -94,10 +103,19 @@ def run_models(
             num_states=input_size, gamma=gamma,
             ca3_kwargs=ca3_kwargs
             )
-        _, _, _, net = run_rnn( # Meta-learn LR and nonlinearity
-            save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
-            train_net=True, test_over_all=False
-            )
+
+        net_loaded = False
+        if load_from_dir is not None:
+            load_from_path = load_from_dir + 'rnn_oja/0/model.pt'
+            if os.path.isfile(load_from_path):
+                net.load_state_dict(torch.load(load_from_path))
+            net_loaded = True
+            print(f'Loading net from {load_from_dir}')
+        if not net_loaded:
+            _, _, _, net = run_rnn( # Meta-learn LR and nonlinearity
+                save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
+                train_net=True, test_over_all=False
+                )
         for _iter in range(iters):
             net.reset()
             rnn_save_path = save_path + f'rnn_oja/{_iter}'
