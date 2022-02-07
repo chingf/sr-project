@@ -15,13 +15,13 @@ from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
 from td_utils import run_models
 
 def main(delete_dir=False):
-    save_path = '../../engram/Ching/03_td_discrete_corr/'
-    save_path = "/home/chingf/engram/Ching/03_td_discrete_corr/"
+    save_path = '../../engram/Ching/03_hannah_dset/'
+    load_path = '../../engram/Ching/03_td_discrete_corr/'
     if delete_dir:
         rmtree(save_path, ignore_errors=True)
 
     iters = 10
-    n_jobs = 1
+    n_jobs = 56
     gammas = [0.75] #[0.75, 0.6, 0.8, 0.4]
 
     # Integer sigmas
@@ -60,11 +60,13 @@ def main(delete_dir=False):
             }
         input_size = num_states
         dset_path = save_path + f'sparsity{sparsity_p}/sigma{spatial_sigma}/{gamma}/'
+        load_from_path = load_path + f'sparsity{sparsity_p}/sigma{spatial_sigma}/{gamma}/'
         run_hopfield = gamma==0.6 # Arbitrary
         run_models(
             dset_path, iters, lr_range, dataset, dataset_config, gamma,
             input_size, save_outputs=True, test_over_all=False,
-            print_file=open('dummy.txt', 'w'), run_hopfield=run_hopfield
+            print_file=open('dummy.txt', 'w'), run_hopfield=run_hopfield,
+            load_from_dir=load_from_path
             )
 
     args = []
