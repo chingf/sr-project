@@ -114,8 +114,8 @@ class TitmouseWalk(object):
     
             # Interpolate and downsample original x/y coordinates
             import pandas as pd
-            self.exp_xs = pd.Series(self.exp_xs).interpolate().to_numpy()
-            self.exp_ys = pd.Series(self.exp_ys).interpolate().to_numpy()
+            self.exp_xs = pd.Series(self.exp_xs).interpolate().ffill().bfill().to_numpy()
+            self.exp_ys = pd.Series(self.exp_ys).interpolate().ffill().bfill().to_numpy()
     
             # Transform to discrete coordinates
             self.contin_xs = self.exp_xs[::int(self.exp_fps/fps)]
@@ -128,7 +128,7 @@ class TitmouseWalk(object):
             self.num_states = int((70/self.cm_to_bin) ** 2)
             self.dg_inputs = self.get_onehot_states(self.contin_xs, self.contin_ys)
             n_unoccupied = np.sum(np.sum(self.dg_inputs, axis=1) < self.fps)
-            if n_unoccupied < self.max_unoccupied:
+            if n_unoccupied > self.max_unoccupied:
                 continue # This dataset does not match criteria-- regenerate
             self.dg_modes = np.zeros(self.xs.shape)
             
