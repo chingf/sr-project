@@ -2,6 +2,7 @@ setup.py
 sr_model/__init__.py
 sr_model/plotting.py
 sr_model/utils.py
+sr_model/utils_modules.py
 sr_model.egg-info/PKG-INFO
 sr_model.egg-info/SOURCES.txt
 sr_model.egg-info/dependency_links.txt
