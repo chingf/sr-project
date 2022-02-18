@@ -11,7 +11,7 @@ posinf = 1E30
 class CA3(module.Module):
     def __init__(
         self, num_states, gamma_M0, gamma_T=1., use_dynamic_lr=False, lr=1E-3,
-        parameterize=False, rollout=None, forget=None,
+        parameterize=False, rollout=None, forget=None, T_grad_on=False,
         output_params={}
         ):
 
@@ -24,6 +24,7 @@ class CA3(module.Module):
         self.parameterize = parameterize
         self.rollout = rollout
         self.forget = forget # for modifying forget term in learning rule
+        self.T_grad_on = T_grad_on
         self.output_params = {
             'num_iterations': np.inf, 'nonlinearity': None,
             'nonlinearity_args': None # So far, just [floor, ceil] for clamp
@@ -32,15 +33,6 @@ class CA3(module.Module):
         self._init_trainable()
         self.reset()
     
-    def forward_old(self, input, update_transition=True):
-        M = self.get_M_hat()
-        if update_transition:
-            if self.curr_input is not None:
-                self.prev_input = torch.squeeze(self.curr_input)
-            self.curr_input = torch.squeeze(input)
-        output = torch.matmul(M.t(), torch.squeeze(input))
-        return output
-
     def forward(self, input, update_transition=True, gamma=None):
         if gamma is None:
             gamma = self.gamma_M0
@@ -127,11 +119,14 @@ class CA3(module.Module):
     def reset(self):
         self.prev_input = None
         self.curr_input = None
-        self.T = torch.clamp(torch.rand(self.num_states, self.num_states), 0, 1)
-        self.T = 0.*self.T*(1/torch.sum(self.T, dim=0))
+        self.T = nn.Parameter(torch.zeros(self.num_states, self.num_states))
         self.state_count_init = 1E-3
         self.lr_ceil = self.lr
         self.state_counts = 10.*self.state_count_init*torch.ones(self.num_states)
+        if self.T_grad_on:
+            self.T.requires_grad = True
+        else:
+            self.T.requires_grad = False
 
     def get_M_hat(self, gamma=None):
         """ Inverts the learned T matrix to get putative M matrix """
@@ -152,10 +147,6 @@ class CA3(module.Module):
             for t in range(self.rollout):
                 M_hat = M_hat + scale_term**t * torch.matrix_power(T, t)
             M_hat = M_hat
-
-        # For debugging: the eigenvalues
-        #w, v = np.linalg.eig(-alpha*torch.eye(T.shape[0]) + beta*gamma*T.t())
-        #max_eig = np.real(w).max()
         return M_hat
 
     def set_num_states(self, num_states):
@@ -177,7 +168,7 @@ class CA3(module.Module):
                 self.nonlin_a = nn.Parameter(torch.tensor([1.]))
                 self.nonlin_b = nn.Parameter(torch.tensor([0.]))
         else:
-            self.lr = nn.Parameter(torch.tensor([self.lr]))
+            self.lr = torch.tensor([self.lr])
             # Nonlinearity may be a clamp
             if self.output_params['nonlinearity'] == 'clamp':
                 if self.output_params['nonlinearity_args'] is not None:
