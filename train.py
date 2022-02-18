@@ -198,7 +198,7 @@ def set_parameters(net, names, flattened_params):
     return net
 
 if __name__ == "__main__":
-    save_path = './trained_models/test6/'
+    save_path = './trained_models/baseline/'
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
     if not os.path.exists(save_path):
@@ -219,16 +219,17 @@ if __name__ == "__main__":
         },
         ]
     output_params = {
-        'num_iterations': 20, 'input_clamp':np.inf,
+        'num_iterations': np.inf, 'input_clamp':np.inf,
         'nonlinearity': None
         }
     net_params = {
-        'num_states':2, 'gamma':0.8,
+        'num_states':2, 'gamma':0.4,
         'ca3_kwargs':{
             'A_pos_sign':1, 'A_neg_sign':-1,
             'output_params':output_params
             }
         }
+    train_M = False
 
     with open(save_path + "net_configs.p", 'wb') as f:
         import pickle
@@ -238,6 +239,6 @@ if __name__ == "__main__":
     net, return_error = train(
         save_path, net, datasets, datasets_config_ranges, train_steps=701,
         early_stop=True, print_every_steps=25, return_test_error=True,
-        train_M=True
+        train_M=train_M
         )
     print(f'Final Error: {return_error}')
