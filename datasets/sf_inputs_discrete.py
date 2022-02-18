@@ -36,7 +36,7 @@ class Sim1DWalk(inputs.Sim1DWalk):
             ):
 
         super(Sim1DWalk, self).__init__(
-            num_states, left_right_stay_prob, num_states
+            num_steps, left_right_stay_prob, num_states
             )
         feature_maker_kwargs['spatial_dim'] = 1
         self.feature_maker = FeatureMaker(
@@ -190,6 +190,33 @@ class TitmouseWalk(object):
         encoding = np.zeros((self.num_states, self.xs.size))
         encoding[self.states, np.arange(self.states.size)] = 1
         return encoding
+
+class Sim1DFeeder(inputs.Sim1DFeeder):
+    """
+    Simulates a walk in a 1D ring, where you can go left/right/stay
+    """
+
+    def __init__(
+            self, num_steps, left_right_stay_prob=[1, 1, 1], num_states=16,
+            attractor_center=0, attractor_width=2, attractor_scale=3,
+            feature_maker_kwargs=None
+            ):
+
+        super(Sim1DFeeder, self).__init__(
+            num_steps, left_right_stay_prob, num_states,
+            attractor_center, attractor_width, attractor_scale
+            )
+        feature_maker_kwargs['spatial_dim'] = 1
+        self.feature_maker = FeatureMaker(
+            self.num_states, **feature_maker_kwargs
+            )
+        self.state_inputs = self.dg_inputs.copy()
+        self.dg_inputs = self.feature_maker.make_features(self.dg_inputs)
+
+    def get_true_T(self):
+        raise NotImplementedError(
+            "Transition matrix is ill-defined for non one-hot features."
+            )
 
 class FeatureMaker(object):
     def __init__(

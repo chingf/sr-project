@@ -394,6 +394,76 @@ class SimCacheWalk(object): #TODO
 
         return dg_inputs, dg_modes, xs, ys, zs
 
+class Sim1DFeeder(object):
+    """
+    Simulates a walk in a 1D ring, where you can go left/right/stay. Agent is
+    attracted to a specific area in the ring.
+    """
+
+    def __init__(
+            self, num_steps, left_right_stay_prob=[1, 1, 1], num_states=16,
+            attractor_center=0, attractor_width=2, attractor_scale=3
+            ):
+
+        self.num_steps = num_steps
+        self.left_right_stay_prob = np.array(left_right_stay_prob)
+        self.left_right_stay_prob = self.left_right_stay_prob/np.sum(self.left_right_stay_prob)
+        self.num_states = num_states
+        self.attractor_center = attractor_center
+        self.attractor_width = attractor_width
+        self.attractor_scale = attractor_scale
+        self.true_T = self.generate_T()
+        self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
+        self.est_T = get_est_T(self.dg_inputs)
+
+    def generate_T(self):
+        true_T = np.zeros((self.num_states, self.num_states))
+        for i in range(self.num_states):
+            true_T[i, i-1] = self.left_right_stay_prob[0]
+            true_T[i, i] = self.left_right_stay_prob[1]
+            true_T[i, (i+1)%self.num_states] = self.left_right_stay_prob[2]
+        attr_states = np.arange(
+            self.attractor_center - self.attractor_width,
+            self.attractor_center + self.attractor_width + 1
+            )
+        for idx, s in enumerate(attr_states):
+            reflect_p = self.attractor_scale/(self.attractor_scale+1)
+            if idx == 0: # Edge state
+                true_T[s,:] = 0
+                true_T[s, (s-1)%self.num_states] = 1 - reflect_p
+                true_T[s, s] = reflect_p/2.
+                true_T[s, (s+1)%self.num_states] = reflect_p/2.
+            elif idx == attr_states.size-1: # Edge state
+                true_T[s,:] = 0
+                true_T[s, (s-1)%self.num_states] = reflect_p/2.
+                true_T[s, s] = reflect_p/2.
+                true_T[s, (s+1)%self.num_states] = 1 - reflect_p
+            else:
+                true_T[s,:] = 0
+                true_T[s, (s-1)%self.num_states] = 1/3.
+                true_T[s, s] = 1/3.
+                true_T[s, (s+1)%self.num_states] = 1/3.
+        return true_T
+
+    def get_true_T(self):
+        return self.true_T
+
+    def _walk(self):
+        curr_state = 0
+        dg_inputs = np.zeros((self.num_states, self.num_steps))
+        dg_modes = np.zeros((self.num_steps))
+        xs = np.zeros(self.num_steps)
+        ys = np.zeros(self.num_steps)
+        zs = np.zeros(self.num_steps)
+        for step in np.arange(self.num_steps):
+            action_range = np.mod(np.arange(curr_state-1, curr_state+2), self.num_states)
+            p = self.true_T[curr_state, action_range]
+            action = np.random.choice([-1,0,1], p=p)
+            curr_state = (curr_state + action)%self.num_states
+            ys[step] = curr_state
+            dg_inputs[curr_state, step] = 1
+        return dg_inputs, dg_modes, xs, ys, zs
+
 ## Experiment Simulations
 
 class RBYXYWalk(object):
