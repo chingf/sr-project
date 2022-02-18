@@ -38,33 +38,13 @@ class AnalyticSR(module.Module):
             self.reset()
         for step in np.arange(num_steps):
             dg_input = dg_inputs[step, :, :]
-            if dg_modes is not None:
-                dg_mode = dg_modes[step, :]
-                prev_dg_mode = dg_modes[step-1, :] if step != 0 else np.nan
-
-            if dg_modes is None or dg_mode == 0: # Predictive mode
-                is_stay = step > 1 and torch.equal(self.ca3.prev_input, self.ca3.curr_input)
-                if (not is_stay) or (self.stay_case == 0):
-                    dg_out = self.dg(dg_input, update_transition=update)
-                    ca3_out = self.ca3(
-                        dg_input, update_transition=update, gamma=gamma
-                        )
-                    if update:
-                        self.update()
-                elif self.stay_case == 1:
-                    dg_out = self.dg(dg_input, update_transition=False)
-                    ca3_out = self.ca3(
-                        dg_input, update_transition=False, gamma=gamma
-                        )
-                else:
-                    dg_out = self.dg(dg_input, update_transition=False)
-                    ca3_out = self.ca3(
-                        dg_input, update_transition=False, gamma=gamma
-                        )
-                    self.ca3._decay_all_eta_invs()
-                out.append(ca3_out)
-            elif (dg_mode == 1) and (prev_dg_mode == 0): # Query Mode
-                dg_out, ca3_out = self.query(dg_input)
+            dg_out = self.dg(dg_input, update_transition=update)
+            ca3_out = self.ca3(
+                dg_input, update_transition=update, gamma=gamma
+                )
+            if update:
+                self.update()
+            out.append(ca3_out)
         out = torch.stack(out)
         return None, out
 
