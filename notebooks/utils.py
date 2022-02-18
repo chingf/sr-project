@@ -20,7 +20,6 @@ from datasets import inputs, sf_inputs_discrete
 from run_td_rnn import run as run_rnn
 from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
-from findpeaks import findpeaks
 from scipy.ndimage.measurements import label
 import configs
 
