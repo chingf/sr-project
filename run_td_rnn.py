@@ -71,10 +71,7 @@ def run(
             dg_input = dg_input.unsqueeze(0)
     
             # Get net response and update model
-            if step ==  0:
-                _, out = net(dg_input, reset=True)
-            else:
-                _, out = net(dg_input, reset=False)
+            _, out = net(dg_input, reset=(step==0))
             outputs.append(out.detach().numpy().squeeze())
     
             if step == 0:
