@@ -23,33 +23,31 @@ class AnalyticSR(module.Module):
         self.stay_case = stay_case
 
     def forward(
-            self, dg_inputs, dg_modes=None, reset=True, update=True,
-            gamma=None
+            self, inputs, dg_modes=None, reset=True, update=True,
+            gamma=None, update_transition=None
             ):
         """
         Args:
-            dg_inputs: (steps, batch, states) one-hot inputs
+            inputs: (steps, batch, states) one-hot inputs
             dg_modes: (steps, batch, 1) flag of global mode
         """
 
-        num_steps, batch_size, num_states = dg_inputs.shape
+        num_steps, batch_size, num_states = inputs.shape
         out = []
+        if update_transition is None:
+            update_transition == update
         if reset:
             self.reset()
         for step in np.arange(num_steps):
-            dg_input = dg_inputs[step, :, :]
-            dg_out = self.dg(dg_input, update_transition=update)
+            _input = inputs[step, :, :]
             ca3_out = self.ca3(
-                dg_input, update_transition=update, gamma=gamma
+                _input, update_transition=update_transition, gamma=gamma
                 )
             if update:
                 self.update()
             out.append(ca3_out)
         out = torch.stack(out)
         return None, out
-
-    def query(self, query_input): # TODO
-        return None, None
 
     def update(self):
         self.ca3.update()
