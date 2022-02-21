@@ -78,16 +78,21 @@ class CA3(module.Module):
                 dxdt = -output + current
                 output = output + dt*dxdt
                 output = relu(output)
-                output = torch.nan_to_num(output, posinf=posinf) # for training
+                output = torch.nan_to_num(output, posinf=posinf)
         return output
 
-    def update(self):
+    def update(self, update_type=None, view_only=False):
+        if update_type is None:
+            update_type = self.forget
+        return self._update(update_type, view_only)
+
+    def _update(self, update_type, view_only):
         if self.prev_input is None:
             return
 
-        if self.forget is None:
+        if update_type is None:
             forget_term = torch.outer(self.prev_input, self.prev_input)@self.T
-        elif self.forget == "oja":
+        elif update_type == "oja":
             forget_term = torch.outer(
                 torch.square(self.prev_input), torch.ones_like(self.prev_input)
                 ) * self.T
@@ -101,17 +106,22 @@ class CA3(module.Module):
                 torch.nan_to_num(lr_update), 0, torch.abs(self.lr_ceil)
                 )
             lr_decay = lr_update
-            self.T -= forget_term * lr_decay[:,None]
-            self.T += update_term * lr_update[:,None]
+            full_update = forget_term * lr_decay[:,None] + update_term * lr_update[:,None]
             self.state_counts = new_state_counts
         else:
             if self.parameterize:
                 lr_update = torch.abs(self.lr_update)*0.01
                 lr_decay = torch.abs(self.lr_decay)*0.01
-                self.T = self.T + lr_update*update_term - lr_decay*forget_term
+                full_update = lr_update*update_term - lr_decay*forget_term
             else:
-                self.T = self.T + torch.abs(self.lr)*(update_term - forget_term)
-        self.T = torch.clamp(self.T, min=0)
+                full_update = torch.abs(self.lr)*(update_term - forget_term)
+
+        if view_only:
+            return full_update
+
+        self.T = self.T + full_update
+        self.T[:] = torch.clamp(self.T, min=0)
+        return full_update
 
     def get_T(self):
         return self.T
@@ -119,14 +129,16 @@ class CA3(module.Module):
     def reset(self):
         self.prev_input = None
         self.curr_input = None
-        self.T = nn.Parameter(torch.zeros(self.num_states, self.num_states))
         self.state_count_init = 1E-3
         self.lr_ceil = self.lr
         self.state_counts = 10.*self.state_count_init*torch.ones(self.num_states)
+        print('reset')
         if self.T_grad_on:
-            self.T.requires_grad = True
+            self.T = torch.nn.Parameter(
+                torch.zeros(self.num_states, self.num_states)
+                )
         else:
-            self.T.requires_grad = False
+            self.T = torch.zeros(self.num_states, self.num_states)
 
     def get_M_hat(self, gamma=None):
         """ Inverts the learned T matrix to get putative M matrix """
@@ -134,13 +146,15 @@ class CA3(module.Module):
         if gamma is None:
             gamma = self.gamma_M0
         T = self.get_T()
-
         if self.rollout == None:
             try:
-                M_hat = torch.linalg.pinv(torch.eye(T.shape[0]) - gamma*T)
+                perturb = torch.diag(torch.diagonal((1E-3)*torch.rand(T.shape)))
+                M_hat = torch.linalg.pinv(
+                    perturb + torch.eye(T.shape[0]) - gamma*T)
             except:
                 print('SVD did not converge. Small values added on diagonal.')
-                M_hat = torch.linalg.pinv(1.001*torch.eye(T.shape[0]) - gamma*T)
+                M_hat = torch.linalg.pinv(
+                    1.001*torch.eye(T.shape[0]) - gamma*T)
         else:
             M_hat = torch.zeros_like(T)
             scale_term = gamma
