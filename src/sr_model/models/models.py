@@ -35,7 +35,7 @@ class AnalyticSR(module.Module):
         num_steps, batch_size, num_states = inputs.shape
         out = []
         if update_transition is None:
-            update_transition == update
+            update_transition = update
         if reset:
             self.reset()
         for step in np.arange(num_steps):
