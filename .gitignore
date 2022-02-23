@@ -8,3 +8,4 @@ trained_models/
 figures/
 *.png
 *.pdf
+.DS_Store
