@@ -25,6 +25,7 @@ class CA3(module.Module):
         self.rollout = rollout
         self.forget = forget # for modifying forget term in learning rule
         self.T_grad_on = T_grad_on
+        self.add_perturb = T_grad_on
         self.output_params = {
             'num_iterations': np.inf, 'nonlinearity': None,
             'nonlinearity_args': None # So far, just [floor, ceil] for clamp
@@ -132,7 +133,6 @@ class CA3(module.Module):
         self.state_count_init = 1E-3
         self.lr_ceil = self.lr
         self.state_counts = 10.*self.state_count_init*torch.ones(self.num_states)
-        print('reset')
         if self.T_grad_on:
             self.T = torch.nn.Parameter(
                 torch.zeros(self.num_states, self.num_states)
@@ -148,7 +148,10 @@ class CA3(module.Module):
         T = self.get_T()
         if self.rollout == None:
             try:
-                perturb = torch.diag(torch.diagonal((1E-3)*torch.rand(T.shape)))
+                if self.add_perturb:
+                    perturb = torch.diag(torch.diagonal((1E-3)*torch.rand(T.shape)))
+                else:
+                    perturb = 0
                 M_hat = torch.linalg.pinv(
                     perturb + torch.eye(T.shape[0]) - gamma*T)
             except:
@@ -159,8 +162,7 @@ class CA3(module.Module):
             M_hat = torch.zeros_like(T)
             scale_term = gamma
             for t in range(self.rollout):
-                M_hat = M_hat + scale_term**t * torch.matrix_power(T, t)
-            M_hat = M_hat
+                M_hat = M_hat + scale_term**t * torch.matrix_power(T.clone(), t)
         return M_hat
 
     def set_num_states(self, num_states):
