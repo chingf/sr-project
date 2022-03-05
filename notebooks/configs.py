@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 import numpy as np
 
+engram_dir = "/Volumes/aronov-locker/Ching/"
+
 dt_to_sec = 3
 bin_to_cm = 5
 fig_width = 6.4
