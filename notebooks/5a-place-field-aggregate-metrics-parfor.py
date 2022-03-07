@@ -30,6 +30,7 @@ reload_field_info = True
 nshuffles = 40
 n_jobs = 56
 root_dir = "../../engram/Ching/03_td_discrete_corr/"
+root_dir = "../../engram/Ching/03_hannah_dset/"
 arena_length = 14
 models = ['hopfield', 'linear', 'mlp', 'rnn', 'rnn_oja']
 gammas = [0.6, 0.75, 0.8, 0.4]

@@ -1,6 +1,7 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.getcwd()))
+import shutil
 
 import pickle
 import numpy as np
@@ -30,7 +31,7 @@ datasets_config_ranges = [
     },
     ]
 
-gammas = [0.7, 0.8, 0.9]
+gammas = [0.7, 0.8, 0.9] #[0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 rsteps = [5, 7, 10, 12, 15, 17, 20, 22, 25]
 nonlinearities = [None, 'relu']
 
@@ -75,10 +76,12 @@ def grid_train(arg):
             'output_params': output_params
             }
         }
-    for idx in range(5):
+    for idx in range(10):
         iter_path = save_path + f'{idx}/'
         if os.path.isfile(iter_path + 'net_configs.p'):
             continue
+        else:
+            shutil.rmtree(iter_path, ignore_errors=True)
         net = STDP_SR(
             num_states=2, gamma=gamma, ca3_kwargs=net_configs['ca3_kwargs']
             )

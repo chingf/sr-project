@@ -22,14 +22,24 @@ def main(delete_dir=False):
 
     iters = 10
     n_jobs = 56
-    gammas = [0.75] #[0.75, 0.6, 0.8, 0.4]
+    gammas = [0.6, 0.75, 0.8, 0.4]
 
     # Integer sigmas
     spatial_sigmas = [0.0, 1.0, 2.0, 3.0]
     sparsity_range = [[0.001, 0.2], [0.001, 0.1], [0.001, 0.04], [0.001, 0.023]]
 
     # Other sigmas
-    spatial_sigmas.extend([0.25, 0.5, 1.25, 1.5, 1.75, 2.25, 2.5, 2.75, 3.25])
+    spatial_sigmas.extend([
+        0.25,
+        0.5,
+        1.25,
+        1.5,
+        1.75,
+        2.25,
+        2.5,
+        2.75,
+        3.25
+        ])
     sparsity_range.extend([
         [0.001, 0.19], # 0.25
         [0.001, 0.15], # 0.5
