@@ -34,7 +34,7 @@ class CA3(module.Module):
         self._init_trainable()
         self.reset()
     
-    def forward(self, input, update_transition=True, gamma=None):
+    def forward(self, _input, update_transition=True, gamma=None):
         if gamma is None:
             gamma = self.gamma_M0
         num_iterations = self.output_params['num_iterations']
@@ -42,13 +42,13 @@ class CA3(module.Module):
         if update_transition:
             if self.curr_input is not None:
                 self.prev_input = torch.squeeze(self.curr_input)
-            self.curr_input = torch.squeeze(input)
+            self.curr_input = torch.squeeze(_input)
 
         if np.isinf(num_iterations):
             M = self.get_M_hat(gamma)
-            output = torch.matmul(M.t(), torch.squeeze(input))
+            output = torch.matmul(M.t(), torch.squeeze(_input))
         else:
-            output = torch.squeeze(torch.zeros_like(input))
+            output = torch.squeeze(torch.zeros_like(_input))
             dt = 1.
             for iteration in range(num_iterations):
                 current = torch.matmul(self.T.t(), output.t())
@@ -73,7 +73,7 @@ class CA3(module.Module):
                 current = gamma*current
 
                 # Provide input current
-                current = current + torch.squeeze(input)
+                current = current + torch.squeeze(_input)
 
                 # Iterate output
                 dxdt = -output + current
@@ -234,35 +234,32 @@ class STDP_CA3(nn.Module):
         self._init_constants()
         self._init_trainable()
 
-        self.curr_input = None
-        self.prev_input = None
-
     def set_num_states(self, num_states):
         self.num_states = num_states
         self.x_queue = torch.zeros((self.num_states, self.x_queue_length))
 
-    def forward(self, input, update_transition=True, gamma=None):
+    def forward(self, _input, update_transition=True, gamma=None):
         """
         Returns activity of network given input. 
 
         Args:
-            input: (batch, states)
+            _input: (batch, states)
         """
 
-        input = torch.squeeze(input) # TODO: batching
-        activity = self.get_recurrent_output(input, gamma)
+        _input = torch.squeeze(_input) # TODO: batching
+        activity = self.get_recurrent_output(_input, gamma)
 
         _activity = self.plasticity_activity_clamp(activity)
 
         if update_transition:
             self.prev_input = self.curr_input
-            self.curr_input = input
+            self.curr_input = _input
             self.X = _activity
-        self.x_queue[:, :-1] = self.x_queue[:, 1:]
-        self.x_queue[:, -1] = _activity
+            self.x_queue[:, :-1] = self.x_queue[:, 1:]
+            self.x_queue[:, -1] = _activity
         return activity
 
-    def get_recurrent_output(self, input, gamma):
+    def get_recurrent_output(self, _input, gamma):
         if gamma is None: gamma = self.gamma_M0
         num_iterations = self.output_params['num_iterations']
         input_clamp = self.output_params['input_clamp']
@@ -270,7 +267,7 @@ class STDP_CA3(nn.Module):
 
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat(gamma=gamma)
-            activity = torch.matmul(M_hat.t(), input)
+            activity = torch.matmul(M_hat.t(), _input)
         else:
             activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: without zero?
             dt = 1.
@@ -289,7 +286,7 @@ class STDP_CA3(nn.Module):
 
                 # Option: provide input only briefly
                 if iteration <= input_clamp:
-                    current = current + input
+                    current = current + _input
 
                 # Iterate activity
                 dxdt = -activity + current
@@ -530,13 +527,13 @@ class OjaCA3(module.Module):
         self.start_valid = start_valid
         self.reset()
     
-    def forward(self, input, update_transition=True, gamma=None):
+    def forward(self, _input, update_transition=True, gamma=None):
         M = self.get_M_hat(gamma=gamma)
         if update_transition:
             if self.curr_input is not None:
                 self.prev_input = torch.squeeze(self.curr_input)
-            self.curr_input = torch.squeeze(input)
-        output = torch.matmul(M.t(), torch.squeeze(input))
+            self.curr_input = torch.squeeze(_input)
+        output = torch.matmul(M.t(), torch.squeeze(_input))
         return output
 
     def update(self):

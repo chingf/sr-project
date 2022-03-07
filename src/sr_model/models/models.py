@@ -101,8 +101,8 @@ class Linear(module.Module):
         if reset:
             self.reset()
         outputs = []
-        for input in inputs:
-            input = input.unsqueeze(0)
+        for _input in inputs:
+            _input = _input.unsqueeze(0)
             output = torch.bmm(input, self.M)
             output = output.squeeze(0)
             outputs.append(output)
@@ -115,7 +115,7 @@ class Linear(module.Module):
                 expected_value_function = phi + self.gamma*psi_s_prime
                 error = expected_value_function - value_function
                 self.M[0,:,:] = self.M[0,:,:] + self.lr*error[0]*phi[0].t()
-            self.prev_input = input
+            self.prev_input = _input
         outputs = torch.stack(outputs)
         return outputs
 
@@ -173,13 +173,13 @@ class Hopfield(module.Module):
         if reset:
             self.reset()
         outputs = []
-        for input in inputs:
-            input = input.unsqueeze(1)
-            output = torch.bmm(input, self.M)
+        for _input in inputs:
+            _input = _input.unsqueeze(1)
+            output = torch.bmm(_input, self.M)
             output = output.squeeze(0)
             outputs.append(output)
             # Sloppy outer product calculation
-            learn_term = torch.outer(input.squeeze(), input.squeeze())
+            learn_term = torch.outer(_input.squeeze(), _input.squeeze())
             learn_term = learn_term.unsqueeze(0)
             self.M = self.M + self.lr*learn_term
             self.M = torch.clamp(self.M, min=-self.clamp, max=self.clamp)
