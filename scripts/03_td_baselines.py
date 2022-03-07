@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(os.getcwd()))
 
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from joblib import Parallel, delayed
@@ -12,12 +13,13 @@ from shutil import rmtree
 
 from datasets import inputs, sf_inputs_discrete
 from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
+from sr_model import configs
 from run_td_rnn import run as _run_rnn
 from td_utils import run_models
 from eval import eval
 
 def main(delete_dir=False):
-    experiment_path = '/home/chingf/engram/Ching/03_td_baselines/'
+    experiment_path = f'{configs.engram_dir}03_td_baselines/'
     if delete_dir:
         rmtree(experiment_path, ignore_errors=True)
     os.makedirs(experiment_path)
@@ -27,9 +29,9 @@ def main(delete_dir=False):
     models = ['rnn_sr', 'rnn_sf']
     n_jobs = 5
     lr_range = [1E-2]
-    num_states = 25 # 100
-    num_steps = 10001 # 20001
-    dataset = inputs.Sim2DWalk
+    num_states = 25
+    num_steps = 1001
+    dataset = inputs.Sim1DWalk
     dataset_config = {'num_steps': num_steps, 'num_states': num_states}
     input_size = num_states
     dset_params = {'dataset': dataset, 'dataset_config': dataset_config}
@@ -92,7 +94,7 @@ def main(delete_dir=False):
     Parallel(n_jobs=n_jobs)(delayed(grid_train)(arg) for arg in args)
     
 def get_rnn_sr(num_states):
-    """ Load and return baseline SR model (pre-metalearned)"""
+    """ Load and return baseline SR model (pre-metalearned) """
     
     exp_dir = '../trained_models/baseline/'
     with open(exp_dir + 'net_configs.p', 'rb') as f:
