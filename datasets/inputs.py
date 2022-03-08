@@ -249,151 +249,6 @@ class Sim2DLevyFlight(object):
     def _in_range(self, x, y):
         return (0 <= x < self.num_xybins) and (0 <= y < self.num_xybins)
 
-class SimCacheWalk(object): #TODO
-    """
-    Simulates a walk around a 16-wedge circle with evenly spaced caches made.
-    """
-
-    def __init__(
-            self, num_spatial_states, downsample_factor,
-            num_caches=8, space_to_cache_ratio=5, direction_bias=0
-            ):
-        f = h5py.File(h5_path_dict['RBY45'][3].as_posix(), 'r')
-        self.exp_data = ExpData(f)
-        self.xmin = 0; self.xmax = 425
-        self.ymin = 0; self.ymax = 425
-        self.num_spatial_states = int((ceil(sqrt(num_spatial_states)) + 1)**2)
-        self.num_xybins = int(sqrt(self.num_spatial_states))
-        self.num_states = self.num_spatial_states + 16
-        self.wedge_states = self._get_wedge_states()
-        self.dg_inputs, self.dg_modes, self.xs, self.ys, self.zs = self._walk()
-        self.num_steps = self.dg_inputs.shape[1]
-        self.sorted_states = np.argsort(-np.sum(self.dg_inputs, axis=1)).squeeze()
-
-    def unravel_state_vector(self, state_vector):
-        """
-        Given (num_states, ) vector of state activation, returns
-        (xybins, xybins) size matrix useful for spatial visualization. Also
-        returns a (16, 1) matrix useful for context visualization.
-        """
-
-        unraveled_spatial = np.zeros((self.num_xybins, self.num_xybins))
-        xbins, ybins = np.unravel_index(
-            np.arange(self.num_spatial_states), (self.num_xybins, self.num_xybins)
-            )
-        unraveled_spatial[xbins, ybins] = state_vector[:self.num_spatial_states]
-        unraveled_context = np.zeros((16, 1))
-        unraveled_context = state_vector[self.num_spatial_states:, np.newaxis]
-        return unraveled_spatial, unraveled_context
-
-    def get_onehot_states(self, xs, ys, zs):
-        """
-        Given (T,) size xyz vectors, returns (num_states, T) one-hot encoding
-        of the associated state at each time point.
-        """
-
-        encoding = np.zeros((self.num_states, xs.size))
-        _, _, _, states = binned_statistic_2d(
-            xs, ys, xs, bins=self.num_xybins-2
-            )
-        encoding[states, np.arange(states.size)] = 1
-        for t in np.argwhere(zs>0).squeeze():
-            encoding[:,t] = 0
-            state = self.num_spatial_states + (self.exp_data.wedges[t] - 1)
-            encoding[state, t] = 1
-        return encoding
-
-    def get_rel_vars(self): #TODO: this should go in a different file
-        """
-        Will use the average xy position of each wedge to get the state associated
-        with each wedge. Will also provide the cache interaction amount of each
-        wedge.
-
-        Returns:
-            wedge_states: (16,) np array of wedge to state mapping (spatial)
-            cache_interaction: (16,) np array of cache interactions at each wedge
-        """
-
-        cache_inputs = self.dg_inputs[self.num_spatial_states:,:]
-        cache_inputs = cache_inputs[:, np.sum(cache_inputs, axis=0) > 0]
-        cache_inputs = np.argmax(cache_inputs, axis=0)
-        cache_interactions = np.histogram(cache_inputs, np.arange(17))[0]
-        
-        return self.wedge_states, cache_interactions
-
-    def get_true_T(self):
-        warnings.warn("True T estimate not implemented in SimCacheWalk dataset")
-        true_T = np.zeros((self.num_states, self.num_states))
-        return true_T
-
-    def _get_wedge_states(self):
-        """
-        Will use the average xy position of each wedge to get the state associated
-        with each wedge.
-
-        Returns:
-            wedge_states: (16,) np array of wedge to state mapping (spatial)
-        """
-
-        wedge_xs = np.zeros(16)
-        wedge_ys = np.zeros(16)
-        for wedge in range(16):
-            wedge_frames = self.exp_data.wedges == wedge+1
-            wedge_xs[wedge] = np.mean(self.exp_data.x[wedge_frames])
-            wedge_ys[wedge] = np.mean(self.exp_data.y[wedge_frames])
-        wedge_states = np.argmax(
-            self.get_onehot_states(wedge_xs, wedge_ys, np.zeros(16)), axis=0
-            )
-        return wedge_states
-
-    def _walk(self):
-        xs = self.exp_data.x
-        ys = self.exp_data.y
-        zs = np.zeros(xs.size)
-        dg_modes = np.zeros(xs.size)
-        valid_frames = self.exp_data.speeds > 3
-
-        # Add cache/retrieval modes and states
-        exp_data = self.exp_data
-        c_hops, r_hops, ch_hops, noncrch_hops = exp_data.get_crch_hops()
-        event_window = 1 # in frames
-        for idx, hop in enumerate(c_hops): # Cache
-            poke = exp_data.event_pokes[exp_data.cache_event][idx]
-            zs[poke-event_window:poke+event_window] = 1
-            dg_modes[poke-event_window:poke+event_window] = 0
-            valid_frames[poke-event_window:poke+event_window] = True
-        for idx, hop in enumerate(ch_hops):
-            poke = exp_data.event_pokes[exp_data.check_event][idx]
-            site = exp_data.event_sites[exp_data.check_event][idx] - 1
-            if self.exp_data.cache_present[hop, site]: # Full Check
-                zs[poke-event_window:poke+event_window] = 1
-                dg_modes[poke-event_window:poke+event_window] = 0
-                valid_frames[poke-event_window:poke+event_window] = True
-        for idx, hop in enumerate(r_hops): # Retrieval
-            poke = exp_data.event_pokes[exp_data.retriev_event][idx]
-            zs[poke-event_window:poke+event_window] = 1
-            dg_modes[poke-event_window:poke+event_window] = 2
-            valid_frames[poke-event_window:poke+event_window] = True
-        dg_inputs = self.get_onehot_states(xs, ys, zs)
-
-        # Velocity modulation
-        dg_inputs = dg_inputs[:,valid_frames]
-        dg_modes = dg_modes[valid_frames]
-        xs = xs[valid_frames]
-        ys = ys[valid_frames]
-        zs = zs[valid_frames]
-
-        # Downsample
-        if self.downsample_factor is not None:
-            downsample_factor = min(self.downsample_factor, event_window)
-            dg_inputs = downsample(dg_inputs, downsample_factor)
-            dg_modes = downsample(dg_modes, downsample_factor)
-            xs = downsample(xs, downsample_factor)
-            ys = downsample(ys, downsample_factor)
-            zs = downsample(zs, downsample_factor)
-
-        return dg_inputs, dg_modes, xs, ys, zs
-
 class Sim1DFeeder(object):
     """
     Simulates a walk in a 1D ring, where you can go left/right/stay. Agent is
@@ -463,6 +318,97 @@ class Sim1DFeeder(object):
             ys[step] = curr_state
             dg_inputs[curr_state, step] = 1
         return dg_inputs, dg_modes, xs, ys, zs
+
+class Sim1DFeederAndCache(object):
+    """
+    Simulates a forward-biased walk in a 1D ring. Feeder opens for a brief
+    interval within the session. When feeder is open, the bird visits the feeder
+    at every lap. One cache occurs during the feeder open period.
+
+    Args:
+        steps_in_phases: array with number of timesteps for feeder off/on/off.
+        num_spatial_states: num of spatial states; total states is twice this.
+        left_right_stay_prob: sets the amount of forward bias in the walk
+        feeder_state: spatial state where the feeder is.
+        cache_state: spatial state where the cache is made.
+    """
+
+    def __init__(
+            self, steps_in_phases=[500, 500, 500], num_spatial_states=16,
+            left_right_stay_prob=[6, 1, 1],
+            feeder_state=8, cache_state=12
+            ):
+
+        self.steps_in_phases = steps_in_phases
+        self.num_spatial_states = num_spatial_states
+        self.left_right_stay_prob = np.array(left_right_stay_prob)
+        self.left_right_stay_prob = self.left_right_stay_prob/np.sum(self.left_right_stay_prob)
+        self.feeder_state = feeder_state
+        self.cache_state = cache_state
+        self.num_steps = np.sum(steps_in_phases)
+        self.num_states = num_spatial_states*2
+        self.state_inputs = self._walk()
+        self.dg_inputs = self._make_one_hot(self.state_inputs)
+        self.xs, self.ys = self._convert_to_xy(self.dg_inputs)
+
+    def _walk(self):
+        curr_loc = 0 # Current spatial location
+        num_feeder_visits = 0 # Count number of feeder visits
+        num_caches = 0 # Number of caches made
+        next_states = []
+        state_inputs = []
+
+        for phase, steps_in_phase in enumerate(self.steps_in_phases):
+            for step in np.arange(steps_in_phase):
+                # If states have been pre-determined, follow them
+                if len(next_states) > 0:
+                    curr_loc = next_states[0] % self.num_spatial_states
+                    state_inputs.append(next_states[0])
+                    next_states = next_states[1:]
+                    continue
+                # Else, draw transitions as normal
+                left_right_stay_prob = self.left_right_stay_prob.copy()
+
+#                # Local attraction into feeder
+#                dist_from_feeder = curr_loc - self.feeder_state
+#                if (phase == 1) and (0 < np.abs(dist_from_feeder) < 3):
+#                    if np.sign(dist_from_feeder) < 0:
+#                        left_right_stay_prob = [0.7, 0.15, 0.15]
+#                    else:
+#                        left_right_stay_prob = [0.15, 0.7, 0.15]
+
+                action = np.random.choice([-1,1,0], p=left_right_stay_prob)
+                curr_loc = (curr_loc + action) % self.num_spatial_states
+                state_inputs.append(curr_loc)
+                # Impose feeder transition in next timesteps
+                if (phase == 1) and (curr_loc == self.feeder_state):
+                    next_states = [self.num_spatial_states + curr_loc]*5
+                    next_states.append(curr_loc)
+                    num_feeder_visits += 1
+                # Impose cache transition in next timesteps
+                elif (phase == 1) and (curr_loc == self.cache_state):
+                    if num_caches > 0: continue
+                    if num_feeder_visits < 4: continue
+                    next_states = [self.num_spatial_states + curr_loc]*5
+                    next_states.append(curr_loc)
+                    num_caches += 1
+        return np.array(state_inputs)
+
+    def _make_one_hot(self, state_inputs):
+        one_hots = np.zeros((self.num_states, self.num_steps))
+        inds = np.column_stack((state_inputs, np.arange(self.num_steps)))
+        np.put(one_hots, inds, 1)
+        return one_hots
+
+    def _convert_to_xy(self, dg_inputs):
+        x_encodings = np.zeros(self.num_states)
+        y_encodings = np.zeros(self.num_states)
+        radians = np.linspace(0, 2*np.pi, self.num_spatial_states, endpoint=False)
+        x_encodings[:self.num_spatial_states] = np.cos(radians)
+        y_encodings[:self.num_spatial_states] = np.sin(radians)
+        x_encodings[self.num_spatial_states:] = 1.25*np.cos(radians)
+        y_encodings[self.num_spatial_states:] = 1.25*np.sin(radians)
+        return x_encodings[self.state_inputs], y_encodings[self.state_inputs]
 
 ## Experiment Simulations
 
