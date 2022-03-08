@@ -103,7 +103,7 @@ class Linear(module.Module):
         outputs = []
         for _input in inputs:
             _input = _input.unsqueeze(0)
-            output = torch.bmm(input, self.M)
+            output = torch.bmm(_input, self.M)
             output = output.squeeze(0)
             outputs.append(output)
 
