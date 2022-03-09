@@ -368,30 +368,21 @@ class Sim1DFeederAndCache(object):
                     continue
                 # Else, draw transitions as normal
                 left_right_stay_prob = self.left_right_stay_prob.copy()
-
-#                # Local attraction into feeder
-#                dist_from_feeder = curr_loc - self.feeder_state
-#                if (phase == 1) and (0 < np.abs(dist_from_feeder) < 3):
-#                    if np.sign(dist_from_feeder) < 0:
-#                        left_right_stay_prob = [0.7, 0.15, 0.15]
-#                    else:
-#                        left_right_stay_prob = [0.15, 0.7, 0.15]
-
                 action = np.random.choice([-1,1,0], p=left_right_stay_prob)
                 curr_loc = (curr_loc + action) % self.num_spatial_states
                 state_inputs.append(curr_loc)
                 # Impose feeder transition in next timesteps
                 if (phase == 1) and (curr_loc == self.feeder_state):
-                    next_states = [self.num_spatial_states + curr_loc]*5
+                    next_states = [self.num_spatial_states + curr_loc]*1
                     next_states.append(curr_loc)
                     num_feeder_visits += 1
-                # Impose cache transition in next timesteps
-                elif (phase == 1) and (curr_loc == self.cache_state):
-                    if num_caches > 0: continue
-                    if num_feeder_visits < 4: continue
-                    next_states = [self.num_spatial_states + curr_loc]*5
-                    next_states.append(curr_loc)
-                    num_caches += 1
+#                # Impose cache transition in next timesteps
+#                elif (phase == 1) and (curr_loc == self.cache_state):
+#                    if num_caches > 0: continue
+#                    if num_feeder_visits < 4: continue
+#                    next_states = [self.num_spatial_states + curr_loc]*1
+#                    next_states.append(curr_loc)
+#                    num_caches += 1
         return np.array(state_inputs)
 
     def _make_one_hot(self, state_inputs):
