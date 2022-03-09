@@ -117,6 +117,7 @@ def gradient_comparison(
                         saved_grads[_iter]['bp'] = []
                         saved_grads[_iter]['rnn'] = []
                         saved_grads[_iter]['oja'] = []
+                        saved_grads[_iter]['dset'] = dset
                     if i % 10 == 0:
                         saved_grads[_iter]['steps'].append(i)
                         saved_grads[_iter]['bp'].append(bp_grad.detach().numpy())
@@ -253,7 +254,7 @@ if __name__ == "__main__":
 
     # Run scripts
     gradient_comparison(
-        exp_path, exp_name, (1E-2)/5
+        exp_path, exp_name, (1E-2)/5,
         iters, gamma, dataset, dataset_config, transition_probs, ca3_kwargs,
         delete_dir=False, use_td_loss=use_td_loss, save_grads=True
         )
