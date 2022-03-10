@@ -331,39 +331,51 @@ class Sim1DFeederAndCache(object):
         left_right_stay_prob: sets the amount of forward bias in the walk
         feeder_state: spatial state where the feeder is.
         cache_state: spatial state where the cache is made.
+        visit_length: how many timesteps a visit to feeder/cache state is.
     """
 
     def __init__(
             self, steps_in_phases=[500, 500, 500], num_spatial_states=16,
             left_right_stay_prob=[6, 1, 1],
-            feeder_state=8, cache_state=12
+            feeder_states=[8], cache_states=[12],
+            visit_length=1, expansion=1, cache_prob=0.1
             ):
 
         self.steps_in_phases = steps_in_phases
         self.num_spatial_states = num_spatial_states
         self.left_right_stay_prob = np.array(left_right_stay_prob)
         self.left_right_stay_prob = self.left_right_stay_prob/np.sum(self.left_right_stay_prob)
-        self.feeder_state = feeder_state
-        self.cache_state = cache_state
+        self.feeder_states = feeder_states
+        self.cache_states = cache_states
+        self.visit_length = visit_length
+        self.expansion = expansion
+        self.cache_prob = cache_prob
         self.num_steps = np.sum(steps_in_phases)
         self.num_states = num_spatial_states*2
-        self.state_inputs = self._walk()
-        self.dg_inputs = self._make_one_hot(self.state_inputs)
-        self.xs, self.ys = self._convert_to_xy(self.dg_inputs)
+        self.num_expanded_states = self.num_states * self.expansion
+        self.state_inputs, self.expanded_state_ids = self._walk()
+        self.expanded_state_inputs = self._expand_states(
+            self.state_inputs, self.expanded_state_ids
+            )
+        self.dg_inputs = self._make_one_hot(self.expanded_state_inputs)
+        self.xs, self.ys = self._convert_to_xy(self.state_inputs)
 
     def _walk(self):
         curr_loc = 0 # Current spatial location
         num_feeder_visits = 0 # Count number of feeder visits
-        num_caches = 0 # Number of caches made
+        num_caches = [0 for loc in self.cache_states] # Number of caches made
         next_states = []
         state_inputs = []
+        expanded_state_ids = []
 
         for phase, steps_in_phase in enumerate(self.steps_in_phases):
             for step in np.arange(steps_in_phase):
                 # If states have been pre-determined, follow them
                 if len(next_states) > 0:
-                    curr_loc = next_states[0] % self.num_spatial_states
-                    state_inputs.append(next_states[0])
+                    next_state = next_states[0]
+                    curr_loc = next_state[0] % self.num_spatial_states
+                    state_inputs.append(next_state[0])
+                    expanded_state_ids.append(next_state[1])
                     next_states = next_states[1:]
                     continue
                 # Else, draw transitions as normal
@@ -371,27 +383,43 @@ class Sim1DFeederAndCache(object):
                 action = np.random.choice([-1,1,0], p=left_right_stay_prob)
                 curr_loc = (curr_loc + action) % self.num_spatial_states
                 state_inputs.append(curr_loc)
+                expanded_state_id = np.random.choice(self.expansion)
+                expanded_state_ids.append(expanded_state_id)
                 # Impose feeder transition in next timesteps
-                if (phase == 1) and (curr_loc == self.feeder_state):
-                    next_states = [self.num_spatial_states + curr_loc]*1
-                    next_states.append(curr_loc)
+                if (phase == 1) and (curr_loc in self.feeder_states):
+                    next_states = [(
+                        self.num_spatial_states + curr_loc,
+                        expanded_state_id
+                        )]
+                    next_states = next_states * self.visit_length
+                    next_states.append((curr_loc, expanded_state_id))
                     num_feeder_visits += 1
-#                # Impose cache transition in next timesteps
-#                elif (phase == 1) and (curr_loc == self.cache_state):
-#                    if num_caches > 0: continue
-#                    if num_feeder_visits < 4: continue
-#                    next_states = [self.num_spatial_states + curr_loc]*1
-#                    next_states.append(curr_loc)
-#                    num_caches += 1
-        return np.array(state_inputs)
+                # Impose cache transition in next timesteps
+                elif (phase == 1) and (curr_loc in self.cache_states):
+                    cache_idx = self.cache_states.index(curr_loc)
+                    if num_caches[cache_idx] > 0: continue
+                    if np.random.rand() > self.cache_prob: continue
+                    next_states = [(
+                        self.num_spatial_states + curr_loc,
+                        expanded_state_id
+                        )]
+                    next_states = next_states * self.visit_length
+                    next_states.append((curr_loc, expanded_state_id))
+                    num_caches[cache_idx] += 1
+        return np.array(state_inputs), np.array(expanded_state_ids)
 
-    def _make_one_hot(self, state_inputs):
-        one_hots = np.zeros((self.num_states, self.num_steps))
-        inds = np.column_stack((state_inputs, np.arange(self.num_steps)))
+    def _expand_states(self, state_inputs, expanded_state_ids):
+        return state_inputs*self.expansion + expanded_state_ids
+
+    def _make_one_hot(self, expanded_state_inputs):
+        one_hots = np.zeros((
+            self.num_expanded_states, self.num_steps
+            ))
+        inds = np.column_stack((expanded_state_inputs, np.arange(self.num_steps)))
         np.put(one_hots, inds, 1)
         return one_hots
 
-    def _convert_to_xy(self, dg_inputs):
+    def _convert_to_xy(self, state_inputs):
         x_encodings = np.zeros(self.num_states)
         y_encodings = np.zeros(self.num_states)
         radians = np.linspace(0, 2*np.pi, self.num_spatial_states, endpoint=False)
@@ -399,7 +427,7 @@ class Sim1DFeederAndCache(object):
         y_encodings[:self.num_spatial_states] = np.sin(radians)
         x_encodings[self.num_spatial_states:] = 1.25*np.cos(radians)
         y_encodings[self.num_spatial_states:] = 1.25*np.sin(radians)
-        return x_encodings[self.state_inputs], y_encodings[self.state_inputs]
+        return x_encodings[state_inputs], y_encodings[state_inputs]
 
 ## Experiment Simulations
 
