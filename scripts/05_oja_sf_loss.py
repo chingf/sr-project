@@ -31,7 +31,7 @@ args = np.arange(iters)
 
 # Dataset parameters
 num_states = 25
-num_steps = 4001
+num_steps = 6001
 dataset = sf_inputs_discrete.Sim1DWalk
 sprs = 0.03
 sig = 2.0
