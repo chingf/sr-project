@@ -13,7 +13,7 @@ from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
 
-experiment_dir = '../../engram/Ching/02_gamma_v_rsteps/'
+experiment_dir = '../../engram/Ching/02_gamma_v_rsteps_test/'
 n_jobs = 56
 n_test_iters = 25
 dataset = inputs.Sim1DWalk

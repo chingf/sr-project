@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.nn.functional import relu, sigmoid, tanh
 from sr_model.models import module
 from sr_model.utils import get_sr
-from sr_model.utils_modules import LeakyClamp, LeakyThreshold, TwoSidedLeakyThreshold
+from sr_model.utils_modules import Clamp, LeakyThreshold, TwoSidedLeakyThreshold
 
 posinf = 1E30
 
@@ -276,7 +276,11 @@ class STDP_CA3(nn.Module):
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'sigmoid':
-                    current = sigmoid(current)*self.sigmoid_scale
+                    sigmoid_scale = torch.abs(self.sigmoid_scale) + 1
+                    current = sigmoid(current)*sigmoid_scale
+                elif nonlinearity == 'sigmoid_with_offset':
+                    sigmoid_scale = torch.abs(self.sigmoid_scale) + 1
+                    current = sigmoid(current+self.sigmoid_offset)*sigmoid_scale
                 elif nonlinearity == 'tanh':
                     current = tanh(current)*self.tanh_scale
                 elif nonlinearity == 'clamp':
@@ -481,7 +485,7 @@ class STDP_CA3(nn.Module):
         self.alpha_other_scaling = 10
         self.alpha_self_scaling = 1
 
-        self.learning_rate_clamp = LeakyClamp(floor=0, ceil=1)
+        self.learning_rate_clamp = Clamp(floor=0, ceil=1)
 
         self.x_queue_length = 20 # max needed for tau of 4
         self.x_queue = torch.zeros((self.num_states, self.x_queue_length))
@@ -497,23 +501,27 @@ class STDP_CA3(nn.Module):
         # Scales and clamps the update to the J matrix
         self.update_clamp_a = nn.Parameter(torch.tensor([1.]))
         self.update_clamp_b = nn.Parameter(torch.tensor([0.]))
-        self.update_clamp = LeakyClamp(floor=0, ceil=1)
+        self.update_clamp = Clamp(floor=0, ceil=1)
 
         # Scales and clamps the neural activity used in the plasticity rules
-        self.plasticity_activity_clamp = LeakyClamp(
+        self.plasticity_activity_clamp = Clamp(
             floor=-10, ceil=10 # For stability during metalearning
             )
 
         # Nonlinearity may be a clamp
         if self.output_params['nonlinearity'] == 'clamp':
-            self.nonlin_clamp = LeakyClamp(
-                floor=0, ceil=nn.Parameter(torch.tensor([2.]))
+            self.nonlin_clamp = Clamp(
+                floor=0, ceil=nn.Parameter(torch.tensor([2.])),
+                ceil_offset=1
                 )
             self.clamp_bias = nn.Parameter(torch.tensor([0.]))
         elif self.output_params['nonlinearity'] == 'relu':
             self.relu_bias = nn.Parameter(torch.tensor([0.]))
         elif self.output_params['nonlinearity'] == 'sigmoid':
             self.sigmoid_scale = nn.Parameter(torch.tensor([3.]))
+        elif self.output_params['nonlinearity'] == 'sigmoid_with_offset':
+            self.sigmoid_scale = nn.Parameter(torch.tensor([3.]))
+            self.sigmoid_offset = nn.Parameter(torch.tensor([0.]))
         elif self.output_params['nonlinearity'] == 'tanh':
             self.tanh_scale = nn.Parameter(torch.tensor([3.]))
 

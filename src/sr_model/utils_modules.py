@@ -1,24 +1,23 @@
 import torch
 import torch.nn as nn
 
-class LeakyClamp(nn.Module):
-    """
-    A leaky clamp
-    """
+class Clamp(nn.Module):
 
-    def __init__(self, floor, ceil):
-        super(LeakyClamp, self).__init__()
+    def __init__(self, floor, ceil, ceil_offset=0):
+        super(Clamp, self).__init__()
         self.floor = floor
         self.ceil = ceil
+        self.ceil_offset = ceil_offset
 
-    def forward(self, input, negative_slope=0):
-        if self.ceil is not None:
-            input = -1*(nn.functional.leaky_relu(
-                -input + self.ceil, negative_slope=negative_slope
-                ) - self.ceil)
-        if self.floor is not None:
-            input = nn.functional.leaky_relu(input, negative_slope=negative_slope)
-        return input
+    def forward(self, input):
+        if torch.is_tensor(self.ceil):
+            ceil = torch.abs(self.ceil)
+        else:
+            ceil = self.ceil
+        return torch.clamp(
+            input, min=self.floor,
+            max=ceil+self.ceil_offset
+            )
 
 class LeakyThreshold(nn.Module):
     """

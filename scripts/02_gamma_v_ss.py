@@ -8,10 +8,12 @@ from joblib import Parallel, delayed
 from datasets import inputs
 from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
+import pickle
 
 experiment_dir = '../../engram/Ching/02_gamma_v_ss/'
-n_jobs = 14
-n_iters = 10
+experiment_dir = '../trained_models/02_gamma_v_ss_v2/'
+n_jobs = 6 #14
+n_iters = 5 #10
 
 datasets = [
     inputs.Sim1DWalk,
@@ -29,8 +31,8 @@ datasets_config_ranges = [
     },
     ]
 
-gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-nonlinearities = [None, 'relu']
+gammas = [0.6, 0.8] #[0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+nonlinearities = ['sigmoid', 'clamp', 'sigmoid_with_offset']#[None, 'relu', 'sigmoid', 'clamp'] #[None, 'relu']
 args = []
 for gamma in gammas:
     for nonlinearity in nonlinearities:
@@ -73,7 +75,7 @@ def grid_train(arg):
             )
         train(
             save_path, net, datasets, datasets_config_ranges,
-            train_steps=801, print_every_steps=10, train_M=train_M
+            train_steps=351, print_every_steps=10, train_M=train_M
             )
         with open(save_path + 'net_configs.p', 'wb') as f:
             pickle.dump(net_configs, f)
