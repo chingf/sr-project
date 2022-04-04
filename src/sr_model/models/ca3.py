@@ -68,6 +68,8 @@ class CA3(module.Module):
                         current, min=clamp_min.item(),
                         max=clamp_max.item()
                         )
+                elif nonlinearity == 'fixed':
+                    current = tanh(current)
 
                 # Apply neuromodulatory gamma
                 current = gamma*current
@@ -224,7 +226,7 @@ class STDP_CA3(nn.Module):
         self.approx_B = approx_B
         self.output_params = {
             'num_iterations': np.inf, 'input_clamp': np.inf,
-            'nonlinearity': None,
+            'nonlinearity': None, 'nonlinearity_args': None,
             'no_transform': False
             }
         self.output_params.update(output_params)
@@ -264,6 +266,7 @@ class STDP_CA3(nn.Module):
         num_iterations = self.output_params['num_iterations']
         input_clamp = self.output_params['input_clamp']
         nonlinearity = self.output_params['nonlinearity']
+        nonlinearity_args = self.output_params['nonlinearity_args']
 
         if np.isinf(num_iterations):
             M_hat = self.get_M_hat(gamma=gamma)
@@ -281,12 +284,18 @@ class STDP_CA3(nn.Module):
                 elif nonlinearity == 'sigmoid_with_offset':
                     sigmoid_scale = torch.abs(self.sigmoid_scale) + 1
                     current = sigmoid(current+self.sigmoid_offset)*sigmoid_scale
-                elif nonlinearity == 'tanh':
-                    current = tanh(current)*self.tanh_scale
                 elif nonlinearity == 'clamp':
                     current = self.nonlin_clamp(current + self.clamp_bias)
                 elif nonlinearity == 'relu':
                     current = relu(current + self.relu_bias)
+                elif nonlinearity == 'fixed' or nonlinearity == 'tanh':
+                    if type(nonlinearity_args) is tuple:
+                        x_scale, y_scale = nonlinearity_args
+                    elif nonlinearity_args is None:
+                        x_scale = y_scale = 1
+                    else:
+                        x_scale = y_scale = nonlinearity_args
+                    current = tanh(current/x_scale)*y_scale
 
                 # Option: provide input only briefly
                 if iteration <= input_clamp:
@@ -429,6 +438,7 @@ class STDP_CA3(nn.Module):
         
         update = torch.abs(self.update_clamp_a)*update + self.update_clamp_b
         update = self.update_clamp(update)
+        self.last_update = update.detach().numpy()
 
         self.J = decays*self.J + etas*update
         self.J = torch.nan_to_num(self.J)

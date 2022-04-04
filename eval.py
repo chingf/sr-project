@@ -70,7 +70,10 @@ def eval(path_or_model, datasets):
 
                 # How well the model estimates the true T/M
                 net_T = net.get_T().detach().numpy()
-                net_M = net.get_M().detach().numpy()
+                try:
+                    net_M = net.get_M().detach().numpy()
+                except:
+                    net_M = net.get_M()
                 true_T = dset.get_true_T()
                 true_M = np.linalg.pinv(np.eye(true_T.shape[0]) - net.gamma*true_T)
                 t_error = np.mean(np.abs(true_T - net_T))
