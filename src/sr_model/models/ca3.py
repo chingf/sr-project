@@ -211,9 +211,9 @@ class STDP_CA3(nn.Module):
 
     def __init__(
             self, num_states, gamma_M0, gamma_T=0.99999,
-            A_pos_sign=None, A_neg_sign=None, start_valid=False,
-            approx_B=False,
-            output_params={}
+            A_pos_sign=None, A_neg_sign=None,
+            approx_B=False, use_kernels_in_update=False,
+            output_params={}, static_eta=None
             ):
 
         super(STDP_CA3, self).__init__()
@@ -222,14 +222,15 @@ class STDP_CA3(nn.Module):
         self.gamma_M0 = gamma_M0
         self.A_pos_sign = A_pos_sign
         self.A_neg_sign = A_neg_sign
-        self.start_valid = start_valid
         self.approx_B = approx_B
+        self.use_kernels_in_update = use_kernels_in_update
         self.output_params = {
             'num_iterations': np.inf, 'input_clamp': np.inf,
             'nonlinearity': None, 'nonlinearity_args': None,
             'no_transform': False
             }
         self.output_params.update(output_params)
+        self.static_eta = static_eta
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
 
         self.reset()
@@ -278,17 +279,7 @@ class STDP_CA3(nn.Module):
                 current = torch.matmul(gamma*self.J, activity)
 
                 # Option: apply nonlinearity onto current
-                if nonlinearity == 'sigmoid':
-                    sigmoid_scale = torch.abs(self.sigmoid_scale) + 1
-                    current = sigmoid(current)*sigmoid_scale
-                elif nonlinearity == 'sigmoid_with_offset':
-                    sigmoid_scale = torch.abs(self.sigmoid_scale) + 1
-                    current = sigmoid(current+self.sigmoid_offset)*sigmoid_scale
-                elif nonlinearity == 'clamp':
-                    current = self.nonlin_clamp(current + self.clamp_bias)
-                elif nonlinearity == 'relu':
-                    current = relu(current + self.relu_bias)
-                elif nonlinearity == 'fixed' or nonlinearity == 'tanh':
+                if nonlinearity == 'tanh':
                     if type(nonlinearity_args) is tuple:
                         x_scale, y_scale = nonlinearity_args
                     elif nonlinearity_args is None:
@@ -311,11 +302,12 @@ class STDP_CA3(nn.Module):
     def update(self):
         """ Plasticity update """
 
-        self._update_B_pos()
-        self._update_B_neg()
+        if self.use_kernels_in_update:
+            self._update_B_pos()
+            self._update_B_neg()
 
         if self.prev_input is None: return
-
+        
         self._update_eta_invs()
 
         self._update_J()
@@ -380,10 +372,7 @@ class STDP_CA3(nn.Module):
 
     def reset(self):
         init_scale = 0.0001
-        self.J = np.clip(np.random.rand(self.num_states, self.num_states), 0, 1)
-        self.J = self.J*(1/np.sum(self.J, axis=0)) # normalize rows of T
-        if not self.start_valid:
-            self.J = self.J*0
+        self.J = np.zeros((self.num_states, self.num_states))
         self.eta_invs = np.ones(self.J.shape[0])*init_scale
         self.B_pos = np.zeros(self.num_states)
         self.B_neg = np.zeros(self.num_states)
@@ -406,41 +395,41 @@ class STDP_CA3(nn.Module):
         nn.init.constant_(self.x_queue, 0)
 
     def _update_J(self):
-        num_states = self.num_states
         # Format learning rates for each neuron's outgoing synapses (shared by js)
-        etas = torch.nan_to_num(1/self.eta_invs, posinf=posinf) # for training
-        etas = self.learning_rate_clamp(etas)
-        etas = torch.tile(etas, (num_states, 1)) # (N, N)
-        decays = (self.eta_invs - self.prev_input)/self.eta_invs # (N,)
-        decays = torch.tile(decays, (num_states, 1)) # (N, N)
+        num_states = self.num_states
+        if self.static_eta is None: # adaptive learning rate
+            etas = torch.nan_to_num(1/self.eta_invs, posinf=posinf)
+            etas = self.learning_rate_clamp(etas)
+            etas = torch.tile(etas, (num_states, 1)) # (N, N)
+            etas = torch.clamp(etas, min=1E-3)
+        else:
+            etas = self.static_eta
 
-        # Get activity and plasticity integration
-        B_pos = torch.unsqueeze(self.B_pos, dim=0) # (1, N)
-        B_neg = torch.unsqueeze(self.B_neg, dim=0) # (1, N)
-        activity = self.X # (N,)
-        activity = torch.unsqueeze(activity, dim=0) # (1, N)
+        if self.use_kernels_in_update:
+            # Get activity and plasticity integration
+            B_pos = torch.unsqueeze(self.B_pos, dim=0) # (1, N)
+            B_neg = torch.unsqueeze(self.B_neg, dim=0) # (1, N)
+            activity = self.X # (N,)
+            activity = torch.unsqueeze(activity, dim=0) # (1, N)
+    
+            # Calculate potentiation and depression over all i,j for i != j
+            potentiation = (self.dt/self.tau_J) * activity.t() * B_pos # (N, N); activity i, B_pos j
+            depression = (self.dt/self.tau_J) * B_neg.t() * activity # (N, N); B_neg i, activity j
+            alpha_other = torch.abs(self.alpha_other)*self.alpha_other_scaling
+            update = (potentiation + depression)*alpha_other*alpha_other
+    
+            # Calculate self-potentiation (i == j)
+            self_potentiation = (self.dt/self.tau_J)*activity*B_pos*self.prev_input
+            alpha_self = torch.abs(self.alpha_self)*self.alpha_self_scaling
+            self_update = self_potentiation*alpha_self
+            diag_mask = torch.ones(num_states, num_states) - torch.eye(num_states)
+            update = update*diag_mask + torch.diag(torch.squeeze(self_update))
+            update = torch.nan_to_num(update)
+        else:
+            update = torch.outer(self.x_queue[:,-1], self.x_queue[:,-2])
 
-        # Calculate potentiation and depression over all i,j for i != j
-        potentiation = (self.dt/self.tau_J) * activity.t() * B_pos # (N, N); activity i, B_pos j
-        depression = (self.dt/self.tau_J) * B_neg.t() * activity # (N, N); B_neg i, activity j
-        alpha_other = torch.abs(self.alpha_other)*self.alpha_other_scaling
-        update = (potentiation + depression)*alpha_other*alpha_other
-
-        # Calculate self-potentiation (i == j)
-        self_potentiation = (self.dt/self.tau_J)*activity*B_pos*self.prev_input
-        alpha_self = torch.abs(self.alpha_self)*self.alpha_self_scaling
-        self_update = self_potentiation*alpha_self
-        diag_mask = torch.ones(num_states, num_states) - torch.eye(num_states)
-        update = update*diag_mask + torch.diag(torch.squeeze(self_update))
-
-        # Make the update over all N^2 synapses
-        update = torch.nan_to_num(update)
-        
-        update = torch.abs(self.update_clamp_a)*update + self.update_clamp_b
-        update = self.update_clamp(update)
-        self.last_update = update.detach().numpy()
-
-        self.J = decays*self.J + etas*update
+        x = self.x_queue[:, -2]
+        self.J = self.J + etas*(update - torch.outer(torch.matmul(self.J, x), x))
         self.J = torch.nan_to_num(self.J)
 
     def _update_B_pos(self):
@@ -486,7 +475,7 @@ class STDP_CA3(nn.Module):
             self.B_neg = A*convolution
 
     def _update_eta_invs(self):
-        self.eta_invs = self.X + self.gamma_T*self.eta_invs
+        self.eta_invs = self.X*self.eta_inv_scale + self.gamma_T*self.eta_invs
 
     def _init_constants(self):
         self.dt = 1
@@ -494,46 +483,24 @@ class STDP_CA3(nn.Module):
         self.A_scaling = 10 # Scale factors are useful for gradient descent
         self.alpha_other_scaling = 10
         self.alpha_self_scaling = 1
-
         self.learning_rate_clamp = Clamp(floor=0, ceil=1)
-
+        self.plasticity_activity_clamp = Clamp( # For stability during training
+            floor=-10, ceil=10
+            )
         self.x_queue_length = 20 # max needed for tau of 4
         self.x_queue = torch.zeros((self.num_states, self.x_queue_length))
 
     def _init_trainable(self):
-        self.A_pos = nn.Parameter(torch.rand(1))
-        self.tau_pos = nn.Parameter(1 + torch.randn(1)*0.1)
-        self.A_neg = nn.Parameter(-torch.abs(torch.rand(1)))
-        self.tau_neg = nn.Parameter(1 + torch.randn(1)*0.1)
-        self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
-        self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
-
-        # Scales and clamps the update to the J matrix
-        self.update_clamp_a = nn.Parameter(torch.tensor([1.]))
-        self.update_clamp_b = nn.Parameter(torch.tensor([0.]))
-        self.update_clamp = Clamp(floor=0, ceil=1)
-
-        # Scales and clamps the neural activity used in the plasticity rules
-        self.plasticity_activity_clamp = Clamp(
-            floor=-10, ceil=10 # For stability during metalearning
-            )
-
-        # Nonlinearity may be a clamp
-        if self.output_params['nonlinearity'] == 'clamp':
-            self.nonlin_clamp = Clamp(
-                floor=0, ceil=nn.Parameter(torch.tensor([2.])),
-                ceil_offset=1
-                )
-            self.clamp_bias = nn.Parameter(torch.tensor([0.]))
-        elif self.output_params['nonlinearity'] == 'relu':
-            self.relu_bias = nn.Parameter(torch.tensor([0.]))
-        elif self.output_params['nonlinearity'] == 'sigmoid':
-            self.sigmoid_scale = nn.Parameter(torch.tensor([3.]))
-        elif self.output_params['nonlinearity'] == 'sigmoid_with_offset':
-            self.sigmoid_scale = nn.Parameter(torch.tensor([3.]))
-            self.sigmoid_offset = nn.Parameter(torch.tensor([0.]))
-        elif self.output_params['nonlinearity'] == 'tanh':
-            self.tanh_scale = nn.Parameter(torch.tensor([3.]))
+        if self.use_kernels_in_update:
+            self.A_pos = nn.Parameter(torch.rand(1))
+            self.tau_pos = nn.Parameter(1 + torch.randn(1)*0.1)
+            self.A_neg = nn.Parameter(-torch.abs(torch.rand(1)))
+            self.tau_neg = nn.Parameter(1 + torch.randn(1)*0.1)
+            self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
+            self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
+            self.eta_inv_scale = nn.Parameter(torch.tensor([1.]))
+        else:
+            self.eta_inv_scale = 1 #nn.Parameter(torch.tensor([1.]))
 
 class OjaCA3(module.Module):
     def __init__(self, num_states, gamma_M0, lr=1E-3, start_valid=False):
