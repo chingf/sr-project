@@ -21,43 +21,42 @@ lrs_probs = [[1,1,1], [5,1,1], [1,1,5]]
 num_states = 25
 num_steps = 400
 
+gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+nonlinearity_args = [None] #, 1.0, 1.5, 2.0]
 args = []
-for nonlinearity in ['None', 'relu']:
-    for gamma in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-        args.append([nonlinearity, gamma])
+for gamma in gammas:
+    for nonlinearity_arg in nonlinearity_args:
+        args.append((gamma, nonlinearity_arg))
 
 def grid_train(arg):
     _T_maes = []
     _M_maes = []
-    nonlinearity, gamma = arg
-    gamma_dir = f'{experiment_dir}{nonlinearity}/{gamma}/'
+    gamma, nonlinearity_arg = arg
+    gamma_dir = f'{experiment_dir}{gamma}/{nonlinearity_arg}/'
     best_iter_val = np.inf
     best_iter = None
     for _iter in os.listdir(gamma_dir):
         iter_dir = f'{gamma_dir}{_iter}/'
         if not os.path.isfile(iter_dir + 'net_configs.p'):
             continue
-        for file in os.listdir(iter_dir):
-            if 'tfevents' not in file: continue
-            tfevents_file = iter_dir + file
-            event_acc = EventAccumulator(tfevents_file)
-            event_acc.Reload()
-            iter_val = [
-                event_acc.Scalars('loss_train')[-i].value for i in range(2)
-                ]
-            iter_val = np.mean(iter_val)
-            if iter_val < best_iter_val:
-                best_iter_val = iter_val
-                best_iter = _iter
-            break
+        iter_val = []
+        for idx in len(lrs_probs):
+            _, _M_mae = run(iter_dir, idx)
+            iter_val.append(_M_mae)
+        iter_val = np.mean(iter_val)
+        if iter_val < best_iter_val:
+            best_iter_val = iter_val
+            best_iter = _iter
     for _ in range(n_test_iters):
         T_mae, M_mae = run(f'{gamma_dir}{best_iter}/')
         _T_maes.append(T_mae)
         _M_maes.append(M_mae)
-    return nonlinearity, gamma, _T_maes, _M_maes
+    return nonlinearity_arg, gamma, _T_maes, _M_maes
 
-def run(exp_dir):
-    lrs_prob = lrs_probs[np.random.choice(len(lrs_probs))]
+def run(exp_dir, lrs_prob_idx=None):
+    if lrs_prob_idx is None:
+        lrs_prob_idx = np.random.choice(len(lrs_probs))
+    lrs_prob = lrs_probs[lrs_prob_idx]
     dset = inputs.Sim1DWalk(
         num_steps=num_steps, num_states=num_states,
         left_right_stay_prob=lrs_prob
@@ -93,5 +92,5 @@ results = {
     'nonlinearities': nonlinearities, 'gammas': gammas,
     'T_maes': T_maes, 'M_maes': M_maes
     }
-with open(f'{experiment_dir}results.p', 'wb') as f:
+with open(f'{experiment_dir}test_results.p', 'wb') as f:
     pickle.dump(results, f)
