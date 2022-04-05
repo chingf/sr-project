@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
 from datasets import inputs
-from sr_model.models.models import AnalyticSR, STDP_SR, OjaRNN, Linear
+from sr_model.models.models import AnalyticSR, STDP_SR, OjaRNN, Linear, STDP_SR
 
 device = 'cpu'
 
@@ -33,10 +33,10 @@ def eval(path_or_model, datasets):
                 net_configs = pickle.load(f)
             net_configs.pop('num_states')
             net = STDP_SR(num_states=64, **net_configs)
+            net.load_state_dict(torch.load(model_path))
         else:
             print("Loading default configs")
             net = STDP_SR(num_states=64, gamma=0.4)
-        net.load_state_dict(torch.load(model_path))
     else:
         net = path_or_model
     
