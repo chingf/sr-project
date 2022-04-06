@@ -133,31 +133,6 @@ class Linear(module.Module):
         self.M = torch.zeros(1, num_states, num_states)
         self.reset()
 
-class MLP(module.Module):
-    """ Output is M @ i """
-
-    def __init__(self, input_size, hidden_size):
-        """
-        Assumes input size is == output size
-        """
-
-        super(MLP, self).__init__()
-        self.f = nn.Sequential(
-            nn.Linear(input_size, hidden_size), nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size), nn.ReLU(),
-            nn.Linear(hidden_size, input_size)
-            )
-
-    def forward(self, inputs, reset=False):
-        if reset:
-            self.reset()
-        return self.f(inputs)
-
-    def reset(self):
-        for layer in self.children():
-           if hasattr(layer, 'reset_parameters'):
-               layer.reset_parameters()
-
 class Hopfield(module.Module):
     def __init__(self, input_size, lr=1E-3, clamp=np.inf):
         super(Hopfield, self).__init__()
@@ -188,22 +163,3 @@ class Hopfield(module.Module):
 
     def reset(self):
         torch.nn.init.zeros_(self.M)
-
-class OjaRNN(AnalyticSR):
-    """ Output is M.T @ i """
-
-    def __init__(
-        self, num_states, gamma, stay_case=0, ca3_kwargs={}
-        ):
-        """
-        Args:
-            stay_case: 
-                0: run the model with no modifications
-                1: ignore stay inputs by stitching together transition inputs,
-                2: ignore stay inputs but continue learning rate update during stay
-        """
-
-        super(OjaRNN, self).__init__(num_states, gamma, stay_case)
-        self.dg = dg.DG()
-        self.ca3 = ca3.OjaCA3(num_states, gamma, **ca3_kwargs) 
-        self.estimates_T = True
