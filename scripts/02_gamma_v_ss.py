@@ -6,57 +6,43 @@ import torch.nn as nn
 from joblib import Parallel, delayed
 
 from datasets import inputs
+from sr_model import configs
 from sr_model.models.models import AnalyticSR, STDP_SR
-from train import train
+from eval import eval
 import pickle
 
+experiment_dir = f'{configs.engram_dir}02_gamma_v_ss/'
 experiment_dir = '../../engram/Ching/02_gamma_v_ss/'
-n_jobs = 56
-n_iters = 5
+os.makedirs(experiment_dir, exist_ok=True)
+n_jobs = 16
 
+num_steps = 3001
+num_states = 25
 datasets = [
-    inputs.Sim1DWalk,
-    inputs.Sim1DWalk,
-    ]
-datasets_config_ranges = [
-    {
-    'num_steps': [3, 10, 20, 30],
-    'left_right_stay_prob': [[1, 1, 1], [1, 1, 5], [5, 1, 0], [1, 5, 0]],
-    'num_states': [5, 10, 15, 25]
-    },
-    {
-    'num_steps': [100, 200],
-    'left_right_stay_prob': [[1, 1, 1], [5, 1, 1]],
-    'num_states': [10, 15]
-    },
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[4,1,1]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[1,1,4]),
     ]
 
-gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-nonlinearity_args = [None, 1.0, 1.5, 2.0]
+gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+nonlinearity_args = [None, 1.0]
 args = []
 for gamma in gammas:
     for nonlinearity_arg in nonlinearity_args:
-        for _iter in range(n_iters):
-            args.append((gamma, nonlinearity_arg, _iter))
+        args.append((gamma, nonlinearity_arg))
 
-def grid_train(arg):
-    gamma, nonlinearity_arg, _iter = arg
-    iter_dir = experiment_dir + f'{gamma}/{nonlinearity_arg}/{_iter}/'
-    if os.path.isfile(iter_dir + 'model.pt'):
-        return
-    if not os.path.exists(iter_dir):
-        os.makedirs(iter_dir)
-
+def grid(arg):
+    gamma, nonlinearity_arg = arg
     if nonlinearity_arg is None:
+        nonlin_str = 'Linear'
         output_params = {}
-        train_M = False
     else:
+        nonlin_str = 'Tanh'
         rstep = int(np.log(1E-5)/np.log(gamma))
         output_params = {
-            'num_iterations':rstep, 'input_clamp':rstep,
+            'num_iterations':rstep,
             'nonlinearity': 'tanh', 'nonlinearity_args': nonlinearity_arg
             }
-        train_M = True
     net_configs = {
         'gamma':gamma,
         'ca3_kwargs':{
@@ -64,15 +50,22 @@ def grid_train(arg):
             'output_params': output_params
             }
         }
-
     net = STDP_SR(
         num_states=2, gamma=gamma, ca3_kwargs=net_configs['ca3_kwargs']
         )
-    train(
-        iter_dir, net, datasets, datasets_config_ranges,
-        train_steps=301, print_every_steps=10, train_M=train_M
-        )
-    with open(iter_dir + 'net_configs.p', 'wb') as f:
-        pickle.dump(net_configs, f)
+    t_error, m_error, row_norm, _ = eval(net, datasets, print_every_steps=100)
+    return gamma, nonlin_str, np.mean(m_error, axis=0)[-1]
 
-Parallel(n_jobs=n_jobs)(delayed(grid_train)(arg) for arg in args)
+results = {}
+results['gammas'] = []
+results['nonlinearity_args'] = []
+results['vals'] = []
+job_results = Parallel(n_jobs=n_jobs)(delayed(grid)(arg) for arg in args)
+for res in job_results:
+    gamma, nonlinearity_arg, val = res
+    results['gammas'].append(gamma)
+    results['nonlinearity_args'].append(nonlinearity_arg)
+    results['vals'].append(val)
+with open(f'{experiment_dir}results.p', 'wb') as f:
+    pickle.dump(results, f)
+
