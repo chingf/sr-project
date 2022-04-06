@@ -198,7 +198,7 @@ def set_parameters(net, names, flattened_params):
     return net
 
 def test1():
-    save_path = './trained_models/fixed0.6/'
+    save_path = './trained_models/test1/'
     output_params = {
         'num_iterations': 33,
         'nonlinearity': 'fixed', 'nonlinearity_args': 2.,
@@ -213,110 +213,8 @@ def test1():
         }
     return save_path, output_params, net_params
 
-def test2():
-    save_path = './trained_models/test2/'
-    output_params = {
-        'num_iterations': 50,
-        'nonlinearity': 'fixed', 'nonlinearity_args': 2.,
-        'input_clamp':np.inf
-        }
-    net_params = {
-        'num_states':2, 'gamma':0.8,
-        'ca3_kwargs':{
-            'A_pos_sign':1, 'A_neg_sign':-1,
-            'output_params':output_params
-            }
-        }
-    return save_path, output_params, net_params
-
-def test3():
-    save_path = './trained_models/test3/'
-    output_params = {
-        'num_iterations': 50,
-        'nonlinearity': 'fixed', 'nonlinearity_args': (2., 1.),
-        'input_clamp':np.inf
-        }
-    net_params = {
-        'num_states':2, 'gamma':0.8,
-        'ca3_kwargs':{
-            'A_pos_sign':1, 'A_neg_sign':-1,
-            'output_params':output_params
-            }
-        }
-    return save_path, output_params, net_params
-
-def test4():
-    save_path = './trained_models/test4/'
-    output_params = {
-        'num_iterations': 50,
-        'nonlinearity': 'fixed', 'nonlinearity_args': 1.,
-        'input_clamp':np.inf
-        }
-    net_params = {
-        'num_states':2, 'gamma':0.8,
-        'ca3_kwargs':{
-            'A_pos_sign':1, 'A_neg_sign':-1,
-            'output_params':output_params
-            }
-        }
-    return save_path, output_params, net_params
-
-def test5():
-    """ has biased walk in training """
-
-    save_path = './trained_models/test5/'
-    output_params = {
-        'num_iterations': 50,
-        'nonlinearity': 'fixed', 'nonlinearity_args': 1.,
-        'input_clamp':np.inf
-        }
-    net_params = {
-        'num_states':2, 'gamma':0.8,
-        'ca3_kwargs':{
-            'A_pos_sign':1, 'A_neg_sign':-1,
-            'output_params':output_params
-            }
-        }
-    return save_path, output_params, net_params
-
-def test6():
-    """ test3, but with biased walk in training """
-
-    save_path = './trained_models/test6/'
-    output_params = {
-        'num_iterations': 50,
-        'nonlinearity': 'fixed', 'nonlinearity_args': (4., 2.),
-        'input_clamp':np.inf
-        }
-    net_params = {
-        'num_states':2, 'gamma':0.8,
-        'ca3_kwargs':{
-            'A_pos_sign':1, 'A_neg_sign':-1,
-            'output_params':output_params
-            }
-        }
-    return save_path, output_params, net_params
-
-def test7():
-    """ test2, but with biased walk and less states to make saturation """
-
-    save_path = './trained_models/test7/'
-    output_params = {
-        'num_iterations': 50,
-        'nonlinearity': 'fixed', 'nonlinearity_args': 2.,
-        'input_clamp':np.inf
-        }
-    net_params = {
-        'num_states':2, 'gamma':0.8,
-        'ca3_kwargs':{
-            'A_pos_sign':1, 'A_neg_sign':-1,
-            'output_params':output_params
-            }
-        }
-    return save_path, output_params, net_params
-
 if __name__ == "__main__":
-    save_path, output_params, net_params = test2()
+    save_path, output_params, net_params = test5()
     print(save_path)
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
@@ -324,41 +222,41 @@ if __name__ == "__main__":
         os.makedirs(save_path)
     datasets = [
         inputs.Sim1DWalk,
-        inputs.Sim1DWalk,
+#        inputs.Sim1DWalk,
+        ]
+
+    datasets_config_ranges = [
+        {
+        'num_steps': [3, 10, 20, 30],
+        'left_right_stay_prob': [[1, 1, 1], [1, 1, 5], [7, 1, 0], [1, 7, 0]],
+        'num_states': [5, 10, 15, 25]
+        },
+#        {
+#        'num_steps': [100, 200],
+#        'num_states': [25, 36]
+#        },
         ]
 
 #    datasets_config_ranges = [
 #        {
 #        'num_steps': [3, 10, 20, 30],
-#        'left_right_stay_prob': [[1, 1, 1], [1, 1, 5], [7, 1, 0], [1, 7, 0]],
+#        'left_right_stay_prob': [[1, 1, 1], [1, 1, 5], [5, 1, 0], [1, 5, 0]],
 #        'num_states': [5, 10, 15, 25]
 #        },
 #        {
 #        'num_steps': [100, 200],
-#        'num_states': [25, 36]
+#        'left_right_stay_prob': [[1, 1, 1], [5, 1, 1]],
+#        'num_states': [10, 15] # [15, 25] [25, 36]
 #        },
 #        ]
 
-    datasets_config_ranges = [
-        {
-        'num_steps': [3, 10, 20, 30],
-        'left_right_stay_prob': [[1, 1, 1], [1, 1, 5], [5, 1, 0], [1, 5, 0]],
-        'num_states': [5, 10, 15, 25]
-        },
-        {
-        'num_steps': [100, 200],
-        'left_right_stay_prob': [[1, 1, 1], [5, 1, 1]],
-        'num_states': [10, 15] # [15, 25] [25, 36]
-        },
-        ]
-
-    train_M = True
+    train_M = False
 
     with open(save_path + "net_configs.p", 'wb') as f:
         import pickle
         pickle.dump(net_params, f)
 
-    net = STDP_SR(**net_params)
+    net = NewSTDP_SR(**net_params)
     net, return_error = train(
         save_path, net, datasets, datasets_config_ranges, train_steps=701,
         early_stop=False, print_every_steps=25, return_test_error=True,

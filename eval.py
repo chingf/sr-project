@@ -11,11 +11,11 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
 from datasets import inputs
-from sr_model.models.models import AnalyticSR, STDP_SR, OjaRNN, Linear, STDP_SR
+from sr_model.models.models import AnalyticSR, STDP_SR, Linear
 
 device = 'cpu'
 
-def eval(path_or_model, datasets):
+def eval(path_or_model, datasets, print_every_steps=1):
     """
     Evaluates the performance of a model on three datasets. Looks for a model.pt
     and net_configs.p file in SAVE_PATH.
@@ -78,12 +78,12 @@ def eval(path_or_model, datasets):
                 true_M = np.linalg.pinv(np.eye(true_T.shape[0]) - net.gamma*true_T)
                 t_error = np.mean(np.abs(true_T - net_T))
                 m_error = np.mean(np.abs(true_M - net_M))
-                res_t_error.append(t_error)
-                res_m_error.append(m_error)
 
-                # Check normalization of T (both row and col)
-                res_t_row_norm.append(np.mean(np.sum(net_T, axis=1)))
-                res_t_col_norm.append(np.mean(np.sum(net_T, axis=0)))
+                if step % print_every_steps == 0:
+                    res_t_error.append(t_error)
+                    res_m_error.append(m_error)
+                    res_t_row_norm.append(np.mean(np.sum(net_T, axis=1)))
+                    res_t_col_norm.append(np.mean(np.sum(net_T, axis=0)))
 
             results_T_error.append(np.array(res_t_error))
             results_M_error.append(np.array(res_m_error))
