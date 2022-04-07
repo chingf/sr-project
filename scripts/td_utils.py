@@ -11,9 +11,8 @@ import argparse
 from shutil import rmtree
 
 from datasets import inputs, sf_inputs_discrete
-from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP, Hopfield
+from sr_model.models.models import AnalyticSR, STDP_SR, Linear, Hopfield
 from run_td_rnn import run as run_rnn
-from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
 
 def run_models(
