@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 import cma
 
 from datasets import inputs, sf_inputs_discrete
-from sr_model.models.models import AnalyticSR, STDP_SR, MLP
+from sr_model.models.models import AnalyticSR, STDP_SR
 from train_td import train
 
 device = 'cpu'

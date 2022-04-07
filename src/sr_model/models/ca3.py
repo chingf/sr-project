@@ -58,8 +58,7 @@ class CA3(module.Module):
                     nonlin_a = torch.absolute(self.nonlin_a)
                     current = sigmoid(nonlin_a*current + self.nonlin_b)
                 elif nonlinearity == 'tanh':
-                    nonlin_a = torch.absolute(self.nonlin_a)
-                    current = tanh(nonlin_a*current + self.nonlin_b)
+                    current = tanh(current)
                 elif nonlinearity == 'clamp':
                     clamp_offset = torch.absolute(self.clamp_offset)
                     clamp_min = self.clamp_min
@@ -68,8 +67,6 @@ class CA3(module.Module):
                         current, min=clamp_min.item(),
                         max=clamp_max.item()
                         )
-                elif nonlinearity == 'fixed':
-                    current = tanh(current)
 
                 # Apply neuromodulatory gamma
                 current = gamma*current
@@ -124,7 +121,7 @@ class CA3(module.Module):
 
         self.T = self.T + full_update
         self.T[:] = torch.clamp(self.T, min=0)
-        return full_update
+        return update_term, forget_term
 
     def get_T(self):
         return self.T
