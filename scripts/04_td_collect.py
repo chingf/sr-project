@@ -24,12 +24,8 @@ n_jobs = 56
 def format_model_name(key):
     if key == 'rnn':
         return 'RNN-SF'
-    elif key == 'rnn_oja':
-        return 'RNN-Oja'
     elif key == 'linear':
         return 'Linear'
-    elif key == 'mlp':
-        return 'MLP with Replay Buffer'
     else:
         raise ValueError("Invalid key.")
 
@@ -89,6 +85,13 @@ def grid_train(args):
                 values = np.array([event.value for event in scalar_events])
                 if np.any(np.isnan(values)): continue
                 results = pickle.load(open(iter_path + 'results.p', 'rb'))
+                try:
+                    chance_losses.append(
+                        event_acc.Scalars('chance_loss')[-1].value
+                        )
+                except:
+                    print(f'ERROR!!!!!!! Failed on {iter_path}')
+                    break
                 init_sparsities.append(init_sparsity)
                 final_sparsities.append(
                     results['dset'].feature_maker.post_smooth_sparsity
@@ -97,12 +100,6 @@ def grid_train(args):
                 gammas.append(gamma)
                 models.append(model)
                 final_losses.append(values[-1])
-                if 'mlp' in model_dir:
-                    chance_losses.append(np.nan)
-                else:
-                    chance_losses.append(
-                        event_acc.Scalars('chance_loss')[-1].value
-                        )
                 break
 
     return init_sparsities, final_sparsities,\

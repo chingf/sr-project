@@ -12,19 +12,30 @@ from eval import eval
 import pickle
 
 experiment_dir = f'{configs.engram_dir}02_gamma_v_ss/'
-experiment_dir = '../../engram/Ching/02_gamma_v_ss/'
+experiment_dir = '../../engram/Ching/02_gamma_v_ss_3000/'
 os.makedirs(experiment_dir, exist_ok=True)
-n_jobs = 16
+n_jobs = 14
 
 num_steps = 3001
 num_states = 25
 datasets = [
     inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[2,1,1]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[1,1,2]),
     inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[4,1,1]),
     inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[1,1,4]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[6,1,1]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[1,1,6]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[2,1,1]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[1,1,2]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[4,1,1]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[1,1,4]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[6,1,1]),
+    inputs.Sim1DWalk(num_steps=num_steps, num_states=num_states, left_right_stay_prob=[1,1,6]),
     ]
 
-gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
 nonlinearity_args = [None, 1.0]
 args = []
 for gamma in gammas:
@@ -53,8 +64,8 @@ def grid(arg):
     net = STDP_SR(
         num_states=2, gamma=gamma, ca3_kwargs=net_configs['ca3_kwargs']
         )
-    t_error, m_error, row_norm, _ = eval(net, datasets, print_every_steps=100)
-    return gamma, nonlin_str, np.mean(m_error, axis=0)[-1]
+    t_error, m_error, row_norm, _ = eval(net, datasets, print_every_steps=1000)
+    return gamma, nonlin_str, [err[-1] for err in m_error]
 
 results = {}
 results['gammas'] = []
@@ -63,9 +74,9 @@ results['vals'] = []
 job_results = Parallel(n_jobs=n_jobs)(delayed(grid)(arg) for arg in args)
 for res in job_results:
     gamma, nonlinearity_arg, val = res
-    results['gammas'].append(gamma)
-    results['nonlinearity_args'].append(nonlinearity_arg)
-    results['vals'].append(val)
+    results['gammas'].extend([gamma]*len(val))
+    results['nonlinearity_args'].extend([nonlinearity_arg]*len(val))
+    results['vals'].extend(val)
 with open(f'{experiment_dir}results.p', 'wb') as f:
     pickle.dump(results, f)
 
