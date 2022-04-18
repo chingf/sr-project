@@ -12,8 +12,14 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
 
 experiment_dir = '../../engram/Ching/01_tau_gridsearch/'
-tau_negs = np.arange(0.25, 4.25, 0.25)
-tau_poses = np.arange(0.25, 4.25, 0.25)
+experiment_dir = '../trained_models/01_tau_gridsearch/'
+os.makedirs(experiment_dir, exist_ok=True)
+n_jobs = 7
+n_iters = 3
+n_train_steps = 401
+
+tau_negs = np.arange(0.2, 2.5, 0.2)
+tau_poses = np.arange(0.2, 3.5, 0.2)
 A_signs = [1, -1]
 
 datasets = [inputs.Sim1DWalk]
@@ -28,11 +34,13 @@ for tau_neg in tau_negs:
     for tau_pos in tau_poses:
         for A_pos_sign in A_signs:
             for A_neg_sign in A_signs:
-                if A_pos_sign*tau_pos < -1.: continue
+                if A_pos_sign*tau_pos < -1: continue
+                if A_neg_sign*tau_neg > 1: continue
                 grid_params.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
+print(len(grid_params))
 
 def main():
-    Parallel(n_jobs=56)(delayed(grid_train)(param) for param in grid_params)
+    Parallel(n_jobs=n_jobs)(delayed(grid_train)(param) for param in grid_params)
 
 def slurm_main(idx):
     param = grid_params[idx]
@@ -47,7 +55,9 @@ def grid_train(arg):
     # Initialize network
     net_configs = {
         'gamma': 0.4, 'ca3_kwargs':
-        {'A_pos_sign':A_pos_sign, 'A_neg_sign':A_neg_sign}
+        {'A_pos_sign':A_pos_sign, 'A_neg_sign':A_neg_sign,
+        'use_kernels_in_update':True, 'approx_B': True, 'use_B_norm': True
+        }
         }
     net = STDP_SR(
         num_states=2, gamma=net_configs['gamma'],
@@ -62,11 +72,11 @@ def grid_train(arg):
 
     # Train
     losses = []
-    for _ in range(10):
+    for _ in range(n_iters):
         try:
             net, loss = train(
                 save_path, net, datasets, datasets_config_ranges,
-                train_steps=401, early_stop=True
+                train_steps=n_train_steps, early_stop=True,
                 )
             losses.append(loss)
             if loss < 1E-5: break # No need to run more iterations
