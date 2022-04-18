@@ -15,10 +15,9 @@ from math import ceil
 
 root = os.path.dirname(os.path.abspath(os.curdir))
 sys.path.append(root)
-from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
+from sr_model.models.models import AnalyticSR, STDP_SR, Linear
 from datasets import inputs, sf_inputs_discrete
 from run_td_rnn import run as run_rnn
-from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
 from utils import get_field_metrics
 
@@ -32,8 +31,8 @@ n_jobs = 56
 root_dir = "../../engram/Ching/03_td_discrete_corr/"
 root_dir = "../../engram/Ching/03_hannah_dset/"
 arena_length = 14
-models = ['hopfield', 'linear', 'mlp', 'rnn', 'rnn_oja']
-gammas = [0.6, 0.75, 0.8, 0.4]
+models = ['rnn_tanh'] #'hopfield', 'linear', 'mlp', 'rnn', 'rnn_oja']
+gammas = [0.6, 0.75] #, 0.8, 0.4]
 
 
 def get_sparsity(key):

@@ -14,7 +14,7 @@ import pickle
 experiment_dir = f'{configs.engram_dir}02_gamma_v_rstep/'
 experiment_dir = '../../engram/Ching/02_gamma_v_rstep/'
 os.makedirs(experiment_dir, exist_ok=True)
-n_jobs = 16
+n_jobs = 24
 
 num_steps = 3001
 num_states = 25
@@ -28,8 +28,8 @@ gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 rsteps = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 args = []
 for gamma in gammas:
-    for nonlinearity_arg in nonlinearity_args:
-        args.append((gamma, nonlinearity_arg))
+    for rstep in rsteps:
+        args.append((gamma, rstep))
 
 def grid(arg):
     gamma, rstep = arg

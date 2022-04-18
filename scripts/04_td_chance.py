@@ -58,8 +58,8 @@ def grid_train(args):
     sigmas = []
     gammas = []
     models = []
-    final_losses = []
-    chance_losses = []
+    means = []
+    stds = []
 
     # Get dataset parameters
     init_sparsity = get_sparsity(path)
@@ -77,37 +77,21 @@ def grid_train(args):
             iter_path = model_path + iter_dir + '/'
             if not os.path.isfile(iter_path + 'results.p'):
                 continue
-            for file in os.listdir(iter_path):
-                if 'tfevents' not in file: continue
-                tfevents_file = iter_path + '/' + file
-                event_acc = EventAccumulator(tfevents_file)
-                event_acc.Reload()
-                try:
-                    scalar_events = event_acc.Scalars('loss_train')
-                except:
-                    continue
-                values = np.array([event.value for event in scalar_events])
-                if np.any(np.isnan(values)): continue
-                results = pickle.load(open(iter_path + 'results.p', 'rb'))
-                try:
-                    chance_losses.append(
-                        event_acc.Scalars('chance_loss')[-1].value
-                        )
-                except:
-                    print(f'ERROR!!!!!!! Failed on {iter_path}')
-                    break
-                init_sparsities.append(init_sparsity)
-                final_sparsities.append(
-                    results['dset'].feature_maker.post_smooth_sparsity
-                    )
-                sigmas.append(sigma)
-                gammas.append(gamma)
-                models.append(model)
-                final_losses.append(values[-1])
-                break
+            results = pickle.load(open(iter_path + 'results.p', 'rb'))
+            feature_maker = results['dset'].feature_maker
+            feature_map = feature_maker.feature_map # (feature dim, num states)
+            init_sparsities.append(init_sparsity)
+            final_sparsities.append(feature_maker.post_smooth_sparsity)
+            sigmas.append(sigma)
+            gammas.append(gamma)
+            models.append(model)
+            mean_feature = np.mean(feature_map, axis=1)
+            std_feature = np.mean(np.abs(feature_map - mean_feature[:,None]), axis=1)
+            means.append(np.linalg.norm(mean_feature))
+            stds.append(np.linalg.norm(std_feature))
 
     return init_sparsities, final_sparsities,\
-        sigmas, gammas, models, final_losses, chance_losses
+        sigmas, gammas, models, means, stds
 
 args = []
 for sparsity_dir in os.listdir(root_dir):
@@ -116,33 +100,34 @@ for sparsity_dir in os.listdir(root_dir):
         if 'sigma' not in sigma_dir: continue
         for gamma_dir in os.listdir(f'{root_dir}{sparsity_dir}/{sigma_dir}/'):
             if 'DS' in gamma_dir: continue 
+            if gamma_dir != '0.75': continue
             args.append((sparsity_dir, sigma_dir, gamma_dir))
 init_sparsities = []
 final_sparsities = []
 sigmas = []
 gammas = []
 models = []
-final_losses = []
-chance_losses = []
+means = []
+stds = []
 job_results = Parallel(n_jobs=n_jobs)(delayed(grid_train)(arg) for arg in args)
 for res in job_results:
     _init_sparsities, _final_sparsities,\
-        _sigmas, _gammas, _models, _final_losses, _chance_losses = res
+        _sigmas, _gammas, _models, _means, _stds = res
     init_sparsities.extend(_init_sparsities)
     final_sparsities.extend(_final_sparsities)
     sigmas.extend(_sigmas)
     gammas.extend(_gammas)
     models.extend(_models)
-    final_losses.extend(_final_losses)
-    chance_losses.extend(_chance_losses)
+    means.extend(_means)
+    stds.extend(_stds)
 results = {
     'init_sparsities': init_sparsities,
     'final_sparsities': final_sparsities,
     'sigmas': sigmas,
     'gammas': gammas,
     'models': models,
-    'final_losses': final_losses,
-    'chance_losses': chance_losses
+    'means': means,
+    'stds': stds,
     }
-with open(f'{root_dir}td_results.p', 'wb') as f: #TODO
+with open(f'{root_dir}td_chance.p', 'wb') as f: #TODO
     pickle.dump(results, f)
