@@ -71,21 +71,32 @@ def grid(arg):
         dg_inputs = dg_inputs.unsqueeze(1)
     
         # Network
-        ca3_kwargs = {'lr':lr}
         net = AnalyticSR( # Initialize network
-            num_states=num_states, gamma=gamma, ca3_kwargs=ca3_kwargs
+            num_states=num_states, gamma=gamma, ca3_kwargs={'lr':lr}
+            )
+        ojanet = AnalyticSR( # Initialize network
+            num_states=num_states, gamma=gamma, ca3_kwargs={'lr':lr}
             )
         saved_grads[_iter] = {}
         saved_grads[_iter]['steps'] = []
         saved_grads[_iter]['update'] = []
         saved_grads[_iter]['forget'] = []
+        saved_grads[_iter]['oja_update'] = []
+        saved_grads[_iter]['oja_forget'] = []
+        saved_grads[_iter]['steps_mat'] = []
+        saved_grads[_iter]['update_mat'] = []
+        saved_grads[_iter]['forget_mat'] = []
         for i in range(num_steps):
             phi_prime = dg_inputs[i].unsqueeze(0)
             _, psi_prime = net(
                 phi_prime, reset=False, update=False, update_transition=True
                 )
+            _, psi_prime = ojanet(
+                phi_prime, reset=False, update=False, update_transition=True
+                )
             if i == 0: continue
             # Get gradients
+            oja_update, oja_forget = ojanet.ca3.update(update_type='oja')
             grad_update, grad_forget = net.ca3.update()
 
             # Record grads if needed
@@ -97,6 +108,23 @@ def grid(arg):
                 saved_grads[_iter]['forget'].append(
                     np.mean(grad_forget.detach().numpy())
                     )
+                saved_grads[_iter]['oja_update'].append(
+                    np.mean(oja_update.detach().numpy())
+                    )
+                saved_grads[_iter]['oja_forget'].append(
+                    np.mean(oja_forget.detach().numpy())
+                    )
+                if _iter == 0:
+                    saved_grads[_iter]['steps_mat'].append(i)
+                    saved_grads[_iter]['update_mat'].append(
+                        grad_update.detach().numpy()
+                        )
+                    saved_grads[_iter]['forget_mat'].append(
+                        grad_forget.detach().numpy()
+                        )
+                    if i == 3000:
+                        saved_grads[_iter]['J_mat'] = net.get_T()
+                        saved_grads[_iter]['oja_J_mat'] = ojanet.get_T()
 
     with open(f'{exp_path}{sprs}_{sig}.p', 'wb') as f:
         pickle.dump({'saved_grads': saved_grads}, f)
