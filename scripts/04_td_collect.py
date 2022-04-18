@@ -21,8 +21,12 @@ root_dir = '../../engram/Ching/03_hannah_dset/'
 device = 'cpu'
 n_jobs = 56
 
-def format_model_name(key):
-    if key == 'rnn':
+def format_model_name(key): #TODO
+    if key == 'rnn_tanh':
+        return 'RNN-Tanh'
+    elif key == 'rnn_none':
+        return 'RNN-None'
+    elif key == 'rnn':
         return 'RNN-SF'
     elif key == 'linear':
         return 'Linear'
@@ -109,7 +113,9 @@ args = []
 for sparsity_dir in os.listdir(root_dir):
     if 'sparsity' not in sparsity_dir: continue
     for sigma_dir in os.listdir(f'{root_dir}{sparsity_dir}/'):
+        if 'sigma' not in sigma_dir: continue
         for gamma_dir in os.listdir(f'{root_dir}{sparsity_dir}/{sigma_dir}/'):
+            if 'DS' in gamma_dir: continue 
             args.append((sparsity_dir, sigma_dir, gamma_dir))
 init_sparsities = []
 final_sparsities = []
@@ -138,5 +144,5 @@ results = {
     'final_losses': final_losses,
     'chance_losses': chance_losses
     }
-with open(f'{root_dir}td_results.p', 'wb') as f:
+with open(f'{root_dir}td_results.p', 'wb') as f: #TODO
     pickle.dump(results, f)

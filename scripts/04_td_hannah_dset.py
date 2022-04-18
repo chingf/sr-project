@@ -11,7 +11,7 @@ import argparse
 from shutil import rmtree
 
 from datasets import inputs, sf_inputs_discrete
-from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
+from sr_model.models.models import AnalyticSR, STDP_SR, Linear
 from td_utils import run_models
 
 def main(delete_dir=False):
@@ -22,7 +22,7 @@ def main(delete_dir=False):
 
     iters = 10
     n_jobs = 56
-    gammas = [0.6, 0.75] #, 0.8, 0.4]
+    gammas = [0.4, 0.5, 0.8]
 
     # Integer sigmas
     spatial_sigmas = [0.0, 1.0, 2.0, 3.0]

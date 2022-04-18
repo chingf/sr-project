@@ -15,10 +15,9 @@ from scipy.special import digamma, loggamma
 root = os.path.dirname(os.path.abspath(os.curdir))
 sys.path.append(root)
 
-from sr_model.models.models import AnalyticSR, STDP_SR, Linear, MLP
+from sr_model.models.models import AnalyticSR, STDP_SR, Linear
 from datasets import inputs, sf_inputs_discrete
 from run_td_rnn import run as run_rnn
-from run_td_mlp import run as run_mlp
 from run_td_linear import run as run_linear
 from scipy.ndimage.measurements import label
 import configs
