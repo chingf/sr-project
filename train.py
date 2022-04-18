@@ -137,6 +137,8 @@ def train(
                 'Time per step {:0.3f}s, net {:0.3f}s'.format(time_step, time_net),
                  file=print_file
                 )
+            print(net.ca3.tau_pos)
+            print(net.ca3.tau_neg)
             model_path = os.path.join(save_path, 'model.pt')
             torch.save(net.state_dict(), model_path)
             time_step = 0
@@ -199,22 +201,18 @@ def set_parameters(net, names, flattened_params):
 
 def test1():
     save_path = './trained_models/test1/'
-    output_params = {
-        'num_iterations': 33,
-        'nonlinearity': 'fixed', 'nonlinearity_args': 2.,
-        'input_clamp':np.inf
-        }
+    output_params = {}
     net_params = {
-        'num_states':2, 'gamma':0.6,
+        'num_states':2, 'gamma':0.4,
         'ca3_kwargs':{
             'A_pos_sign':1, 'A_neg_sign':-1,
-            'output_params':output_params
+            'use_kernels_in_update': True, 'approx_B': True, 'use_B_norm': True
             }
         }
     return save_path, output_params, net_params
 
 if __name__ == "__main__":
-    save_path, output_params, net_params = test5()
+    save_path, output_params, net_params = test1()
     print(save_path)
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
@@ -256,7 +254,14 @@ if __name__ == "__main__":
         import pickle
         pickle.dump(net_params, f)
 
-    net = NewSTDP_SR(**net_params)
+    net = STDP_SR(**net_params)
+
+    # Load grid parameters
+#    nn.init.constant_(net.ca3.tau_pos, 0.6)
+#    nn.init.constant_(net.ca3.tau_neg, 0.2)
+#    net.ca3.tau_pos.requires_grad = False
+#    net.ca3.tau_neg.requires_grad = False
+
     net, return_error = train(
         save_path, net, datasets, datasets_config_ranges, train_steps=701,
         early_stop=False, print_every_steps=25, return_test_error=True,
