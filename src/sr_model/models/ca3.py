@@ -117,7 +117,7 @@ class CA3(module.Module):
                 full_update = torch.abs(self.lr)*(update_term - forget_term)
 
         if view_only:
-            return full_update
+            return update_term, forget_term
 
         self.T = self.T + full_update
         self.T[:] = torch.clamp(self.T, min=0)
@@ -210,7 +210,7 @@ class STDP_CA3(nn.Module):
             self, num_states, gamma_M0, gamma_T=0.99999,
             A_pos_sign=None, A_neg_sign=None,
             approx_B=False, use_kernels_in_update=False,
-            output_params={}, static_eta=None
+            output_params={}, static_eta=None, use_B_norm=False
             ):
 
         super(STDP_CA3, self).__init__()
@@ -228,6 +228,7 @@ class STDP_CA3(nn.Module):
             }
         self.output_params.update(output_params)
         self.static_eta = static_eta
+        self.use_B_norm = use_B_norm
         self.x_queue = torch.zeros((self.num_states, 1)) # Not used if approx B
 
         self.reset()
@@ -302,6 +303,8 @@ class STDP_CA3(nn.Module):
         if self.use_kernels_in_update:
             self._update_B_pos()
             self._update_B_neg()
+            if self.use_B_norm:
+                self._update_B_norm()
 
         if self.prev_input is None: return
         
@@ -314,10 +317,9 @@ class STDP_CA3(nn.Module):
         self.real_T_count = self.gamma_T*self.real_T_count
         self.real_T_count[self.prev_input>0] += 1
 
-    def get_stdp_kernel(self, kernel_len=20):
+    def get_stdp_kernel(self, kernel_len=20, scale=True):
         """ Returns plasticity kernel for plotting or debugging. """
 
-        scaling = self.A_scaling
         if self.A_pos_sign is not None:
             A_pos = self.A_pos_sign * torch.abs(self.A_pos)
         else:
@@ -328,13 +330,21 @@ class STDP_CA3(nn.Module):
             A_neg = self.A_neg
        
         pos_xs = -1*np.arange(0, kernel_len+0.01, 0.5)
-        pos_ys = scaling*A_pos.data.item() * np.exp(
+        pos_ys = np.exp(
             pos_xs/self.tau_pos.data.item()
             )
+        if scale:
+            pos_ys *= A_pos.data.item()
+        else:
+            pos_ys *= np.sign(A_pos.data.item())
         neg_xs = np.arange(-kernel_len, 0.01, 0.5)
-        neg_ys = scaling*A_neg.data.item() * np.exp(
+        neg_ys = np.exp(
             neg_xs/self.tau_neg.data.item()
             )
+        if scale:
+            neg_ys *= A_neg.data.item()
+        else:
+            neg_ys *= np.sign(A_neg.data.item())
         xs = np.concatenate((neg_xs, -1*pos_xs))
         ys = np.concatenate((neg_ys, pos_ys))
         return xs, ys
@@ -373,15 +383,18 @@ class STDP_CA3(nn.Module):
         self.eta_invs = np.ones(self.J.shape[0])*init_scale
         self.B_pos = np.zeros(self.num_states)
         self.B_neg = np.zeros(self.num_states)
+        self.B_norm = np.zeros(self.num_states)
 
         # Detached Hebbian tensors
         self.J = torch.tensor(self.J).float()
         self.eta_invs = torch.tensor(self.eta_invs).float()
         self.B_pos = torch.tensor(self.B_pos).float()
         self.B_neg = torch.tensor(self.B_neg).float()
+        self.B_norm = torch.tensor(self.B_norm).float()
         self.J.detach_()
         self.B_pos.detach_()
         self.B_neg.detach_()
+        self.B_norm.detach_()
 
         self.prev_input = None
         self.curr_input = None
@@ -410,23 +423,25 @@ class STDP_CA3(nn.Module):
             activity = torch.unsqueeze(activity, dim=0) # (1, N)
     
             # Calculate potentiation and depression over all i,j for i != j
-            potentiation = (self.dt/self.tau_J) * activity.t() * B_pos # (N, N); activity i, B_pos j
-            depression = (self.dt/self.tau_J) * B_neg.t() * activity # (N, N); B_neg i, activity j
-            alpha_other = torch.abs(self.alpha_other)*self.alpha_other_scaling
+            potentiation = activity.t() * B_pos # (N, N); activity i, B_pos j
+            depression = B_neg.t() * activity # (N, N); B_neg i, activity j
+            alpha_other = torch.abs(self.alpha_other)
             update = (potentiation + depression)*alpha_other*alpha_other
     
             # Calculate self-potentiation (i == j)
-            self_potentiation = (self.dt/self.tau_J)*activity*B_pos*self.prev_input
-            alpha_self = torch.abs(self.alpha_self)*self.alpha_self_scaling
+            self_potentiation = activity*B_pos*self.prev_input
+            alpha_self = torch.abs(self.alpha_self)
             self_update = self_potentiation*alpha_self
             diag_mask = torch.ones(num_states, num_states) - torch.eye(num_states)
             update = update*diag_mask + torch.diag(torch.squeeze(self_update))
+            update = update - self.B_norm
             update = torch.nan_to_num(update)
         else:
             update = torch.outer(self.x_queue[:,-1], self.x_queue[:,-2])
+            x = self.x_queue[:, -2]
+            update = update - torch.outer(torch.matmul(self.J, x), x)
 
-        x = self.x_queue[:, -2]
-        self.J = self.J + etas*(update - torch.outer(torch.matmul(self.J, x), x))
+        self.J = self.J + etas*(update)
         self.J = torch.nan_to_num(self.J)
 
     def _update_B_pos(self):
@@ -435,12 +450,12 @@ class STDP_CA3(nn.Module):
             A_pos = self.A_pos_sign * torch.abs(self.A_pos)
         else:
             A_pos = self.A_pos
-        A = A_pos * self.A_scaling * self.dt
+        A = A_pos
         tau_pos = relu(self.tau_pos)
 
         # Either use Euler integration or calculate convolution
         if self.approx_B:
-            decay = 1 - self.dt/tau_pos
+            decay = 1 - 1/tau_pos
             activity = self.X
             self.B_pos = decay*self.B_pos + A*activity
         else:
@@ -456,12 +471,12 @@ class STDP_CA3(nn.Module):
             A_neg = self.A_neg_sign * torch.abs(self.A_neg)
         else:
             A_neg = self.A_neg
-        A = A_neg * self.A_scaling * self.dt
+        A = A_neg
         tau_neg = relu(self.tau_neg)
 
         # Either use Euler integration or calculate convolution
         if self.approx_B:
-            decay = 1 - self.dt/tau_neg
+            decay = 1 - 1/tau_neg
             activity = self.X
             self.B_neg = decay*self.B_neg + A*activity
         else:
@@ -471,15 +486,20 @@ class STDP_CA3(nn.Module):
             convolution = activity @ exp_function
             self.B_neg = A*convolution
 
+    def _update_B_norm(self):
+        # Calculate scaling factor 
+        A = torch.abs(self.A_norm)
+        tau_norm = relu(self.tau_norm)
+
+        # Use Euler integration
+        decay = 1 - 1/tau_norm
+        x = self.X
+        self.B_norm = decay*self.B_norm + A*torch.outer(torch.matmul(self.J, x), x)
+
     def _update_eta_invs(self):
         self.eta_invs = self.X*self.eta_inv_scale + self.gamma_T*self.eta_invs
 
     def _init_constants(self):
-        self.dt = 1
-        self.tau_J = 1
-        self.A_scaling = 10 # Scale factors are useful for gradient descent
-        self.alpha_other_scaling = 10
-        self.alpha_self_scaling = 1
         self.learning_rate_clamp = Clamp(floor=0, ceil=1)
         self.plasticity_activity_clamp = Clamp( # For stability during training
             floor=-10, ceil=10
@@ -496,6 +516,9 @@ class STDP_CA3(nn.Module):
             self.alpha_self = nn.Parameter(torch.abs(torch.randn(1)))
             self.alpha_other = nn.Parameter(torch.abs(torch.randn(1)))
             self.eta_inv_scale = nn.Parameter(torch.tensor([1.]))
+            if self.use_B_norm:
+                self.A_norm = nn.Parameter(-torch.abs(torch.rand(1)))
+                self.tau_norm = nn.Parameter(1 + torch.randn(1)*0.1)
         else:
             self.eta_inv_scale = 1
 
