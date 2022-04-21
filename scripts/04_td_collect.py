@@ -23,13 +23,13 @@ n_jobs = 56
 
 def format_model_name(key): #TODO
     if key == 'rnn_tanh':
-        return 'RNN-Tanh'
-    elif key == 'rnn_none':
-        return 'RNN-None'
-    elif key == 'rnn':
-        return 'RNN-SF'
+        return 'RNN-S'
+#    elif key == 'rnn_none':
+#        return 'RNN-None'
+#    elif key == 'rnn':
+#        return 'RNN-SF'
     elif key == 'linear':
-        return 'Linear'
+        return 'FF-TD'
     else:
         raise ValueError("Invalid key.")
 
