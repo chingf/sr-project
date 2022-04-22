@@ -15,7 +15,7 @@ from sr_model.models.models import AnalyticSR, STDP_SR, Linear
 
 device = 'cpu'
 
-def eval(path_or_model, datasets, print_every_steps=1):
+def eval(path_or_model, datasets, print_every_steps=1, eval_gamma=None):
     """
     Evaluates the performance of a model on three datasets. Looks for a model.pt
     and net_configs.p file in SAVE_PATH.
@@ -69,13 +69,15 @@ def eval(path_or_model, datasets, print_every_steps=1):
                 if step==0: continue
 
                 # How well the model estimates the true T/M
+                if eval_gamma is None:
+                    eval_gamma = net.gamma
                 net_T = net.get_T().detach().numpy()
                 try:
-                    net_M = net.get_M().detach().numpy()
+                    net_M = net.get_M(gamma=eval_gamma).detach().numpy()
                 except:
-                    net_M = net.get_M()
+                    net_M = net.get_M(gamma=eval_gamma)
                 true_T = dset.get_true_T()
-                true_M = np.linalg.pinv(np.eye(true_T.shape[0]) - net.gamma*true_T)
+                true_M = np.linalg.pinv(np.eye(true_T.shape[0]) - eval_gamma*true_T)
                 t_error = np.mean(np.abs(true_T - net_T))
                 m_error = np.mean(np.abs(true_M - net_M))
 
