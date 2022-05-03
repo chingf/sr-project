@@ -15,12 +15,12 @@ experiment_dir = f'{configs.engram_dir}02_gamma_v_eigenvals/'
 experiment_dir = '../../engram/Ching/02_gamma_v_eigenvals/'
 os.makedirs(experiment_dir, exist_ok=True)
 n_jobs = 56
-n_iters = 24
+n_iters = 45
 
 num_steps = 1501
 num_states = 25
 dataset = inputs.Sim1DWalk
-lrs_probs = [[1,1,1], [4,1,1], [1,1,4]]
+lrs_probs = [[4,1,1]] #[[1,1,1], [4,1,1], [1,1,4]]
 
 gammas = np.arange(0.01, 0.86, 0.01)
 nonlinearity_args = [None, 1.0]
@@ -34,7 +34,7 @@ def grid(arg):
     gamma, nonlinearity_arg, _iter = arg
     eigenvals = []
     steps = []
-    lrs_prob = lrs_probs[_iter%3]
+    lrs_prob = lrs_probs[_iter%len(lrs_probs)]
     dataset_params = {
         'num_steps':num_steps, 'num_states':num_states,
         'left_right_stay_prob': lrs_prob
