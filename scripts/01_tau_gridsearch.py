@@ -12,10 +12,10 @@ from sr_model.models.models import AnalyticSR, STDP_SR
 from train import train
 
 experiment_dir = '../../engram/Ching/01_tau_gridsearch/'
-experiment_dir = '../trained_models/01_tau_gridsearch/'
+#experiment_dir = '../trained_models/01_tau_gridsearch/'
 os.makedirs(experiment_dir, exist_ok=True)
-n_jobs = 7
-n_iters = 3
+n_jobs = 56
+n_iters = 20
 n_train_steps = 401
 
 tau_negs = np.arange(0.2, 2.5, 0.2)
@@ -34,8 +34,8 @@ for tau_neg in tau_negs:
     for tau_pos in tau_poses:
         for A_pos_sign in A_signs:
             for A_neg_sign in A_signs:
-                if A_pos_sign*tau_pos < -1: continue
-                if A_neg_sign*tau_neg > 1: continue
+                if A_pos_sign*tau_pos < 0: continue # Only pre-post potentiation
+                if A_neg_sign*tau_neg > 1: continue # Post-pre potentiation limit
                 grid_params.append((tau_neg, tau_pos, A_pos_sign, A_neg_sign))
 print(len(grid_params))
 
@@ -56,7 +56,7 @@ def grid_train(arg):
     net_configs = {
         'gamma': 0.4, 'ca3_kwargs':
         {'A_pos_sign':A_pos_sign, 'A_neg_sign':A_neg_sign,
-        'use_kernels_in_update':True, 'approx_B': True, 'use_B_norm': True
+        'use_kernels_in_update':True, 'approx_B': False, 'use_B_norm': False
         }
         }
     net = STDP_SR(

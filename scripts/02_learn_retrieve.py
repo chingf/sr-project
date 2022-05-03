@@ -15,11 +15,11 @@ experiment_dir = f'{configs.engram_dir}02_learn_retrieve/'
 experiment_dir = '../../engram/Ching/02_learn_retrieve/'
 os.makedirs(experiment_dir, exist_ok=True)
 n_jobs = 56
-n_iters = 3
+n_iters = 5
 
 num_steps = 3001
 num_states = 25
-lr_probs = [[1,1,1], [4,1,1], [1,1,4]]
+lr_probs = [[4,1,1]]
 datasets = []
 for _iter in range(n_iters):
     for lr_prob in lr_probs:
@@ -31,21 +31,25 @@ for _iter in range(n_iters):
 
 learn_gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
 retrieve_gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+nonlinearities = ['None', 'Tanh']
 args = []
 for learn_gamma in learn_gammas:
     for retrieve_gamma in retrieve_gammas:
-        for _iter in range(n_iters):
-            args.append((learn_gamma, retrieve_gamma, _iter))
+        for nonlinearity in nonlinearities:
+            args.append((learn_gamma, retrieve_gamma, nonlinearity))
 
 def grid(arg):
-    learn_gamma, retrieve_gamma, _iter = arg
+    learn_gamma, retrieve_gamma, nonlinearity = arg
 
     # As Tanh
     rstep = int(np.log(1E-5)/np.log(retrieve_gamma))
-    output_params = {
-        'num_iterations':rstep,
-        'nonlinearity': 'tanh', 'nonlinearity_args': 1.0
-        }
+    if nonlinearity == 'None':
+        output_params = {}
+    else:
+        output_params = {
+            'num_iterations':rstep,
+            'nonlinearity': 'tanh', 'nonlinearity_args': 1.0
+            }
     net_configs = {'gamma':learn_gamma, 'ca3_kwargs':{'output_params': output_params}}
     net = STDP_SR(
         num_states=2, gamma=learn_gamma, ca3_kwargs=net_configs['ca3_kwargs']
@@ -53,18 +57,20 @@ def grid(arg):
     t_error, m_error, row_norm, _ = eval(
         net, datasets, print_every_steps=100, eval_gamma=retrieve_gamma
         )
-    return learn_gamma, retrieve_gamma, np.mean(m_error, axis=0)[-1]
+    return learn_gamma, retrieve_gamma, np.mean(m_error, axis=0)[-1], nonlinearity
 
 results = {}
 results['learn_gammas'] = []
 results['retrieve_gammas'] = []
 results['vals'] = []
+results['nonlinearity'] = []
 job_results = Parallel(n_jobs=n_jobs)(delayed(grid)(arg) for arg in args)
 for res in job_results:
-    learn_gamma, retrieve_gamma, val = res
+    learn_gamma, retrieve_gamma, val, nonlinearity = res
     results['learn_gammas'].append(learn_gamma)
     results['retrieve_gammas'].append(retrieve_gamma)
     results['vals'].append(val)
+    results['nonlinearity'].append(nonlinearity)
 with open(f'{experiment_dir}results.p', 'wb') as f:
     pickle.dump(results, f)
 
