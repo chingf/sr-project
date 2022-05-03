@@ -20,8 +20,9 @@ except:
 
 from sr_model.utils import pol2cart, downsample
 from datasets import inputs
+import configs
 
-engram_dir = "/home/chingf/engram/Ching/"
+engram_dir = configs.engram_dir
 if not os.path.isdir(engram_dir):
     engram_dir = "../../engram/Ching/"
 

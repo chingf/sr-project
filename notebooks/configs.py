@@ -41,7 +41,7 @@ henrikson2010 = DatasetStats(
 
 import seaborn as sns
 sns.set(font='Arial',
-        font_scale=16/12., #default size is 12pt, scale to 16pt
+        font_scale=8./12., #default size is 12pt, scale to 16pt
         palette='colorblind', #'Set1',
         rc={'axes.axisbelow': True,
             'axes.edgecolor': 'lightgrey',
@@ -55,6 +55,7 @@ sns.set(font='Arial',
             'lines.solid_capstyle': 'round',
             'legend.facecolor': 'white',
             'legend.framealpha':0.8,
+            'legend.fontsize': 6.,
 
             'xtick.bottom': True,
             'xtick.color': 'dimgrey',
