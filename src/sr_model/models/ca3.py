@@ -51,7 +51,9 @@ class CA3(module.Module):
             output = torch.squeeze(torch.zeros_like(_input))
             dt = 1.
             for iteration in range(num_iterations):
-                current = torch.matmul(self.T.t(), output.t())
+                #current = torch.matmul(self.T.t(), output.t())
+
+                current = output.t()
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'sigmoid':
@@ -67,6 +69,8 @@ class CA3(module.Module):
                         current, min=clamp_min.item(),
                         max=clamp_max.item()
                         )
+
+                current = torch.matmul(self.T.t(), current)
 
                 # Apply neuromodulatory gamma
                 current = gamma*current
@@ -274,7 +278,8 @@ class STDP_CA3(nn.Module):
             activity = torch.zeros_like(self.x_queue[:, -1]) #TODO: without zero?
             dt = 1.
             for iteration in range(num_iterations):
-                current = torch.matmul(gamma*self.J, activity)
+                #current = torch.matmul(gamma*self.J, activity)
+                current = activity
 
                 # Option: apply nonlinearity onto current
                 if nonlinearity == 'tanh':
@@ -285,6 +290,8 @@ class STDP_CA3(nn.Module):
                     else:
                         x_scale = y_scale = nonlinearity_args
                     current = tanh(current/x_scale)*y_scale
+
+                current = torch.matmul(gamma*self.J, current)
 
                 # Option: provide input only briefly
                 if iteration <= input_clamp:
