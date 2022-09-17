@@ -17,7 +17,7 @@ from datasets import inputs
 import seaborn as sns
 import pandas as pd
 
-root_dir = '../../engram/Ching/03_hannah_dset/'
+root_dir = '../../engram/Ching/03_hannah_dset_revisions/'
 device = 'cpu'
 n_jobs = 56
 

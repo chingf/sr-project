@@ -15,14 +15,14 @@ from sr_model.models.models import AnalyticSR, STDP_SR, Linear
 from td_utils import run_models
 
 def main(delete_dir=False):
-    save_path = '../../engram/Ching/03_hannah_dset/'
-    load_path = '../../engram/Ching/03_td_discrete_corr/'
+    save_path = '../../engram/Ching/03_hannah_dset_revisions/'
+    load_path = '../../engram/Ching/03_td_discrete_corr_revisions/'
     if delete_dir:
         rmtree(save_path, ignore_errors=True)
 
     iters = 10
     n_jobs = 56
-    gammas = [0.4, 0.5, 0.8]
+    gammas = [0.4, 0.5, 0.6, 0.75, 0.8]
 
     # Integer sigmas
     spatial_sigmas = [0.0, 1.0, 2.0, 3.0]
