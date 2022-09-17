@@ -13,9 +13,10 @@ import pickle
 
 experiment_dir = f'{configs.engram_dir}02_learn_retrieve/'
 experiment_dir = '../../engram/Ching/02_learn_retrieve/'
+experiment_dir = '../trained_models/02_learn_retrieve/'
 os.makedirs(experiment_dir, exist_ok=True)
-n_jobs = 56
-n_iters = 5
+n_jobs = 7
+n_iters = 10
 
 num_steps = 3001
 num_states = 25
@@ -31,7 +32,7 @@ for _iter in range(n_iters):
 
 learn_gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
 retrieve_gammas = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
-nonlinearities = ['None', 'Tanh']
+nonlinearities = ['None', 'None-Static', 'Tanh']
 args = []
 for learn_gamma in learn_gammas:
     for retrieve_gamma in retrieve_gammas:
@@ -45,6 +46,8 @@ def grid(arg):
     rstep = int(np.log(1E-5)/np.log(retrieve_gamma))
     if nonlinearity == 'None':
         output_params = {}
+    elif nonlinearity == 'None-Static':
+        output_params = {'static_eta': 10**(-1.5)}
     else:
         output_params = {
             'num_iterations':rstep,
@@ -57,19 +60,21 @@ def grid(arg):
     t_error, m_error, row_norm, _ = eval(
         net, datasets, print_every_steps=100, eval_gamma=retrieve_gamma
         )
-    return learn_gamma, retrieve_gamma, np.mean(m_error, axis=0)[-1], nonlinearity
+    return learn_gamma, retrieve_gamma, np.mean(t_error, axis=0)[-1], np.mean(m_error, axis=0)[-1], nonlinearity
 
 results = {}
 results['learn_gammas'] = []
 results['retrieve_gammas'] = []
-results['vals'] = []
+results['t_vals'] = []
+results['m_vals'] = []
 results['nonlinearity'] = []
 job_results = Parallel(n_jobs=n_jobs)(delayed(grid)(arg) for arg in args)
 for res in job_results:
-    learn_gamma, retrieve_gamma, val, nonlinearity = res
+    learn_gamma, retrieve_gamma, t_val, m_val, nonlinearity = res
     results['learn_gammas'].append(learn_gamma)
     results['retrieve_gammas'].append(retrieve_gamma)
-    results['vals'].append(val)
+    results['t_vals'].append(t_val)
+    results['m_vals'].append(m_val)
     results['nonlinearity'].append(nonlinearity)
 with open(f'{experiment_dir}results.p', 'wb') as f:
     pickle.dump(results, f)

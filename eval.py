@@ -72,10 +72,13 @@ def eval(path_or_model, datasets, print_every_steps=1, eval_gamma=None):
                 if eval_gamma is None:
                     eval_gamma = net.gamma
                 net_T = net.get_T().detach().numpy()
-                try:
-                    net_M = net.get_M(gamma=eval_gamma).detach().numpy()
-                except:
-                    net_M = net.get_M(gamma=eval_gamma)
+                if isinstance(net, Linear):
+                    net_M = net.get_M().detach().numpy()
+                else:
+                    try:
+                        net_M = net.get_M(gamma=eval_gamma).detach().numpy()
+                    except:
+                        net_M = net.get_M(gamma=eval_gamma)
                 true_T = dset.get_true_T()
                 true_M = np.linalg.pinv(np.eye(true_T.shape[0]) - eval_gamma*true_T)
                 t_error = np.mean(np.abs(true_T - net_T))
