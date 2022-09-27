@@ -9,3 +9,4 @@ figures/
 *.png
 *.pdf
 .DS_Store
+*.mat
