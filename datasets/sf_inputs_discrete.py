@@ -19,8 +19,7 @@ except:
     warnings.warn("Emily's experimental data could not be loaded.")
 
 from sr_model.utils import pol2cart, downsample
-from datasets import inputs
-import configs
+from datasets import inputs, configs
 
 engram_dir = configs.engram_dir
 if not os.path.isdir(engram_dir):
@@ -329,10 +328,13 @@ class FeatureMaker(object):
             sigma = [self.spatial_sigma, 0]
         else:
             arena_length = int(np.sqrt(num_states))
-            features = np.random.choice(
-                [0,1.], size=(num_states, feature_dim),
-                p=self.feature_vals_p
-                )
+            try:
+                features = np.random.choice(
+                    [0,1.], size=(num_states, feature_dim),
+                    p=self.feature_vals_p
+                    )
+            except:
+                import pdb; pdb.set_trace()
             sigma = [self.spatial_sigma, self.spatial_sigma, 0]
 
         # If correlation is zero, zero out non-unique features

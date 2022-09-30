@@ -22,7 +22,7 @@ def main(delete_dir=False):
 
     iters = 10
     n_jobs = 56
-    gammas = [0.4, 0.5, 0.6, 0.75, 0.8]
+    gammas = [0.4, 0.6, 0.8] #0.5, 0.6, 0.75, 0.8]
 
     # Integer sigmas
     spatial_sigmas = [0.0, 1.0, 2.0, 3.0]

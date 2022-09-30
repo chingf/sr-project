@@ -87,76 +87,76 @@ def run_models(
 #                with open(f'{rnn_save_path}/results.p', 'wb') as f:
 #                    pickle.dump(results, f)
 
-    # RNN-Tanh
-    if os.path.isfile(save_path + f'rnn_tanh/{iters-1}/results.p'):
-        print(f'{save_path}/rnn_tanh already calculated. Skipping...')
-    else:
-        num_iters = int(np.log(1E-5)/np.log(gamma))
-        best_lr = np.inf; best_lr_val = np.inf;
-        for lr in lr_range:
-            ca3_kwargs = {
-                'output_params':{'num_iterations': num_iters,'nonlinearity': 'tanh'},
-                'lr': lr
-                }
-            net = AnalyticSR(
-                num_states=input_size, gamma=gamma,
-                ca3_kwargs=ca3_kwargs
-                )
-            _, loss, _, _ = run_rnn(
-                save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
-                test_over_all=test_over_all, print_file=print_file
-                )
-            if loss < best_lr_val:
-                best_lr = lr; best_lr_val = loss;
-        for _iter in range(iters):
-            ca3_kwargs = {
-                'output_params':{'num_iterations': num_iters,'nonlinearity': 'tanh'},
-                'lr': best_lr
-                }
-            net = AnalyticSR(
-                num_states=input_size, gamma=gamma,
-                ca3_kwargs=ca3_kwargs
-                )
-            rnn_save_path = save_path + f'rnn_tanh/{_iter}'
-            if os.path.isfile(f'{rnn_save_path}/results.p'):
-                print(f'{rnn_save_path} already calculated. Skipping...')
-                continue
-            try:
-                outputs, _, dset, _ = run_rnn(
-                    rnn_save_path, net, dataset, dataset_config, gamma=gamma,
-                    train_net=False, test_over_all=False
-                    )
-            except RuntimeError as e:
-                if 'svd' in str(e):
-                    continue
-                else:
-                    raise
-            if save_outputs:
-                results = {'outputs': outputs, 'dset': dset}
-                with open(f'{rnn_save_path}/results.p', 'wb') as f:
-                    pickle.dump(results, f)
-
-#    # Linear
-#    print(f'Running {save_path} for Linear')
-#    best_lr = np.inf; best_lr_val = np.inf;
-#    net = Linear(input_size=input_size)
-#    for lr in lr_range:
-#        net.reset()
-#        _, loss, _, _ = run_linear(
-#            save_path + 'test/', net, dataset, dataset_config, gamma=gamma, lr=lr,
-#            test_over_all=test_over_all, print_file=print_file
-#            )
-#        if loss < best_lr_val:
-#            best_lr = lr; best_lr_val = loss;
-#    for _iter in range(iters):
-#        net.reset()
-#        linear_save_path = save_path + f'linear/{_iter}'
-#        outputs, _, dset, _ = run_linear(
-#            linear_save_path, net, dataset, dataset_config, lr=best_lr, gamma=gamma,
-#            test_over_all=test_over_all, print_file=print_file
-#            )
-#        if save_outputs:
-#            results = {'outputs': outputs, 'dset': dset}
-#            with open(f'{linear_save_path}/results.p', 'wb') as f:
-#                pickle.dump(results, f)
-#   
+#    # RNN-Tanh
+#    if os.path.isfile(save_path + f'rnn_tanh/{iters-1}/results.p'):
+#        print(f'{save_path}/rnn_tanh already calculated. Skipping...')
+#    else:
+#        num_iters = int(np.log(1E-5)/np.log(gamma))
+#        best_lr = np.inf; best_lr_val = np.inf;
+#        for lr in lr_range:
+#            ca3_kwargs = {
+#                'output_params':{'num_iterations': num_iters,'nonlinearity': 'tanh'},
+#                'lr': lr
+#                }
+#            net = AnalyticSR(
+#                num_states=input_size, gamma=gamma,
+#                ca3_kwargs=ca3_kwargs
+#                )
+#            _, loss, _, _ = run_rnn(
+#                save_path + 'test/', net, dataset, dataset_config, gamma=gamma,
+#                test_over_all=test_over_all, print_file=print_file
+#                )
+#            if loss < best_lr_val:
+#                best_lr = lr; best_lr_val = loss;
+#        for _iter in range(iters):
+#            ca3_kwargs = {
+#                'output_params':{'num_iterations': num_iters,'nonlinearity': 'tanh'},
+#                'lr': best_lr
+#                }
+#            net = AnalyticSR(
+#                num_states=input_size, gamma=gamma,
+#                ca3_kwargs=ca3_kwargs
+#                )
+#            rnn_save_path = save_path + f'rnn_tanh/{_iter}'
+#            if os.path.isfile(f'{rnn_save_path}/results.p'):
+#                print(f'{rnn_save_path} already calculated. Skipping...')
+#                continue
+#            try:
+#                outputs, _, dset, _ = run_rnn(
+#                    rnn_save_path, net, dataset, dataset_config, gamma=gamma,
+#                    train_net=False, test_over_all=False
+#                    )
+#            except RuntimeError as e:
+#                if 'svd' in str(e):
+#                    continue
+#                else:
+#                    raise
+#            if save_outputs:
+#                results = {'outputs': outputs, 'dset': dset}
+#                with open(f'{rnn_save_path}/results.p', 'wb') as f:
+#                    pickle.dump(results, f)
+#
+    # Linear
+    print(f'Running {save_path} for Linear')
+    best_lr = np.inf; best_lr_val = np.inf;
+    net = Linear(input_size=input_size)
+    for lr in lr_range:
+        net.reset()
+        _, loss, _, _ = run_linear(
+            save_path + 'test/', net, dataset, dataset_config, gamma=gamma, lr=lr,
+            test_over_all=test_over_all, print_file=print_file
+            )
+        if loss < best_lr_val:
+            best_lr = lr; best_lr_val = loss;
+    for _iter in range(iters):
+        net.reset()
+        linear_save_path = save_path + f'linear/{_iter}'
+        outputs, _, dset, learned_net = run_linear(
+            linear_save_path, net, dataset, dataset_config, lr=best_lr, gamma=gamma,
+            test_over_all=test_over_all, print_file=print_file
+            )
+        if save_outputs:
+            results = {'outputs': outputs, 'dset': dset, 'net': learned_net}
+            with open(f'{linear_save_path}/results.p', 'wb') as f:
+                pickle.dump(results, f)
+   

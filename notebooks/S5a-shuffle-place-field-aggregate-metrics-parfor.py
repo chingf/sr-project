@@ -32,12 +32,27 @@ num_states = 14*14
 num_steps = 5001
 root_dir = "../../engram/Ching/03_hannah_dset_revisions/"
 arena_length = 14
-model = 'identity'
+model = 'shuffle'
 gammas = [0.4, 0.6, 0.8]
 
+def get_sparsity(key):
+    p = re.compile('.*sparsity(.+?)\/.*')
+    if 'sigma' in key:
+        m = p.match(key)
+        return m.group(1)
+    else:
+        return '0'
+
+def get_sigma(key):
+    p = re.compile('.*sigma(.+?)\/.*')
+    if 'sigma' in key:
+        m = p.match(key)
+        return m.group(1)
+    else:
+        return '0'
 
 def collect_metrics(args):
-    sigma, sparsity, gamma = args
+    sigma, sparsity, model = args
     init_sparsities = []
     sigmas = []
     final_sparsities = []
@@ -49,24 +64,22 @@ def collect_metrics(args):
     nfieldkls = []
 
     gamma_dir = f'{root_dir}sparsity{sparsity}/sigma{sigma}/{gamma}/'
-    model_dir = f'{gamma_dir}{model}/'
-    os.makedirs(model_dir, exist_ok=True)
-
-    dataset = sf_inputs_discrete.Sim2DWalk
-    feature_maker_kwargs = {
-        'feature_dim': num_states, 'feature_type': 'correlated_distributed',
-        'feature_vals_p': [1-sparsity, sparsity],
-        'spatial_sigma': sigma
-        }
-    dataset_config = {                                                      
-        'num_steps': num_steps,
-        'feature_maker_kwargs': feature_maker_kwargs,
-        'num_states': num_states                                            
-        }
-    for _iter in range(iters):
-        iter_dir = model_dir + str(_iter) + '/'
-        dset = dataset(**dataset_config)
-        outputs = dset.dg_inputs.T
+    linear_model_dir = f'{gamma_dir}linear/'
+    for _iter in os.listdir(linear_model_dir):
+        linear_iter_dir = f'{linear_model_dir}/{_iter}/'
+        model_dir = f'{gamma_dir}{model}/{_iter}/'
+        os.makedirs(model_dir, exist_ok=True)
+        linear_iter_dir = linear_model_dir + _iter + '/'
+        iter_dir = model_dir + _iter + '/'
+        results_path = linear_iter_dir + 'results.p'
+        if not os.path.isfile(results_path): continue
+        with open(results_path, 'rb') as f:
+            results = pickle.load(f)
+        dset = results['dset']
+        linear_net = results['net']
+        linear_M = linear_net.M.numpy().squeeze()
+        linear_M = np.random.choice(linear_M.flatten(), size=linear_M.shape)
+        outputs = dset.dg_inputs.T @ linear_M
         _fieldsize, _nfield, _onefield, _zerofield, _fieldsizekl, _nfieldkl =\
             get_field_metrics(
                 outputs, dset, arena_length,
@@ -121,9 +134,6 @@ for gamma in gammas:
     zerofields = []
     fieldsizekls = []
     nfieldkls = []
-
-#    for arg in args:
-#        collect_metrics(arg)
 
     job_results = Parallel(n_jobs=n_jobs)(delayed(collect_metrics)(arg) for arg in args)
     for res in job_results:

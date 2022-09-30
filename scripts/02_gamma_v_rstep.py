@@ -51,6 +51,6 @@ for res in job_results:
     results['gammas'].append(gamma)
     results['rsteps'].append(rstep)
     results['vals'].append(val)
-with open(f'{experiment_dir}results.p', 'wb') as f:
+with open(f'{experiment_dir}results_revisions.p', 'wb') as f:
     pickle.dump(results, f)
 

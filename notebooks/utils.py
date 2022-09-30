@@ -77,6 +77,7 @@ def get_field_metrics(
     nfields = []
 
     # If you want to reload fields and there is a field info file available
+    os.makedirs(save_path, exist_ok=True)
     field_info_path = save_path + 'field_infos.p'
     if reload_field_info and os.path.exists(field_info_path):
         fields_reloaded = True
@@ -162,6 +163,8 @@ def get_kl_fieldsizes(fieldsizes):
     Get KL divergence of field size distribution from Payne 2021 distribution.
     """
 
+    if fieldsizes.size==0:
+        return np.infty
     k_P, _, theta_P = gamma.fit(fieldsizes) # shape, scale
     k_Q, theta_Q = configs.payne2021.fieldsize_distribution # shape, scale
     term1 = (k_P - k_Q) * digamma(k_P)
